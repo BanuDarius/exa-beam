@@ -1,0 +1,6 @@
+bin/
+input/
+build/
+output/
+output-image/
+scripts/__pycache__/
