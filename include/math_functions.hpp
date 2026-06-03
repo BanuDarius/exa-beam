@@ -20,9 +20,40 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
-#include <cstdio>
+#ifndef MATH_FUNCTIONS_H
+#define MATH_FUNCTIONS_H
 
-int main(int argc, char **argv) {
-	std::printf("First commit :D\n");
-	return 0;
+#include <array>
+#include <cmath>
+
+template <typename T>
+inline T dot(const std::array<T, 3> &a, const std::array<T, 3> &b) {
+	T x = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+	return x;
 }
+
+template <typename T>
+inline T magnitude(const std::array<T, 3> &a) {
+	T x = std::sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
+	return x;
+}
+
+template <typename T>
+inline std::array<T, 3> operator+(const std::array<T, 3> &a, const std::array<T, 3> &b) {
+	std::array<T, 3> x = { a[0] + b[0], a[1] + b[1], a[2] + b[2] };
+	return x;
+}
+
+template <typename T>
+inline std::array<T, 3> operator-(const std::array<T, 3> &a, const std::array<T, 3> &b) {
+	std::array<T, 3> x = { a[0] - b[0], a[1] - b[1], a[2] - b[2] };
+	return x;
+}
+
+template <typename T>
+inline std::array<T, 3> operator*(const std::array<T, 3> &a, T b) {
+	std::array<T, 3> x = { a[0] * b, a[1] * b, a[2] * b };
+	return x;
+}
+
+#endif
