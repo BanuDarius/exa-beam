@@ -35,8 +35,8 @@ inline uint32_t swap_endian(float v) {
 	return __builtin_bswap32(data);
 }
 
-template <typename T> void output_vtk_header_start(FILE *out, const Particles<T> &particles);
+template <typename T> void output_vtk_header_start(FILE *out, const ScalarField<T> &field);
 void output_vtk_header_scalar_next(FILE *out, const char *name);
-template <typename T> void output_test(FILE *out, const Particles<T> &particles, const char *name);
+template <typename T> void output_test(FILE *out, const ScalarField<T> &field, const char *name);
 
 #endif

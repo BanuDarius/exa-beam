@@ -25,18 +25,29 @@ SOFTWARE. */
 
 #include "physics.hpp"
 #include "laguerre_gauss.hpp"
+#include "math_functions.hpp"
 
 template <typename T>
-void test_u(Particles<T> &particles, const Laser<T> &laser) {
-	std::size_t total = particles.num[0] * particles.num[1] * particles.num[2];
+void test_u(ScalarField<T> &field, const Laser<T> &laser) {
+	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
+	T r_max_x = field.r_max[0], r_max_y = field.r_max[1];
 	#pragma omp parallel for schedule(static)
-	for(std::size_t i = 0; i < total; i++) {
-		std::array<T, 3> r_i= { particles.x[i], particles.y[i], particles.z[i] };
-		std::complex<T> u_i = compute_u(laser, r_i);
-		particles.z[i] = real(u_i);
+	for(int i = 0; i < nx; i++) {
+		for(int j = 0; j < ny; j++) {
+			for(int k = 0; k < nz; k++) {
+			std::array<T, 3> r_i = {
+				interpolate(-r_max_x, r_max_x, static_cast<T>(i), static_cast<T>(nx)),
+				interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
+				T(0.0)
+			};
+			std::complex<T> u_i = compute_u(laser, r_i);
+			int idx = grid_idx(i, j, k, nx, ny, nz);
+			field.v[idx] = real(u_i);
+			}
+		}
 	}
 }
 
-template void test_u<double>(Particles<double> &particles, const Laser<double> &laser);
-
-template void test_u<float>(Particles<float> &particles, const Laser<float> &laser);
+template void test_u<double>(ScalarField<double> &field, const Laser<double> &laser);
+ 
+template void test_u<float>(ScalarField<float> &field, const Laser<float> &laser); 

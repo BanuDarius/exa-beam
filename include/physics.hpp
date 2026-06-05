@@ -25,6 +25,6 @@ SOFTWARE. */
 
 #include "sim_structs.hpp"
 
-template <typename T> void test_u(Particles<T> &particles, const Laser<T> &laser);
+template <typename T> void test_u(ScalarField<T> &field, const Laser<T> &laser);
 
 #endif

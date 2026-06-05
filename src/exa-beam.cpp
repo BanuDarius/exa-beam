@@ -32,7 +32,8 @@ template <typename T>
 void start_simulation(const char *output_directory) {
 	Laser<T> laser(0, 0, T(0.057), T(15.0));
 	Particles<T> particles(128, 128, 1, laser.w0);
-	test_u(particles, laser);
+	ScalarField<T> test_field_u(128, 128, 1, laser.w0);
+	test_u(test_field_u, laser);
 	
 	char output_filename[string_size];
 	std::sprintf(output_filename, "%s/out.vtk", output_directory);
@@ -41,8 +42,8 @@ void start_simulation(const char *output_directory) {
 		std::fprintf(stderr, "CANNOT OPEN OUTPUT FILE!\n"); std::exit(1);
 	}
 	
-	output_vtk_header_start(output_file, particles);
-	output_test(output_file, particles, "u00");
+	output_vtk_header_start(output_file, test_field_u);
+	output_test(output_file, test_field_u, "u00");
 	fclose(output_file);
 }
 
