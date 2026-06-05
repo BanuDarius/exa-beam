@@ -25,25 +25,44 @@ SOFTWARE. */
 
 #include <memory>
 
+#include "math_functions.hpp"
+
+constexpr int string_size = 128;
+
 template <typename T> constexpr T c = T(137.036);
 template <typename T> constexpr T pi = T(3.14159265359);
 
+constexpr int grid_idx(int i, int j, int k, int nx, int ny, int nz) noexcept {
+	(void)nx;
+	return (i * ny * nz) + (j * nz) + k;
+}
+
 template <typename T>
 struct Particles {
-	int num_x, num_y, num_z;
+	std::array<int, 3> num;
+	std::array<T, 2> r_max;
 	std::unique_ptr<T[]> x, y, z, px, py, pz;
-	Particles(int nx, int ny, int nz) : num_x(nx), num_y(ny), num_z(nz) {
-		int total = num_x * num_y * num_z;
+	Particles(int nx, int ny, int nz, T r_max_n) {
+		r_max = { r_max_n, r_max_n };
+		num = { nx, ny, nz };
+		std::size_t total = nx * ny * nz;
 		x = std::unique_ptr<T[]>(new T[total]);
 		y = std::unique_ptr<T[]>(new T[total]);
 		z = std::unique_ptr<T[]>(new T[total]);
 		px = std::unique_ptr<T[]>(new T[total]);
 		py = std::unique_ptr<T[]>(new T[total]);
 		pz = std::unique_ptr<T[]>(new T[total]);
-		#pragma omp parallel for simd schedule(static)
-		for(int i = 0; i < total; i++) {
-			x[i] = T(0.0); y[i] = T(0.0); z[i] = T(0.0);
-			px[i] = T(0.0); py[i] = T(0.0); pz[i] = T(0.0);
+		#pragma omp parallel for collapse(3) schedule(static)
+		for(int i = 0; i < nx; i++) {
+			for(int j = 0; j < ny; j++) {
+				for(int k = 0; k < nz; k++) {
+					std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
+					x[idx] = interpolate(-r_max[0], r_max[0], static_cast<T>(i), static_cast<T>(nx));
+					y[idx] = interpolate(-r_max[1], r_max[1], static_cast<T>(j), static_cast<T>(ny));
+					z[idx] = T(0.0);
+					px[idx] = T(0.0); py[idx] = T(0.0); pz[idx] = T(0.0);
+				}
+			}
 		}
 	}
 };

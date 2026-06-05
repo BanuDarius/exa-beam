@@ -20,11 +20,23 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
-#ifndef PHYSICS_H
-#define PHYSICS_H
+#ifndef VTK_OUTPUT_H
+#define VTK_OUTPUT_H
+
+#include <cstdio>
+#include <cstdint>
+#include <cstring>
 
 #include "sim_structs.hpp"
 
-template <typename T> void test_u(Particles<T> &particles, const Laser<T> &laser);
+inline uint32_t swap_endian(float v) {
+	uint32_t data;
+	std::memcpy(&data, &v, 4);
+	return __builtin_bswap32(data);
+}
+
+template <typename T> void output_vtk_header_start(FILE *out, const Particles<T> &particles);
+void output_vtk_header_scalar_next(FILE *out, const char *name);
+template <typename T> void output_test(FILE *out, const Particles<T> &particles, const char *name);
 
 #endif

@@ -27,6 +27,12 @@ SOFTWARE. */
 #include <cmath>
 
 template <typename T>
+inline T interpolate(T min, T max, T i, T n) {
+	T v = min + (max - min) * i / n;
+	return v;
+}
+
+template <typename T>
 inline T dot(const std::array<T, 3> &a, const std::array<T, 3> &b) {
 	T x = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 	return x;

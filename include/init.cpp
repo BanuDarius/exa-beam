@@ -20,11 +20,4 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
-#ifndef PHYSICS_H
-#define PHYSICS_H
-
 #include "sim_structs.hpp"
-
-template <typename T> void test_u(Particles<T> &particles, const Laser<T> &laser);
-
-#endif

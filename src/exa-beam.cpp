@@ -21,33 +21,40 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
 #include <omp.h>
-#include <array>
 #include <cstdio>
-#include <complex>
+#include <cstdlib>
 
-#include "sim_structs.hpp"
 #include "physics.hpp"
+#include "vtk_output.hpp"
+#include "sim_structs.hpp"
 
 template <typename T>
-void start_simulation() {
-	Particles<T> particles(128, 128, 32);
+void start_simulation(const char *output_directory) {
 	Laser<T> laser(0, 0, T(0.057), T(15.0));
+	Particles<T> particles(128, 128, 1, laser.w0);
+	test_u(particles, laser);
 	
-	std::array<T, 3> pos = {T(30000.0), T(0.0), T(2.0)};
-	std::complex<T> u_new = compute_u(laser, pos);
-	std::printf("%0.3lf %0.3lf\n", real(u_new), imag(u_new));
-	std::printf("%0.3lf %0.3lf\n", laser.lambda, laser.w0);
+	char output_filename[string_size];
+	std::sprintf(output_filename, "%s/out.vtk", output_directory);
+	FILE *output_file = fopen(output_filename, "wb");
+	if(output_file == nullptr) {
+		std::fprintf(stderr, "CANNOT OPEN OUTPUT FILE!\n"); std::exit(1);
+	}
+	
+	output_vtk_header_start(output_file, particles);
+	output_test(output_file, particles, "u00");
+	fclose(output_file);
 }
 
 int main(int argc, char **argv) {
-	if(argc != 1) {
-		std::fprintf(stderr, "%s BAD ARGUMENTS!", argv[0]);
+	if(argc != 2) {
+		std::fprintf(stderr, "%s BAD ARGUMENTS!\n", argv[0]);
 		return 1;
 	}
 	double start_time = omp_get_wtime();
 	std::printf("Simulation started.\n");
 	
-	start_simulation<double>();
+	start_simulation<double>(argv[1]);
 	
 	std::printf("Simulation ended.\n");
 	std::printf("Time taken: %0.3lfs.\n", omp_get_wtime() - start_time);
