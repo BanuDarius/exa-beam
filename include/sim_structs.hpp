@@ -25,6 +25,9 @@ SOFTWARE. */
 
 #include <memory>
 
+template <typename T> constexpr T c = T(137.036);
+template <typename T> constexpr T pi = T(3.14159265359);
+
 template <typename T>
 struct Particles {
 	int num_x, num_y, num_z;
@@ -42,6 +45,18 @@ struct Particles {
 			x[i] = T(0.0); y[i] = T(0.0); z[i] = T(0.0);
 			px[i] = T(0.0); py[i] = T(0.0); pz[i] = T(0.0);
 		}
+	}
+};
+
+template <typename T>
+struct Laser {
+	int p, m;
+	T omega, w0, k, lambda, z_r;
+	Laser(int p_n, int m_n, T omega_n, T w0_multiplier) : p(p_n), m(m_n), omega(omega_n) {
+		k = omega / c<T>;
+		lambda = (T(2.0) * pi<T> * c<T>) / omega;
+		w0 = lambda * w0_multiplier;
+		z_r = pi<T> * w0 * w0 / lambda;
 	}
 };
 

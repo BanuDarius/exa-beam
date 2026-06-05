@@ -20,32 +20,15 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
-#include <omp.h>
-#include <array>
-#include <cstdio>
-#include <complex>
+#ifndef PHYSICS_H
+#define PHYSICS_H
 
-#include "sim_structs.hpp"
-#include "physics.cpp"
+#include <cmath>
 
-int main(int argc, char **argv) {
-	if(argc != 1) {
-		std::fprintf(stderr, "%s BAD ARGUMENTS!", argv[0]);
-		return 1;
-	}
-	double start_time = omp_get_wtime();
-	std::printf("Simulation started.\n");
-	Particles<double> particles(100, 100, 100);
-	Laser<double> laser(1, 1, 0.057, 15);
-	
-	std::array<double, 3> pos = {1.0, 1.0, 1.0};
-	std::complex<double> u_new = compute_u(laser, pos);
-	std::printf("%0.3lf %0.3lf\n", real(u_new), imag(u_new));
-	
-	std::printf("w0 = %0.3lf\n", laser.w0);
-	std::printf("z_r = %0.3lf\n", laser.z_r);
-	
-	std::printf("Simulation ended.\n");
-	std::printf("Time taken: %0.3lfs.\n", omp_get_wtime() - start_time);
-	return 0;
+template <typename T>
+inline T compute_w_z(T w0, T z, T z_r) {
+	T w_z = w0 * std::sqrt(T(1.0) + z * z / (z_r * z_r));
+	return w_z;
 }
+
+#endif
