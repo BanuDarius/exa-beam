@@ -30,20 +30,20 @@ SOFTWARE. */
 template <typename T>
 void test_u(ScalarField<T> &field, const Laser<T> &laser) {
 	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
-	T r_max_x = field.r_max[0], r_max_y = field.r_max[1];
-	#pragma omp parallel for schedule(static)
+	T r_max_x = field.r_max[0], r_max_y = field.r_max[1], r_max_z = field.r_max[2];
+	#pragma omp parallel for collapse(3) schedule(static)
 	for(int i = 0; i < nx; i++) {
 		for(int j = 0; j < ny; j++) {
 			for(int k = 0; k < nz; k++) {
-			std::array<T, 3> r_i = {
-				interpolate(-r_max_x, r_max_x, static_cast<T>(i), static_cast<T>(nx)),
-				interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
-				T(0.0)
-			};
-			std::complex<T> u_i = compute_u(laser, r_i);
-			int idx = grid_idx(i, j, k, nx, ny, nz);
-			field.v[idx] = real(u_i);
-			}
+				std::array<T, 3> r_i = {
+					interpolate(-r_max_x, r_max_x, static_cast<T>(i), static_cast<T>(nx)),
+					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
+					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
+				};
+				std::complex<T> u_i = compute_u(laser, r_i);
+				int idx = grid_idx(i, j, k, nx, ny, nz);
+				field.v[idx] = real(u_i);
+				}
 		}
 	}
 }

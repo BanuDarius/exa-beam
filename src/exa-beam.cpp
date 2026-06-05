@@ -31,8 +31,8 @@ SOFTWARE. */
 template <typename T>
 void start_simulation(const char *output_directory) {
 	Laser<T> laser(0, 0, T(0.057), T(15.0));
-	Particles<T> particles(128, 128, 1, laser.w0);
-	ScalarField<T> test_field_u(128, 128, 1, laser.w0);
+	Particles<T> particles(32, 32, 32, laser.w0);
+	ScalarField<T> test_field_u(32, 32, 32, laser.w0);
 	test_u(test_field_u, laser);
 	
 	char output_filename[string_size];
