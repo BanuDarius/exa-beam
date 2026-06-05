@@ -23,7 +23,6 @@ SOFTWARE. */
 #ifndef SIM_STRUCTS_H
 #define SIM_STRUCTS_H
 
-#include <omp.h>
 #include <memory>
 
 template <typename T>
@@ -32,18 +31,18 @@ struct Particles {
 	std::unique_ptr<T[]> x, y, z, px, py, pz;
 	Particles(int nx, int ny, int nz) : num_x(nx), num_y(ny), num_z(nz) {
 		int total = num_x * num_y * num_z;
-		x = std::unique_ptr<T[]>(new T[num_z * num_y * num_z]);
-		y = std::unique_ptr<T[]>(new T[num_z * num_y * num_z]);
-		z = std::unique_ptr<T[]>(new T[num_z * num_y * num_z]);
-		px = std::unique_ptr<T[]>(new T[num_z * num_y * num_z]);
-		py = std::unique_ptr<T[]>(new T[num_z * num_y * num_z]);
-		pz = std::unique_ptr<T[]>(new T[num_z * num_y * num_z]);
+		x = std::unique_ptr<T[]>(new T[total]);
+		y = std::unique_ptr<T[]>(new T[total]);
+		z = std::unique_ptr<T[]>(new T[total]);
+		px = std::unique_ptr<T[]>(new T[total]);
+		py = std::unique_ptr<T[]>(new T[total]);
+		pz = std::unique_ptr<T[]>(new T[total]);
 		#pragma omp parallel for simd schedule(static)
-		for(int i = 0; i < num_x * num_y; i++) {
+		for(int i = 0; i < total; i++) {
 			x[i] = T(0.0); y[i] = T(0.0); z[i] = T(0.0);
 			px[i] = T(0.0); py[i] = T(0.0); pz[i] = T(0.0);
 		}
 	}
-}
+};
 
 #endif

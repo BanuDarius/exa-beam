@@ -22,7 +22,10 @@ SOFTWARE. */
 
 #include <cstdio>
 
+#include "sim_structs.hpp"
+
 int main(int argc, char **argv) {
+	Particles<double> part(100, 100, 100);
 	std::printf("First commit :D\n");
 	return 0;
 }
