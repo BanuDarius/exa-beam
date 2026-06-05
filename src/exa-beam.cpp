@@ -24,15 +24,24 @@ SOFTWARE. */
 #include <cstdio>
 #include <cstdlib>
 
+#include "init.hpp"
 #include "physics.hpp"
 #include "vtk_output.hpp"
 #include "sim_structs.hpp"
 
 template <typename T>
-void start_simulation(const char *output_directory) {
+void start_simulation(const char *input_filename, const char *output_directory) {
+	FILE *input_file = fopen(input_filename, "r");
+	if(input_file == nullptr) {
+		std::fprintf(stderr, "CANNOT OPEN INPUT FILE!\n"); std::exit(1);
+	}
+	Parameters<T> parameters;
+	read_input_file(input_file, parameters);
+	fclose(input_file);
+	
 	Laser<T> laser(0, 0, T(0.057), T(15.0));
-	Particles<T> particles(32, 32, 32, laser.w0);
-	ScalarField<T> test_field_u(32, 32, 32, laser.w0);
+	Particles<T> particles(parameters);
+	ScalarField<T> test_field_u(parameters);
 	test_u(test_field_u, laser);
 	
 	char output_filename[string_size];
@@ -48,14 +57,14 @@ void start_simulation(const char *output_directory) {
 }
 
 int main(int argc, char **argv) {
-	if(argc != 2) {
+	if(argc != 3) {
 		std::fprintf(stderr, "%s BAD ARGUMENTS!\n", argv[0]);
 		return 1;
 	}
 	double start_time = omp_get_wtime();
 	std::printf("Simulation started.\n");
 	
-	start_simulation<double>(argv[1]);
+	start_simulation<double>(argv[1], argv[2]);
 	
 	std::printf("Simulation ended.\n");
 	std::printf("Time taken: %0.3lfs.\n", omp_get_wtime() - start_time);

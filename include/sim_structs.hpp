@@ -27,6 +27,7 @@ SOFTWARE. */
 #include <memory>
 
 constexpr int string_size = 128;
+constexpr int input_file_count = 2;
 
 template <typename T> constexpr T c = T(137.036);
 template <typename T> constexpr T pi = T(3.14159265359);
@@ -35,6 +36,14 @@ constexpr int grid_idx(int i, int j, int k, int nx, int ny, int nz) noexcept {
 	(void)nx;
 	return (i * ny * nz) + (j * nz) + k;
 }
+
+template <typename T>
+struct Parameters {
+	int num;
+	T r_max;
+	Parameters(int num_n, T r_max_n) : num(num_n), r_max(r_max_n) {}
+	Parameters() = default;
+};
 
 template <typename T>
 struct Particles {
@@ -57,6 +66,8 @@ struct Particles {
 			px[i] = T(0.0); py[i] = T(0.0); pz[i] = T(0.0);
 		}
 	}
+	Particles(const Parameters<T> &parameters)
+		: Particles(parameters.num, parameters.num, parameters.num, parameters.r_max) {}
 };
 
 template <typename T>
@@ -86,6 +97,8 @@ struct ScalarField {
 		for(std::size_t i = 0; i < field_size; i++)
 			v[i] = T(0.0);
 	}
+	ScalarField(const Parameters<T> &parameters) 
+		: ScalarField(parameters.num, parameters.num, parameters.num, parameters.r_max) {}
 	ScalarField &operator=(const ScalarField &other) {
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < other.field_size; i++)
