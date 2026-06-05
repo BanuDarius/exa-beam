@@ -26,7 +26,18 @@ SOFTWARE. */
 #include <complex>
 
 #include "sim_structs.hpp"
-#include "physics.cpp"
+#include "physics.hpp"
+
+template <typename T>
+void start_simulation() {
+	Particles<T> particles(128, 128, 32);
+	Laser<T> laser(0, 0, T(0.057), T(15.0));
+	
+	std::array<T, 3> pos = {T(30000.0), T(0.0), T(2.0)};
+	std::complex<T> u_new = compute_u(laser, pos);
+	std::printf("%0.3lf %0.3lf\n", real(u_new), imag(u_new));
+	std::printf("%0.3lf %0.3lf\n", laser.lambda, laser.w0);
+}
 
 int main(int argc, char **argv) {
 	if(argc != 1) {
@@ -35,15 +46,8 @@ int main(int argc, char **argv) {
 	}
 	double start_time = omp_get_wtime();
 	std::printf("Simulation started.\n");
-	Particles<double> particles(100, 100, 100);
-	Laser<double> laser(1, 1, 0.057, 15);
 	
-	std::array<double, 3> pos = {1.0, 1.0, 1.0};
-	std::complex<double> u_new = compute_u(laser, pos);
-	std::printf("%0.3lf %0.3lf\n", real(u_new), imag(u_new));
-	
-	std::printf("w0 = %0.3lf\n", laser.w0);
-	std::printf("z_r = %0.3lf\n", laser.z_r);
+	start_simulation<double>();
 	
 	std::printf("Simulation ended.\n");
 	std::printf("Time taken: %0.3lfs.\n", omp_get_wtime() - start_time);

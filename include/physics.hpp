@@ -25,10 +25,26 @@ SOFTWARE. */
 
 #include <cmath>
 
+#include "sim_structs.hpp"
+
 template <typename T>
 inline T compute_w_z(T w0, T z, T z_r) {
 	T w_z = w0 * std::sqrt(T(1.0) + z * z / (z_r * z_r));
 	return w_z;
 }
+
+template <typename T>
+inline T compute_r_z(T z, T z_r) {
+	T r_z = z + z_r * z_r / z;
+	return r_z;
+}
+
+template <typename T>
+inline T compute_guoy(T z, T z_r) {
+	T psi = std::atan(z / z_r);
+	return psi;
+}
+
+template <typename T> std::complex<T> compute_u(const Laser<T> &laser, const std::array<T, 3> &pos);
 
 #endif

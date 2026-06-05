@@ -24,11 +24,25 @@ SOFTWARE. */
 #include <complex>
 
 #include "physics.hpp"
-#include "sim_structs.hpp"
 
 template <typename T>
 std::complex<T> compute_u(const Laser<T> &laser, const std::array<T, 3> &pos) {
-	T w_z = compute_w_z(laser.w0, pos[2], laser.z_r);
-	std::complex<T> u(T(0.0), T(1.0));
+	T w0 = laser.w0; T k = laser.k; T z_r = laser.z_r; T z = pos[2];
+	T rho2 = pos[0] * pos[0] + pos[1] * pos[1];
+	
+	T r_z = compute_r_z(z, z_r);
+	T psi_g = compute_guoy(z, z_r);
+	T w_z = compute_w_z(w0, z, z_r);
+	
+	T amplitude = w0 / w_z * std::exp(-rho2 / (w_z * w_z));
+	T phase = -k * rho2 / (T(2.0) * r_z) + psi_g;
+	
+	T real = amplitude * std::cos(phase);
+	T imag = amplitude * std::sin(phase);
+	std::complex<T> u(real, imag);
 	return u;
 }
+
+template std::complex<double> compute_u<double>(const Laser<double> &laser, const std::array<double, 3> &pos);
+
+template std::complex<float> compute_u<float>(const Laser<float> &laser, const std::array<float, 3> &pos);
