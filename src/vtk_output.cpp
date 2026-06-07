@@ -26,7 +26,7 @@ SOFTWARE. */
 #include "sim_structs.hpp"
 
 template <typename T>
-void output_vtk_header_start(FILE *out, const ScalarField<T> &field) {
+void output_vtk_header_start(std::FILE *out, const ScalarField<T> &field) {
 	std::fprintf(out, "# vtk DataFile Version 3.0\n");
 	std::fprintf(out, "Volumetric data\n");
 	std::fprintf(out, "BINARY\n");
@@ -37,13 +37,13 @@ void output_vtk_header_start(FILE *out, const ScalarField<T> &field) {
 	std::fprintf(out, "POINT_DATA %d\n", field.num[0] * field.num[1] * field.num[2]);
 }
 
-void output_vtk_header_scalar_next(FILE *out, const char *name) {
+void output_vtk_header_scalar_next(std::FILE *out, const char *name) {
 	std::fprintf(out, "SCALARS %s float 1\n", name);
 	std::fprintf(out, "LOOKUP_TABLE default\n");
 }
 
 template <typename T>
-void output_test(FILE *out, const ScalarField<T> &field, const char *name) {
+void output_test(std::FILE *out, const ScalarField<T> &field, const char *name) {
 	std::size_t nx = field.num[0], ny = field.num[1], nz = field.num[2], total = nx * ny * nz;
 	std::unique_ptr<uint32_t[]> vtk_scalar(new uint32_t[total]);
 	#pragma omp parallel for collapse(3)
@@ -57,7 +57,7 @@ void output_test(FILE *out, const ScalarField<T> &field, const char *name) {
 		}
 	}
 	output_vtk_header_scalar_next(out, name);
-	fwrite(vtk_scalar.get(), sizeof(uint32_t), total, out);
+	std::fwrite(vtk_scalar.get(), sizeof(uint32_t), total, out);
 }
 
 template void output_vtk_header_start<double>(FILE *out, const ScalarField<double> &field);

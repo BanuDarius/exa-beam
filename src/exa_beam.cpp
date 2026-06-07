@@ -37,14 +37,14 @@ void start_simulation(const char *output_directory) {
 	
 	char output_filename[string_size];
 	std::sprintf(output_filename, "%s/out.vtk", output_directory);
-	FILE *output_file = fopen(output_filename, "wb");
+	std::FILE *output_file = std::fopen(output_filename, "wb");
 	if(output_file == nullptr) {
 		std::fprintf(stderr, "CANNOT OPEN OUTPUT FILE!\n"); std::exit(1);
 	}
 	
 	output_vtk_header_start(output_file, test_field_u);
 	output_test(output_file, test_field_u, "u00");
-	fclose(output_file);
+	std::fclose(output_file);
 }
 
 int main(int argc, char **argv) {
