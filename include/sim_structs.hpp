@@ -25,6 +25,7 @@ SOFTWARE. */
 
 #include <array>
 #include <memory>
+#include <complex>
 
 constexpr int string_size = 128;
 constexpr int input_file_count = 2;
@@ -66,15 +67,14 @@ struct Particles {
 			px[i] = T(0.0); py[i] = T(0.0); pz[i] = T(0.0);
 		}
 	}
-	Particles(const Parameters<T> &parameters)
-		: Particles(parameters.num, parameters.num, parameters.num, parameters.r_max) {}
 };
 
 template <typename T>
 struct Laser {
 	int p, m;
-	T omega, w0, k, lambda, z_r;
-	Laser(int p_n, int m_n, T omega_n, T w0_multiplier) : p(p_n), m(m_n), omega(omega_n) {
+	T omega, w0, k, lambda, z_r, tau;
+	std::complex<T> zeta_x, zeta_y;
+	Laser(int p_n, int m_n, T omega_n, T w0_multiplier, T tau_n, std::complex<T> zeta_x_n, std::complex<T> zeta_y_n) : p(p_n), m(m_n), omega(omega_n), tau(tau_n), zeta_x(zeta_x_n), zeta_y(zeta_y_n) {
 		k = omega / c<T>;
 		lambda = (T(2.0) * pi<T> * c<T>) / omega;
 		w0 = lambda * w0_multiplier;
@@ -97,8 +97,6 @@ struct ScalarField {
 		for(std::size_t i = 0; i < field_size; i++)
 			v[i] = T(0.0);
 	}
-	ScalarField(const Parameters<T> &parameters) 
-		: ScalarField(parameters.num, parameters.num, parameters.num, parameters.r_max) {}
 	ScalarField &operator=(const ScalarField &other) {
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < other.field_size; i++)
@@ -115,6 +113,47 @@ struct ScalarField {
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < other.field_size; i++)
 			v[i] -= other.v[i];
+		return *this;
+	}
+};
+
+template <typename T>
+struct VectorField {
+	std::size_t field_size;
+	std::array<int, 3> num;
+	std::array<T, 3> r_max;
+	std::unique_ptr<T[]> x, y, z;
+	VectorField(int nx, int ny, int nz, T r_max_n) {
+		field_size = nx * ny * nz;
+		num = { nx, ny, nz };
+		r_max = { r_max_n, r_max_n, r_max_n };
+		x = std::unique_ptr<T[]>(new T[field_size]);
+		y = std::unique_ptr<T[]>(new T[field_size]);
+		z = std::unique_ptr<T[]>(new T[field_size]);
+		#pragma omp parallel for simd schedule(static)
+		for(std::size_t i = 0; i < field_size; i++) {
+			x[i] = T(0.0); y[i] = T(0.0); z[i] = T(0.0);
+		}
+	}
+	VectorField &operator=(const VectorField &other) {
+		#pragma omp parallel for simd schedule(static)
+		for(std::size_t i = 0; i < other.field_size; i++) {
+			x[i] = other.x[i]; y[i] = other.y[i]; z[i] = other.z[i];
+		}
+		return *this;
+	}
+	VectorField &operator+=(const VectorField &other) {
+		#pragma omp parallel for simd schedule(static)
+		for(std::size_t i = 0; i < other.field_size; i++) {
+			x[i] += other.x[i]; y[i] += other.y[i]; z[i] += other.z[i];
+		}
+		return *this;
+	}
+	VectorField &operator-=(const VectorField &other) {
+		#pragma omp parallel for simd schedule(static)
+		for(std::size_t i = 0; i < other.field_size; i++) {
+			x[i] -= other.x[i]; y[i] -= other.y[i]; z[i] -= other.z[i];
+		}
 		return *this;
 	}
 };

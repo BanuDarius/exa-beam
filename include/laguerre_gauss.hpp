@@ -27,6 +27,13 @@ SOFTWARE. */
 #include <complex>
 
 template <typename T>
+inline T env(T chi, T tau) {
+	T term = T(4.0) * pi<T> * pi<T> * tau * tau; 
+	T x = std::exp(-(chi * chi) / term);
+	return x;
+}
+
+template <typename T>
 inline T compute_w_z(T w0, T z, T z_r) {
 	T w_z = w0 * std::sqrt(T(1.0) + z * z / (z_r * z_r));
 	return w_z;
@@ -45,9 +52,9 @@ inline T compute_guoy(T z, T z_r) {
 }
 
 template <typename T>
-inline std::complex<T> compute_u(const Laser<T> &laser, const std::array<T, 3> &r) {
-	T w0 = laser.w0; T k = laser.k; T z_r = laser.z_r; T z = r[2];
-	T rho2 = r[0] * r[0] + r[1] * r[1];
+inline std::complex<T> compute_u(const Laser<T> &laser, const std::array<T, 3> &r_vec) {
+	T w0 = laser.w0; T k = laser.k; T z_r = laser.z_r; T z = r_vec[2];
+	T rho2 = r_vec[0] * r_vec[0] + r_vec[1] * r_vec[1];
 	
 	T r_z = compute_r_z(z, z_r);
 	T psi_g = compute_guoy(z, z_r);
@@ -60,6 +67,18 @@ inline std::complex<T> compute_u(const Laser<T> &laser, const std::array<T, 3> &
 	T imag = amplitude * std::sin(phase);
 	std::complex<T> u(real, imag);
 	return u;
+}
+
+template <typename T>
+inline std::array<T, 3> compute_e(const Laser<T> &laser, const std::array<T, 3> &r_vec, T t) {
+	std::complex<T> u_pm = compute_u(laser, r_vec);
+	T chi = laser.omega * t - laser.k * r_vec[2];
+	std::complex<T> phase(std::cos(chi), std::sin(chi));
+	u_pm *= phase * env(chi, laser.tau);
+	std::array<T, 3> e_vec = { std::real(u_pm * laser.zeta_x),
+		std::real(u_pm * laser.zeta_y),
+		T(0.0)};
+	return e_vec;
 }
 
 #endif

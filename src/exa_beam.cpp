@@ -30,21 +30,30 @@ SOFTWARE. */
 
 template <typename T>
 void start_simulation(const char *output_directory) {
-	Laser<T> laser(0, 0, T(0.057), T(15.0));
-	Particles<T> particles(32, 32, 32, laser.w0);
-	ScalarField<T> test_field_u(32, 32, 32, laser.w0);
-	test_u(test_field_u, laser);
+	std::complex<T> zeta_x(T(0.707), T(0.0));
+	std::complex<T> zeta_y(T(0.0), -T(0.707));
+	Laser<T> laser(0, 0, T(0.057), T(15.0), T(18.0), zeta_x, zeta_y);
+	VectorField<T> electric(32, 32, 32, laser.w0);
+	ScalarField<T> u_field(32, 32, 32, laser.w0);
 	
-	char output_filename[string_size];
-	std::sprintf(output_filename, "%s/out.vtk", output_directory);
-	std::FILE *output_file = std::fopen(output_filename, "wb");
-	if(output_file == nullptr) {
-		std::fprintf(stderr, "CANNOT OPEN OUTPUT FILE!\n"); std::exit(1);
+	int max_steps = 100;
+	for(int step = 0; step < max_steps; step++) {
+		test_u(u_field, laser);
+		compute_e_field(electric, laser, step * T(10.0));
+		
+		char output_filename[string_size];
+		std::sprintf(output_filename, "%s/out-%04d.vtk", output_directory, step);
+		std::FILE *output_file = std::fopen(output_filename, "wb");
+		if(output_file == nullptr) {
+			std::fprintf(stderr, "CANNOT OPEN OUTPUT FILE!\n"); std::exit(1);
+		}
+		
+		output_vtk_scalar_header(output_file, u_field);
+		output_vtk_scalar_field(output_file, u_field, "u00");
+		output_vtk_vector_field(output_file, electric, "e");
+		std::fclose(output_file);
+		std::printf("Computed step: %d/%d.\n", step, max_steps);
 	}
-	
-	output_vtk_header_start(output_file, test_field_u);
-	output_test(output_file, test_field_u, "u00");
-	std::fclose(output_file);
 }
 
 int main(int argc, char **argv) {
