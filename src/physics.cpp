@@ -76,7 +76,6 @@ void compute_e_field(VectorField<T> &e_field, const ComplexScalarField<T> &u_fie
 template <typename T>
 void compute_b_field(VectorField<T> &b_field, VectorField<T> &e_field) {
 	int nx = b_field.num[0], ny = b_field.num[1], nz = b_field.num[2];
-	std::array<T, 3> e_z = { T(0.0), T(0.0), T(1.0) };
 	#pragma omp parallel for collapse(3) schedule(static)
 	for(int i = 0; i < nx; i++) {
 		for(int j = 0; j < ny; j++) {
@@ -84,7 +83,7 @@ void compute_b_field(VectorField<T> &b_field, VectorField<T> &e_field) {
 				int idx = grid_idx(i, j, k, nx, ny, nz);
 				std::array<T, 3> e_i = { e_field.x[idx], e_field.y[idx], e_field.z[idx] };
 				
-				std::array<T, 3> b_vec = cross(e_z, e_i) * (T(1.0) / c<T>);
+				std::array<T, 3> b_vec = compute_b(e_i);
 				
 				b_field.x[idx] = b_vec[0];
 				b_field.y[idx] = b_vec[1];

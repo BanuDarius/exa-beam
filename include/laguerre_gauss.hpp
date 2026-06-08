@@ -27,6 +27,7 @@ SOFTWARE. */
 #include <complex>
 
 #include "sim_structs.hpp"
+#include "math_functions.hpp"
 
 template <typename T>
 inline T env(T chi, T tau) noexcept {
@@ -87,6 +88,13 @@ inline std::array<T, 3> compute_e(const ComplexScalarField<T> &u_field, const La
 		T(0.0)
 	};
 	return e_vec;
+}
+
+template <typename T>
+inline std::array<T, 3> compute_b(const std::array<T, 3> &e_vec) {
+	std::array<T, 3> e_z = { T(0.0), T(0.0), T(1.0) };
+	std::array<T, 3> b_vec = cross(e_z, e_vec) * (T(1.0) / c<T>);
+	return b_vec;
 }
 
 #endif
