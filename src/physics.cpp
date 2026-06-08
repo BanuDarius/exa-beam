@@ -42,7 +42,7 @@ void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser) {
 				};
 				std::complex<T> u_i = compute_u(laser, r_i);
 				int idx = grid_idx(i, j, k, nx, ny, nz);
-				u_field.v[idx] = real(u_i);
+				u_field.v[idx] = u_i;
 			}
 		}
 	}
