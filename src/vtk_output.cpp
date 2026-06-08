@@ -26,7 +26,7 @@ SOFTWARE. */
 #include "sim_structs.hpp"
 
 template <typename T>
-void output_vtk_scalar_header(std::FILE *out, const ScalarField<T> &field) {
+void output_vtk_header(std::FILE *out, const ScalarField<T> &field) {
 	std::fprintf(out, "# vtk DataFile Version 3.0\n");
 	std::fprintf(out, "Volumetric data\n");
 	std::fprintf(out, "BINARY\n");
@@ -38,7 +38,7 @@ void output_vtk_scalar_header(std::FILE *out, const ScalarField<T> &field) {
 }
 
 template <typename T>
-void output_vtk_vector_header(std::FILE *out, const VectorField<T> &field) {
+void output_vtk_header(std::FILE *out, const VectorField<T> &field) {
 	std::fprintf(out, "# vtk DataFile Version 3.0\n");
 	std::fprintf(out, "Volumetric data\n");
 	std::fprintf(out, "BINARY\n");
@@ -96,12 +96,12 @@ void output_vtk_vector_field(std::FILE *out, const VectorField<T> &field, const 
 	std::fwrite(vtk_vector.get(), sizeof(uint32_t), 3 * total, out);
 }
 
-template void output_vtk_scalar_header<double>(std::FILE *out, const ScalarField<double> &field);
-template void output_vtk_vector_header<double>(std::FILE *out, const VectorField<double> &field);
+template void output_vtk_header<double>(std::FILE *out, const ScalarField<double> &field);
+template void output_vtk_header<double>(std::FILE *out, const VectorField<double> &field);
 template void output_vtk_scalar_field<double>(std::FILE *out, const ScalarField<double> &field, const char *name);
 template void output_vtk_vector_field<double>(std::FILE *out, const VectorField<double> &field, const char *name);
 
-template void output_vtk_scalar_header<float>(std::FILE *out, const ScalarField<float> &field);
-template void output_vtk_vector_header<float>(std::FILE *out, const VectorField<float> &field);
+template void output_vtk_header<float>(std::FILE *out, const ScalarField<float> &field);
+template void output_vtk_header<float>(std::FILE *out, const VectorField<float> &field);
 template void output_vtk_scalar_field<float>(std::FILE *out, const ScalarField<float> &field, const char *name);
 template void output_vtk_vector_field<float>(std::FILE *out, const VectorField<float> &field, const char *name);

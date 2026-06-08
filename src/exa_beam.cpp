@@ -32,14 +32,14 @@ template <typename T>
 void start_simulation(const char *output_directory) {
 	std::complex<T> zeta_x(T(0.707), T(0.0));
 	std::complex<T> zeta_y(T(0.0), -T(0.707));
-	Laser<T> laser(0, 0, T(0.057), T(15.0), T(18.0), zeta_x, zeta_y);
-	VectorField<T> electric(32, 32, 32, laser.w0);
-	ScalarField<T> u_field(32, 32, 32, laser.w0);
+	Laser<T> laser(0, 0, T(0.01), T(0.057), T(15.0), T(4.0), zeta_x, zeta_y);
+	VectorField<T> e_field(128, 128, 128, laser.w0);
+	ComplexScalarField<T> u_field(128, 128, 128, laser.w0);
+	compute_u_field(u_field, laser);
 	
 	int max_steps = 100;
 	for(int step = 0; step < max_steps; step++) {
-		test_u(u_field, laser);
-		compute_e_field(electric, laser, step * T(10.0));
+		compute_e_field(e_field, u_field, laser, step * T(10.0));
 		
 		char output_filename[string_size];
 		std::sprintf(output_filename, "%s/out-%04d.vtk", output_directory, step);
@@ -48,9 +48,9 @@ void start_simulation(const char *output_directory) {
 			std::fprintf(stderr, "CANNOT OPEN OUTPUT FILE!\n"); std::exit(1);
 		}
 		
-		output_vtk_scalar_header(output_file, u_field);
-		output_vtk_scalar_field(output_file, u_field, "u00");
-		output_vtk_vector_field(output_file, electric, "e");
+		output_vtk_header(output_file, e_field);
+		//output_vtk_scalar_field(output_file, u_field, "u00");
+		output_vtk_vector_field(output_file, e_field, "e");
 		std::fclose(output_file);
 		std::printf("Computed step: %d/%d.\n", step, max_steps);
 	}

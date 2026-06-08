@@ -25,7 +25,7 @@ SOFTWARE. */
 
 #include "sim_structs.hpp"
 
-template <typename T> void test_u(ScalarField<T> &field, const Laser<T> &laser);
-template <typename T> void compute_e_field(VectorField<T> &field, const Laser<T> &laser, T t);
+template <typename T> void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser);
+template <typename T> void compute_e_field(VectorField<T> &e_field, const ComplexScalarField<T> &u_field, const Laser<T> &laser, T t);
 
 #endif

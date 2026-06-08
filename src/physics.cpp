@@ -28,9 +28,9 @@ SOFTWARE. */
 #include "math_functions.hpp"
 
 template <typename T>
-void test_u(ScalarField<T> &field, const Laser<T> &laser) {
-	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
-	T r_max_x = field.r_max[0], r_max_y = field.r_max[1], r_max_z = field.r_max[2];
+void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser) {
+	int nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
+	T r_max_x = u_field.r_max[0], r_max_y = u_field.r_max[1], r_max_z = u_field.r_max[2];
 	#pragma omp parallel for collapse(3) schedule(static)
 	for(int i = 0; i < nx; i++) {
 		for(int j = 0; j < ny; j++) {
@@ -42,16 +42,16 @@ void test_u(ScalarField<T> &field, const Laser<T> &laser) {
 				};
 				std::complex<T> u_i = compute_u(laser, r_i);
 				int idx = grid_idx(i, j, k, nx, ny, nz);
-				field.v[idx] = real(u_i);
+				u_field.v[idx] = real(u_i);
 			}
 		}
 	}
 }
 
 template <typename T>
-void compute_e_field(VectorField<T> &field, const Laser<T> &laser, T t) {
-	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
-	T r_max_x = field.r_max[0], r_max_y = field.r_max[1], r_max_z = field.r_max[2];
+void compute_e_field(VectorField<T> &e_field, const ComplexScalarField<T> &u_field, const Laser<T> &laser, T t) {
+	int nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
+	T r_max_x = e_field.r_max[0], r_max_y = e_field.r_max[1], r_max_z = e_field.r_max[2];
 	#pragma omp parallel for collapse(3) schedule(static)
 	for(int i = 0; i < nx; i++) {
 		for(int j = 0; j < ny; j++) {
@@ -62,19 +62,19 @@ void compute_e_field(VectorField<T> &field, const Laser<T> &laser, T t) {
 					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
 				};
 				
-				std::array<T, 3> e_vec = compute_e(laser, r_i, t);
-				
 				int idx = grid_idx(i, j, k, nx, ny, nz);
-				field.x[idx] = e_vec[0];
-				field.y[idx] = e_vec[1];
-				field.z[idx] = e_vec[2];
+				std::array<T, 3> e_vec = compute_e(u_field, laser, r_i, t, idx);
+				
+				e_field.x[idx] = e_vec[0];
+				e_field.y[idx] = e_vec[1];
+				e_field.z[idx] = e_vec[2];
 			}
 		}
 	}
 }
 
-template void test_u<double>(ScalarField<double> &field, const Laser<double> &laser);
-template void compute_e_field<double>(VectorField<double> &field, const Laser<double> &laser, double t);
+template void compute_u_field<double>(ComplexScalarField<double> &u_field, const Laser<double> &laser);
+template void compute_e_field<double>(VectorField<double> &e_field, const ComplexScalarField<double> &u_field, const Laser<double> &laser, double t);
  
-template void test_u<float>(ScalarField<float> &field, const Laser<float> &laser);
-template void compute_e_field<float>(VectorField<float> &field, const Laser<float> &laser, float t);
+template void compute_u_field<float>(ComplexScalarField<float> &u_field, const Laser<float> &laser);
+template void compute_e_field<float>(VectorField<float> &e_field, const ComplexScalarField<float> &u_field, const Laser<float> &laser, float t);

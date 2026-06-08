@@ -26,6 +26,8 @@ SOFTWARE. */
 #include <cmath>
 #include <complex>
 
+#include "sim_structs.hpp"
+
 template <typename T>
 inline T env(T chi, T tau) {
 	T term = T(4.0) * pi<T> * pi<T> * tau * tau; 
@@ -70,14 +72,18 @@ inline std::complex<T> compute_u(const Laser<T> &laser, const std::array<T, 3> &
 }
 
 template <typename T>
-inline std::array<T, 3> compute_e(const Laser<T> &laser, const std::array<T, 3> &r_vec, T t) {
-	std::complex<T> u_pm = compute_u(laser, r_vec);
-	T chi = laser.omega * t - laser.k * r_vec[2];
+inline std::array<T, 3> compute_e(const ComplexScalarField<T> &u_field, const Laser<T> &laser, const std::array<T, 3> &r_vec, T t, int idx) {
+	T k = laser.k, tau = laser.tau;
+	std::complex<T> zeta_x = laser.zeta_x, zeta_y = laser.zeta_y;
+	
+	T chi = laser.omega * t - k * r_vec[2];
+	std::complex<T> u_pm = u_field.v[idx];
 	std::complex<T> phase(std::cos(chi), std::sin(chi));
-	u_pm *= phase * env(chi, laser.tau);
-	std::array<T, 3> e_vec = { std::real(u_pm * laser.zeta_x),
-		std::real(u_pm * laser.zeta_y),
-		T(0.0)};
+	
+	u_pm *= phase * env(chi, tau);
+	std::array<T, 3> e_vec = { std::real(u_pm * zeta_x),
+		std::real(u_pm * zeta_y),
+		T(0.0) };
 	return e_vec;
 }
 

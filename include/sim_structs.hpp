@@ -30,6 +30,8 @@ SOFTWARE. */
 constexpr int string_size = 128;
 constexpr int input_file_count = 2;
 
+template <typename T> constexpr T m_e = T(1.0);
+template <typename T> constexpr T e_0 = T(1.0);
 template <typename T> constexpr T c = T(137.036);
 template <typename T> constexpr T pi = T(3.14159265359);
 
@@ -72,13 +74,14 @@ struct Particles {
 template <typename T>
 struct Laser {
 	int p, m;
-	T omega, w0, k, lambda, z_r, tau;
+	T a0, omega, w0, k, lambda, z_r, tau, E0;
 	std::complex<T> zeta_x, zeta_y;
-	Laser(int p_n, int m_n, T omega_n, T w0_multiplier, T tau_n, std::complex<T> zeta_x_n, std::complex<T> zeta_y_n) : p(p_n), m(m_n), omega(omega_n), tau(tau_n), zeta_x(zeta_x_n), zeta_y(zeta_y_n) {
+	Laser(int p_n, int m_n, T(a0_n), T omega_n, T w0_multiplier, T tau_n, std::complex<T> zeta_x_n, std::complex<T> zeta_y_n) : p(p_n), m(m_n), a0(a0_n), omega(omega_n), tau(tau_n), zeta_x(zeta_x_n), zeta_y(zeta_y_n) {
 		k = omega / c<T>;
 		lambda = (T(2.0) * pi<T> * c<T>) / omega;
 		w0 = lambda * w0_multiplier;
 		z_r = pi<T> * w0 * w0 / lambda;
+		E0 = omega * m_e<T> * c<T> * a0 / std::abs(e_0<T>);
 	}
 };
 
@@ -110,6 +113,41 @@ struct ScalarField {
 		return *this;
 	}
 	ScalarField &operator-=(const ScalarField &other) {
+		#pragma omp parallel for simd schedule(static)
+		for(std::size_t i = 0; i < other.field_size; i++)
+			v[i] -= other.v[i];
+		return *this;
+	}
+};
+
+template <typename T>
+struct ComplexScalarField {
+	std::size_t field_size;
+	std::array<int, 3> num;
+	std::array<T, 3> r_max;
+	std::unique_ptr<std::complex<T>[]> v;
+	ComplexScalarField(int nx, int ny, int nz, T r_max_n) {
+		field_size = nx * ny * nz;
+		num = { nx, ny, nz };
+		r_max = { r_max_n, r_max_n, r_max_n };
+		v = std::unique_ptr<std::complex<T>[]>(new std::complex<T>[field_size]);
+		#pragma omp parallel for simd schedule(static)
+		for(std::size_t i = 0; i < field_size; i++)
+			v[i] = { T(0.0), T(0.0) };
+	}
+	ComplexScalarField &operator=(const ComplexScalarField &other) {
+		#pragma omp parallel for simd schedule(static)
+		for(std::size_t i = 0; i < other.field_size; i++)
+			v[i] = other.v[i];
+		return *this;
+	}
+	ComplexScalarField &operator+=(const ComplexScalarField &other) {
+		#pragma omp parallel for simd schedule(static)
+		for(std::size_t i = 0; i < other.field_size; i++)
+			v[i] += other.v[i];
+		return *this;
+	}
+	ComplexScalarField &operator-=(const ComplexScalarField &other) {
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < other.field_size; i++)
 			v[i] -= other.v[i];

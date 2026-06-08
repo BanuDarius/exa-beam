@@ -35,8 +35,8 @@ inline uint32_t swap_endian(float v) {
 	return __builtin_bswap32(data);
 }
 
-template <typename T> void output_vtk_scalar_header(std::FILE *out, const ScalarField<T> &field);
-template <typename T> void output_vtk_vector_header(std::FILE *out, const VectorField<T> &field);
+template <typename T> void output_vtk_header(std::FILE *out, const ScalarField<T> &field);
+template <typename T> void output_vtk_header(std::FILE *out, const VectorField<T> &field);
 void output_vtk_scalar_next(std::FILE *out, const char *name);
 void output_vtk_vector_next(std::FILE *out, const char *name);
 template <typename T> void output_vtk_scalar_field(std::FILE *out, const ScalarField<T> &field, const char *name);
