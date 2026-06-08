@@ -27,37 +27,47 @@ SOFTWARE. */
 #include <cmath>
 
 template <typename T>
-inline T interpolate(T min, T max, T i, T n) {
-	T v = min + (max - min) * i / n;
-	return v;
+inline T interpolate(T min, T max, T i, T n) noexcept {
+	T x = min + (max - min) * i / n;
+	return x;
 }
 
 template <typename T>
-inline T dot(const std::array<T, 3> &a, const std::array<T, 3> &b) {
+inline T dot(const std::array<T, 3> &a, const std::array<T, 3> &b) noexcept {
 	T x = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 	return x;
 }
 
 template <typename T>
-inline T magnitude(const std::array<T, 3> &a) {
+inline T magnitude(const std::array<T, 3> &a) noexcept {
 	T x = std::sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
 	return x;
 }
 
 template <typename T>
-inline std::array<T, 3> operator+(const std::array<T, 3> &a, const std::array<T, 3> &b) {
+inline std::array<T, 3> cross(const std::array<T, 3> &a, const std::array<T, 3> &b) noexcept {
+	std::array<T, 3> x = {
+		a[1] * b[2] - a[2] * b[1],
+		a[2] * b[0] - a[0] * b[2],
+		a[0] * b[1] - a[1] * b[0]
+	};
+	return x;
+}
+
+template <typename T>
+inline std::array<T, 3> operator+(const std::array<T, 3> &a, const std::array<T, 3> &b) noexcept {
 	std::array<T, 3> x = { a[0] + b[0], a[1] + b[1], a[2] + b[2] };
 	return x;
 }
 
 template <typename T>
-inline std::array<T, 3> operator-(const std::array<T, 3> &a, const std::array<T, 3> &b) {
+inline std::array<T, 3> operator-(const std::array<T, 3> &a, const std::array<T, 3> &b) noexcept {
 	std::array<T, 3> x = { a[0] - b[0], a[1] - b[1], a[2] - b[2] };
 	return x;
 }
 
 template <typename T>
-inline std::array<T, 3> operator*(const std::array<T, 3> &a, T b) {
+inline std::array<T, 3> operator*(const std::array<T, 3> &a, T b) noexcept {
 	std::array<T, 3> x = { a[0] * b, a[1] * b, a[2] * b };
 	return x;
 }

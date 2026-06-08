@@ -42,6 +42,7 @@ void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser) {
 				};
 				std::complex<T> u_i = compute_u(laser, r_i);
 				int idx = grid_idx(i, j, k, nx, ny, nz);
+				
 				u_field.v[idx] = u_i;
 			}
 		}
@@ -61,7 +62,6 @@ void compute_e_field(VectorField<T> &e_field, const ComplexScalarField<T> &u_fie
 					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
 					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
 				};
-				
 				int idx = grid_idx(i, j, k, nx, ny, nz);
 				std::array<T, 3> e_vec = compute_e(u_field, laser, r_i, t, idx);
 				
@@ -73,8 +73,31 @@ void compute_e_field(VectorField<T> &e_field, const ComplexScalarField<T> &u_fie
 	}
 }
 
+template <typename T>
+void compute_b_field(VectorField<T> &b_field, VectorField<T> &e_field) {
+	int nx = b_field.num[0], ny = b_field.num[1], nz = b_field.num[2];
+	std::array<T, 3> e_z = { T(0.0), T(0.0), T(1.0) };
+	#pragma omp parallel for collapse(3) schedule(static)
+	for(int i = 0; i < nx; i++) {
+		for(int j = 0; j < ny; j++) {
+			for(int k = 0; k < nz; k++) {
+				int idx = grid_idx(i, j, k, nx, ny, nz);
+				std::array<T, 3> e_i = { e_field.x[idx], e_field.y[idx], e_field.z[idx] };
+				
+				std::array<T, 3> b_vec = cross(e_z, e_i) * (T(1.0) / c<T>);
+				
+				b_field.x[idx] = b_vec[0];
+				b_field.y[idx] = b_vec[1];
+				b_field.z[idx] = b_vec[2];
+			}
+		}
+	}
+}
+
 template void compute_u_field<double>(ComplexScalarField<double> &u_field, const Laser<double> &laser);
 template void compute_e_field<double>(VectorField<double> &e_field, const ComplexScalarField<double> &u_field, const Laser<double> &laser, double t);
+template void compute_b_field<double>(VectorField<double> &b_field, VectorField<double> &e_field);
  
 template void compute_u_field<float>(ComplexScalarField<float> &u_field, const Laser<float> &laser);
 template void compute_e_field<float>(VectorField<float> &e_field, const ComplexScalarField<float> &u_field, const Laser<float> &laser, float t);
+template void compute_b_field<float>(VectorField<float> &b_field, VectorField<float> &e_field);

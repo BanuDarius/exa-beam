@@ -29,32 +29,32 @@ SOFTWARE. */
 #include "sim_structs.hpp"
 
 template <typename T>
-inline T env(T chi, T tau) {
+inline T env(T chi, T tau) noexcept {
 	T term = T(4.0) * pi<T> * pi<T> * tau * tau; 
 	T x = std::exp(-(chi * chi) / term);
 	return x;
 }
 
 template <typename T>
-inline T compute_w_z(T w0, T z, T z_r) {
+inline T compute_w_z(T w0, T z, T z_r) noexcept {
 	T w_z = w0 * std::sqrt(T(1.0) + z * z / (z_r * z_r));
 	return w_z;
 }
 
 template <typename T>
-inline T compute_r_z(T z, T z_r) {
+inline T compute_r_z(T z, T z_r) noexcept {
 	T r_z = z + z_r * z_r / z;
 	return r_z;
 }
 
 template <typename T>
-inline T compute_guoy(T z, T z_r) {
+inline T compute_guoy(T z, T z_r) noexcept {
 	T psi = std::atan(z / z_r);
 	return psi;
 }
 
 template <typename T>
-inline std::complex<T> compute_u(const Laser<T> &laser, const std::array<T, 3> &r_vec) {
+inline std::complex<T> compute_u(const Laser<T> &laser, const std::array<T, 3> &r_vec) noexcept {
 	T w0 = laser.w0; T k = laser.k; T z_r = laser.z_r; T z = r_vec[2];
 	T rho2 = r_vec[0] * r_vec[0] + r_vec[1] * r_vec[1];
 	
@@ -72,7 +72,7 @@ inline std::complex<T> compute_u(const Laser<T> &laser, const std::array<T, 3> &
 }
 
 template <typename T>
-inline std::array<T, 3> compute_e(const ComplexScalarField<T> &u_field, const Laser<T> &laser, const std::array<T, 3> &r_vec, T t, int idx) {
+inline std::array<T, 3> compute_e(const ComplexScalarField<T> &u_field, const Laser<T> &laser, const std::array<T, 3> &r_vec, T t, int idx) noexcept {
 	T k = laser.k, tau = laser.tau;
 	std::complex<T> zeta_x = laser.zeta_x, zeta_y = laser.zeta_y;
 	
@@ -81,9 +81,11 @@ inline std::array<T, 3> compute_e(const ComplexScalarField<T> &u_field, const La
 	std::complex<T> phase(std::cos(chi), std::sin(chi));
 	
 	u_pm *= phase * env(chi, tau);
-	std::array<T, 3> e_vec = { std::real(u_pm * zeta_x),
+	std::array<T, 3> e_vec = {
+		std::real(u_pm * zeta_x),
 		std::real(u_pm * zeta_y),
-		T(0.0) };
+		T(0.0)
+	};
 	return e_vec;
 }
 
