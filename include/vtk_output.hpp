@@ -40,6 +40,7 @@ template <typename T> void output_vtk_header(std::FILE *out, const VectorField<T
 void output_vtk_scalar_next(std::FILE *out, const char *name);
 void output_vtk_vector_next(std::FILE *out, const char *name);
 template <typename T> void output_vtk_scalar_field(std::FILE *out, const ScalarField<T> &field, const char *name);
+template <typename T> void output_vtk_complex_scalar_field(std::FILE *out, const ComplexScalarField<T> &field, const char *name);
 template <typename T> void output_vtk_vector_field(std::FILE *out, const VectorField<T> &field, const char *name);
 
 #endif

@@ -77,6 +77,24 @@ void output_vtk_scalar_field(std::FILE *out, const ScalarField<T> &field, const 
 }
 
 template <typename T>
+void output_vtk_complex_scalar_field(std::FILE *out, const ComplexScalarField<T> &field, const char *name) {
+	std::size_t nx = field.num[0], ny = field.num[1], nz = field.num[2], total = nx * ny * nz;
+	std::unique_ptr<uint32_t[]> vtk_scalar(new uint32_t[total]);
+	#pragma omp parallel for collapse(3)
+	for(std::size_t k = 0; k < nz; k++) {
+		for(std::size_t j = 0; j < ny; j++) {
+			for(std::size_t i = 0; i < nx; i++) {
+				int idx = grid_idx(i, j, k, nx, ny, nz);
+				int write_idx = (k * ny * nx) + (j * nx) + i;
+				vtk_scalar[write_idx] = swap_endian(static_cast<float>(std::real(field.v[idx])));
+			}
+		}
+	}
+	output_vtk_scalar_next(out, name);
+	std::fwrite(vtk_scalar.get(), sizeof(uint32_t), total, out);
+}
+
+template <typename T>
 void output_vtk_vector_field(std::FILE *out, const VectorField<T> &field, const char *name) {
 	std::size_t nx = field.num[0], ny = field.num[1], nz = field.num[2], total = nx * ny * nz;
 	std::unique_ptr<uint32_t[]> vtk_vector(new uint32_t[3 * total]);
@@ -99,9 +117,11 @@ void output_vtk_vector_field(std::FILE *out, const VectorField<T> &field, const 
 template void output_vtk_header<double>(std::FILE *out, const ScalarField<double> &field);
 template void output_vtk_header<double>(std::FILE *out, const VectorField<double> &field);
 template void output_vtk_scalar_field<double>(std::FILE *out, const ScalarField<double> &field, const char *name);
+template void output_vtk_complex_scalar_field<double>(std::FILE *out, const ComplexScalarField<double> &field, const char *name);
 template void output_vtk_vector_field<double>(std::FILE *out, const VectorField<double> &field, const char *name);
 
 template void output_vtk_header<float>(std::FILE *out, const ScalarField<float> &field);
 template void output_vtk_header<float>(std::FILE *out, const VectorField<float> &field);
 template void output_vtk_scalar_field<float>(std::FILE *out, const ScalarField<float> &field, const char *name);
+template void output_vtk_complex_scalar_field<float>(std::FILE *out, const ComplexScalarField<float> &field, const char *name);
 template void output_vtk_vector_field<float>(std::FILE *out, const VectorField<float> &field, const char *name);
