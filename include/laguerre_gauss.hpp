@@ -91,7 +91,7 @@ inline std::array<T, 3> compute_e(const ComplexScalarField<T> &u_field, const La
 }
 
 template <typename T>
-inline std::array<T, 3> compute_b(const std::array<T, 3> &e_vec) {
+inline std::array<T, 3> compute_b(const std::array<T, 3> &e_vec) noexcept {
 	std::array<T, 3> e_z = { T(0.0), T(0.0), T(1.0) };
 	std::array<T, 3> b_vec = cross(e_z, e_vec) * (T(1.0) / c<T>);
 	return b_vec;
