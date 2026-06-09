@@ -81,7 +81,11 @@ void compute_b_field(VectorField<T> &b_field, VectorField<T> &e_field) {
 		for(int j = 0; j < ny; j++) {
 			for(int k = 0; k < nz; k++) {
 				int idx = grid_idx(i, j, k, nx, ny, nz);
-				std::array<T, 3> e_i = { e_field.x[idx], e_field.y[idx], e_field.z[idx] };
+				std::array<T, 3> e_i = {
+					e_field.x[idx],
+					e_field.y[idx],
+					e_field.z[idx]
+				};
 				
 				std::array<T, 3> b_vec = compute_b(e_i);
 				
