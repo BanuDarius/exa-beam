@@ -40,8 +40,7 @@ void start_simulation(const char *output_directory) {
 	
 	int max_steps = 100;
 	for(int step = 0; step < max_steps; step++) {
-		compute_e_field(e_field, u_field, laser, step * T(10.0));
-		compute_b_field(b_field, e_field);
+		compute_eb_field(e_field, b_field, u_field, laser, step * T(10.0));
 		
 		char output_filename[string_size];
 		std::sprintf(output_filename, "%s/out-%04d.vtk", output_directory, step);

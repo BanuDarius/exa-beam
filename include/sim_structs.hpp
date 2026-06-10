@@ -76,13 +76,20 @@ struct Laser {
 	int p, m;
 	T a0, omega, w0, k, lambda, z_r, tau, E0;
 	std::complex<T> zeta_x, zeta_y;
-	Laser(int p_n, int m_n, T(a0_n), T omega_n, T w0_multiplier, T tau_n, std::complex<T> zeta_x_n, std::complex<T> zeta_y_n) : p(p_n), m(m_n), a0(a0_n), omega(omega_n), tau(tau_n), zeta_x(zeta_x_n), zeta_y(zeta_y_n) {
+	Laser(int p_n, int m_n, T(a0_n), T omega_n, T w0_multiplier, T tau_n, std::complex<T> zeta_x_n, std::complex<T> zeta_y_n)
+		: p(p_n), m(m_n), a0(a0_n), omega(omega_n), tau(tau_n), zeta_x(zeta_x_n), zeta_y(zeta_y_n) {
 		k = omega / c<T>;
 		lambda = (T(2.0) * pi<T> * c<T>) / omega;
 		w0 = lambda * w0_multiplier;
 		z_r = pi<T> * w0 * w0 / lambda;
 		E0 = omega * m_e<T> * c<T> * a0 / std::abs(e_0<T>);
 	}
+};
+
+template <typename T>
+struct EBVectors {
+	std::array<T, 3> e, b;
+	EBVectors(std::array<T, 3> e_n, std::array<T, 3> b_n) : e(e_n), b(b_n) {}
 };
 
 template <typename T>
