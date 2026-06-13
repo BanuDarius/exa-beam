@@ -22,6 +22,7 @@ SOFTWARE. */
 
 #include <omp.h>
 #include <cstdio>
+#include <fstream>
 #include <cstdlib>
 
 #include "physics.hpp"
@@ -44,8 +45,8 @@ void start_simulation(const char *output_directory) {
 		
 		char output_filename[string_size];
 		std::sprintf(output_filename, "%s/out-%04d.vtk", output_directory, step);
-		std::FILE *output_file = std::fopen(output_filename, "wb");
-		if(output_file == nullptr) {
+		std::ofstream output_file(output_filename, std::ios::binary);
+		if(!output_file) {
 			std::fprintf(stderr, "CANNOT OPEN OUTPUT FILE!\n"); std::exit(1);
 		}
 		
@@ -53,7 +54,6 @@ void start_simulation(const char *output_directory) {
 		output_vtk_vector_field(output_file, e_field, "E");
 		output_vtk_vector_field(output_file, b_field, "B");
 		output_vtk_complex_scalar_field(output_file, u_field, "u00");
-		std::fclose(output_file);
 		std::printf("Computed step: %d/%d.\n", step, max_steps);
 	}
 }

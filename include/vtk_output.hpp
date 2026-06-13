@@ -23,9 +23,9 @@ SOFTWARE. */
 #ifndef VTK_OUTPUT_H
 #define VTK_OUTPUT_H
 
-#include <cstdio>
 #include <cstdint>
 #include <cstring>
+#include <fstream>
 
 #include "sim_structs.hpp"
 
@@ -35,12 +35,12 @@ inline uint32_t swap_endian(float v) {
 	return __builtin_bswap32(data);
 }
 
-template <typename T> void output_vtk_header(std::FILE *out, const ScalarField<T> &field);
-template <typename T> void output_vtk_header(std::FILE *out, const VectorField<T> &field);
-void output_vtk_scalar_next(std::FILE *out, const char *name);
-void output_vtk_vector_next(std::FILE *out, const char *name);
-template <typename T> void output_vtk_scalar_field(std::FILE *out, const ScalarField<T> &field, const char *name);
-template <typename T> void output_vtk_complex_scalar_field(std::FILE *out, const ComplexScalarField<T> &field, const char *name);
-template <typename T> void output_vtk_vector_field(std::FILE *out, const VectorField<T> &field, const char *name);
+template <typename T> void output_vtk_header(std::ofstream &output_file, const ScalarField<T> &field);
+template <typename T> void output_vtk_header(std::ofstream &output_file, const VectorField<T> &field);
+void output_vtk_scalar_next(std::ofstream &output_file, const char *name);
+void output_vtk_vector_next(std::ofstream &output_file, const char *name);
+template <typename T> void output_vtk_scalar_field(std::ofstream &output_file, const ScalarField<T> &field, const char *name);
+template <typename T> void output_vtk_complex_scalar_field(std::ofstream &output_file, const ComplexScalarField<T> &field, const char *name);
+template <typename T> void output_vtk_vector_field(std::ofstream &output_file, const VectorField<T> &field, const char *name);
 
 #endif

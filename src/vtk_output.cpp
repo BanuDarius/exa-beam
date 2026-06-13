@@ -20,48 +20,50 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
-#include <cstdio>
-
 #include "vtk_output.hpp"
 #include "sim_structs.hpp"
 
 template <typename T>
-void output_vtk_header(std::FILE *out, const ScalarField<T> &field) {
-	std::fprintf(out, "# vtk DataFile Version 3.0\n");
-	std::fprintf(out, "Volumetric data\n");
-	std::fprintf(out, "BINARY\n");
-	std::fprintf(out, "DATASET STRUCTURED_POINTS\n");
-	std::fprintf(out, "DIMENSIONS %d %d %d\n", field.num[0], field.num[1], field.num[2]);
-	std::fprintf(out, "ORIGIN %lf %lf %lf\n", -field.r_max[0], -field.r_max[1], -field.r_max[2]);
-	std::fprintf(out, "SPACING %lf %lf %lf\n", T(2.0) * field.r_max[0] / field.num[0], T(2.0) * field.r_max[1] / field.num[1], T(2.0) * field.r_max[2] / field.num[2]);
-	std::fprintf(out, "POINT_DATA %d\n", field.num[0] * field.num[1] * field.num[2]);
+void output_vtk_header(std::ofstream &output_file, const ScalarField<T> &field) {
+	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
+	T r_max_x = field.r_max[0], r_max_y = field.r_max[1], r_max_z = field.r_max[2];
+	output_file << "# vtk DataFile Version 3.0\n";
+	output_file << "Volumetric data\n";
+	output_file << "BINARY\n";
+	output_file << "DATASET STRUCTURED_POINTS\n";
+	output_file << "DIMENSIONS " << nx << " " << ny << " "  << nz << "\n";
+	output_file << "ORIGIN " << -r_max_x << " " << -r_max_y << " " <<  -r_max_z << "\n";
+	output_file << "SPACING " << T(2.0) * r_max_x / nx << " " << T(2.0) * r_max_y / ny << " " << T(2.0) * r_max_z / nz << "\n";
+	output_file << "POINT_DATA " << nx * ny * nz << "\n";
 }
 
 template <typename T>
-void output_vtk_header(std::FILE *out, const VectorField<T> &field) {
-	std::fprintf(out, "# vtk DataFile Version 3.0\n");
-	std::fprintf(out, "Volumetric data\n");
-	std::fprintf(out, "BINARY\n");
-	std::fprintf(out, "DATASET STRUCTURED_POINTS\n");
-	std::fprintf(out, "DIMENSIONS %d %d %d\n", field.num[0], field.num[1], field.num[2]);
-	std::fprintf(out, "ORIGIN %lf %lf %lf\n", -field.r_max[0], -field.r_max[1], -field.r_max[2]);
-	std::fprintf(out, "SPACING %lf %lf %lf\n", T(2.0) * field.r_max[0] / field.num[0], T(2.0) * field.r_max[1] / field.num[1], T(2.0) * field.r_max[2] / field.num[2]);
-	std::fprintf(out, "POINT_DATA %d\n", field.num[0] * field.num[1] * field.num[2]);
+void output_vtk_header(std::ofstream &output_file, const VectorField<T> &field) {
+	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
+	T r_max_x = field.r_max[0], r_max_y = field.r_max[1], r_max_z = field.r_max[2];
+	output_file << "# vtk DataFile Version 3.0\n";
+	output_file << "Volumetric data\n";
+	output_file << "BINARY\n";
+	output_file << "DATASET STRUCTURED_POINTS\n";
+	output_file << "DIMENSIONS " << nx << " " << ny << " "  << nz << "\n";
+	output_file << "ORIGIN " << -r_max_x << " " << -r_max_y << " " <<  -r_max_z << "\n";
+	output_file << "SPACING " << T(2.0) * r_max_x / nx << " " << T(2.0) * r_max_y / ny << " " << T(2.0) * r_max_z / nz << "\n";
+	output_file << "POINT_DATA " << nx * ny * nz << "\n";
 }
 
-void output_vtk_scalar_next(std::FILE *out, const char *name) {
-	std::fprintf(out, "SCALARS %s float 1\n", name);
-	std::fprintf(out, "LOOKUP_TABLE default\n");
+void output_vtk_scalar_next(std::ofstream &output_file, const char *name) {
+	output_file << "SCALARS " << name << " float 1\n";
+	output_file << "LOOKUP_TABLE default\n";
 }
 
-void output_vtk_vector_next(std::FILE *out, const char *name) {
-	std::fprintf(out, "VECTORS %s float\n", name);
+void output_vtk_vector_next(std::ofstream &output_file, const char *name) {
+	output_file << "VECTORS " << name << " float\n";
 }
 
 template <typename T>
-void output_vtk_scalar_field(std::FILE *out, const ScalarField<T> &field, const char *name) {
-	std::size_t nx = field.num[0], ny = field.num[1], nz = field.num[2], total = nx * ny * nz;
-	std::unique_ptr<uint32_t[]> vtk_scalar(new uint32_t[total]);
+void output_vtk_scalar_field(std::ofstream &output_file, const ScalarField<T> &field, const char *name) {
+	std::size_t nx = field.num[0], ny = field.num[1], nz = field.num[2], grid_size = nx * ny * nz;
+	std::unique_ptr<uint32_t[]> vtk_scalar(new uint32_t[grid_size]);
 	#pragma omp parallel for collapse(3)
 	for(std::size_t k = 0; k < nz; k++) {
 		for(std::size_t j = 0; j < ny; j++) {
@@ -72,14 +74,14 @@ void output_vtk_scalar_field(std::FILE *out, const ScalarField<T> &field, const 
 			}
 		}
 	}
-	output_vtk_scalar_next(out, name);
-	std::fwrite(vtk_scalar.get(), sizeof(uint32_t), total, out);
+	output_vtk_scalar_next(output_file, name);
+	output_file.write(reinterpret_cast<const char*>(vtk_scalar.get()), grid_size * sizeof(uint32_t));
 }
 
 template <typename T>
-void output_vtk_complex_scalar_field(std::FILE *out, const ComplexScalarField<T> &field, const char *name) {
-	std::size_t nx = field.num[0], ny = field.num[1], nz = field.num[2], total = nx * ny * nz;
-	std::unique_ptr<uint32_t[]> vtk_scalar(new uint32_t[total]);
+void output_vtk_complex_scalar_field(std::ofstream &output_file, const ComplexScalarField<T> &field, const char *name) {
+	std::size_t nx = field.num[0], ny = field.num[1], nz = field.num[2], grid_size = nx * ny * nz;
+	std::unique_ptr<uint32_t[]> vtk_scalar(new uint32_t[grid_size]);
 	#pragma omp parallel for collapse(3)
 	for(std::size_t k = 0; k < nz; k++) {
 		for(std::size_t j = 0; j < ny; j++) {
@@ -90,14 +92,14 @@ void output_vtk_complex_scalar_field(std::FILE *out, const ComplexScalarField<T>
 			}
 		}
 	}
-	output_vtk_scalar_next(out, name);
-	std::fwrite(vtk_scalar.get(), sizeof(uint32_t), total, out);
+	output_vtk_scalar_next(output_file, name);
+	output_file.write(reinterpret_cast<const char*>(vtk_scalar.get()), grid_size * sizeof(uint32_t));
 }
 
 template <typename T>
-void output_vtk_vector_field(std::FILE *out, const VectorField<T> &field, const char *name) {
-	std::size_t nx = field.num[0], ny = field.num[1], nz = field.num[2], total = nx * ny * nz;
-	std::unique_ptr<uint32_t[]> vtk_vector(new uint32_t[3 * total]);
+void output_vtk_vector_field(std::ofstream &output_file, const VectorField<T> &field, const char *name) {
+	std::size_t nx = field.num[0], ny = field.num[1], nz = field.num[2], grid_size = nx * ny * nz;
+	std::unique_ptr<uint32_t[]> vtk_vector(new uint32_t[3 * grid_size]);
 	#pragma omp parallel for collapse(3)
 	for(std::size_t k = 0; k < nz; k++) {
 		for(std::size_t j = 0; j < ny; j++) {
@@ -110,18 +112,18 @@ void output_vtk_vector_field(std::FILE *out, const VectorField<T> &field, const 
 			}
 		}
 	}
-	output_vtk_vector_next(out, name);
-	std::fwrite(vtk_vector.get(), sizeof(uint32_t), 3 * total, out);
+	output_vtk_vector_next(output_file, name);
+	output_file.write(reinterpret_cast<const char*>(vtk_vector.get()), 3 * grid_size * sizeof(uint32_t));
 }
 
-template void output_vtk_header<double>(std::FILE *out, const ScalarField<double> &field);
-template void output_vtk_header<double>(std::FILE *out, const VectorField<double> &field);
-template void output_vtk_scalar_field<double>(std::FILE *out, const ScalarField<double> &field, const char *name);
-template void output_vtk_complex_scalar_field<double>(std::FILE *out, const ComplexScalarField<double> &field, const char *name);
-template void output_vtk_vector_field<double>(std::FILE *out, const VectorField<double> &field, const char *name);
+template void output_vtk_header<double>(std::ofstream &output_file, const ScalarField<double> &field);
+template void output_vtk_header<double>(std::ofstream &output_file, const VectorField<double> &field);
+template void output_vtk_scalar_field<double>(std::ofstream &output_file, const ScalarField<double> &field, const char *name);
+template void output_vtk_complex_scalar_field<double>(std::ofstream &output_file, const ComplexScalarField<double> &field, const char *name);
+template void output_vtk_vector_field<double>(std::ofstream &output_file, const VectorField<double> &field, const char *name);
 
-template void output_vtk_header<float>(std::FILE *out, const ScalarField<float> &field);
-template void output_vtk_header<float>(std::FILE *out, const VectorField<float> &field);
-template void output_vtk_scalar_field<float>(std::FILE *out, const ScalarField<float> &field, const char *name);
-template void output_vtk_complex_scalar_field<float>(std::FILE *out, const ComplexScalarField<float> &field, const char *name);
-template void output_vtk_vector_field<float>(std::FILE *out, const VectorField<float> &field, const char *name);
+template void output_vtk_header<float>(std::ofstream &output_file, const ScalarField<float> &field);
+template void output_vtk_header<float>(std::ofstream &output_file, const VectorField<float> &field);
+template void output_vtk_scalar_field<float>(std::ofstream &output_file, const ScalarField<float> &field, const char *name);
+template void output_vtk_complex_scalar_field<float>(std::ofstream &output_file, const ComplexScalarField<float> &field, const char *name);
+template void output_vtk_vector_field<float>(std::ofstream &output_file, const VectorField<float> &field, const char *name);
