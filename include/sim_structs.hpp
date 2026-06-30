@@ -26,6 +26,7 @@ SOFTWARE. */
 #include <array>
 #include <memory>
 #include <complex>
+#include <cassert>
 
 constexpr int string_size = 128;
 constexpr int input_file_count = 2;
@@ -108,6 +109,8 @@ struct ScalarField {
 			v[i] = T(0.0);
 	}
 	ScalarField &operator=(const ScalarField &other) {
+		if(this == &other) return *this;
+		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < other.field_size; i++)
 			v[i] = other.v[i];
@@ -143,6 +146,8 @@ struct ComplexScalarField {
 			v[i] = { T(0.0), T(0.0) };
 	}
 	ComplexScalarField &operator=(const ComplexScalarField &other) {
+		if(this == &other) return *this;
+		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < other.field_size; i++)
 			v[i] = other.v[i];
@@ -181,6 +186,8 @@ struct VectorField {
 		}
 	}
 	VectorField &operator=(const VectorField &other) {
+		if(this == &other) return *this;
+		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < other.field_size; i++) {
 			x[i] = other.x[i]; y[i] = other.y[i]; z[i] = other.z[i];
