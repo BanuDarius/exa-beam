@@ -108,6 +108,14 @@ struct ScalarField {
 		for(std::size_t i = 0; i < field_size; i++)
 			v[i] = T(0.0);
 	}
+	ScalarField(const ScalarField &other)
+		: field_size(other.field_size), num(other.num), r_max(other.r_max) {
+		v = std::unique_ptr<T[]>(new T[field_size]);
+		#pragma omp parallel for simd schedule(static)
+		for(std::size_t i = 0; i < field_size; i++)
+			v[i] = other.v[i];
+	}
+	
 	ScalarField &operator=(const ScalarField &other) {
 		if(this == &other) return *this;
 		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
@@ -117,17 +125,22 @@ struct ScalarField {
 		return *this;
 	}
 	ScalarField &operator+=(const ScalarField &other) {
+		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < other.field_size; i++)
 			v[i] += other.v[i];
 		return *this;
 	}
 	ScalarField &operator-=(const ScalarField &other) {
+		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < other.field_size; i++)
 			v[i] -= other.v[i];
 		return *this;
 	}
+	ScalarField(ScalarField &&other) noexcept = default;
+	ScalarField &operator=(ScalarField &&other) noexcept = default;
+	~ScalarField() = default;
 };
 
 template <typename T>
@@ -145,6 +158,13 @@ struct ComplexScalarField {
 		for(std::size_t i = 0; i < field_size; i++)
 			v[i] = { T(0.0), T(0.0) };
 	}
+	ComplexScalarField(const ComplexScalarField &other)
+		: field_size(other.field_size), num(other.num), r_max(other.r_max) {
+		v = std::unique_ptr<std::complex<T>[]>(new std::complex<T>[field_size]);
+		#pragma omp parallel for simd schedule(static)
+		for(std::size_t i = 0; i < field_size; i++)
+			v[i] = other.v[i];
+	}
 	ComplexScalarField &operator=(const ComplexScalarField &other) {
 		if(this == &other) return *this;
 		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
@@ -154,17 +174,22 @@ struct ComplexScalarField {
 		return *this;
 	}
 	ComplexScalarField &operator+=(const ComplexScalarField &other) {
+		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < other.field_size; i++)
 			v[i] += other.v[i];
 		return *this;
 	}
 	ComplexScalarField &operator-=(const ComplexScalarField &other) {
+		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < other.field_size; i++)
 			v[i] -= other.v[i];
 		return *this;
 	}
+	ComplexScalarField(ComplexScalarField &&other) noexcept = default;
+	ComplexScalarField &operator=(ComplexScalarField &&other) noexcept = default;
+	~ComplexScalarField() = default;
 };
 
 template <typename T>
@@ -185,6 +210,16 @@ struct VectorField {
 			x[i] = T(0.0); y[i] = T(0.0); z[i] = T(0.0);
 		}
 	}
+	VectorField(const VectorField &other)
+		: field_size(other.field_size), num(other.num), r_max(other.r_max) {
+		x = std::unique_ptr<T[]>(new T[field_size]);
+		y = std::unique_ptr<T[]>(new T[field_size]);
+		z = std::unique_ptr<T[]>(new T[field_size]);
+		#pragma omp parallel for simd schedule(static)
+		for(std::size_t i = 0; i < field_size; i++) {
+			x[i] = other.x[i]; y[i] = other.y[i]; z[i] = other.z[i];
+		}
+	}
 	VectorField &operator=(const VectorField &other) {
 		if(this == &other) return *this;
 		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
@@ -195,6 +230,7 @@ struct VectorField {
 		return *this;
 	}
 	VectorField &operator+=(const VectorField &other) {
+		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < other.field_size; i++) {
 			x[i] += other.x[i]; y[i] += other.y[i]; z[i] += other.z[i];
@@ -202,12 +238,16 @@ struct VectorField {
 		return *this;
 	}
 	VectorField &operator-=(const VectorField &other) {
+		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < other.field_size; i++) {
 			x[i] -= other.x[i]; y[i] -= other.y[i]; z[i] -= other.z[i];
 		}
 		return *this;
 	}
+	VectorField(VectorField &&other) noexcept = default;
+	VectorField &operator=(VectorField &&other) noexcept = default;
+	~VectorField() = default;
 };
 
 #endif
