@@ -115,7 +115,6 @@ struct ScalarField {
 		for(std::size_t i = 0; i < field_size; i++)
 			v[i] = other.v[i];
 	}
-	
 	ScalarField &operator=(const ScalarField &other) {
 		if(this == &other) return *this;
 		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
