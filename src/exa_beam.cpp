@@ -45,7 +45,6 @@ void start_simulation(const char *output_directory) {
 	
 	for(int step = 0; step < max_steps; step++) {
 		T time = step * dt;
-		compute_eb_field(e_field, b_field, u_field, laser, time);
 		#pragma omp parallel for schedule(static)
 		for(int i = 0; i < total; i++)
 			higuera_cary_step(particles, laser, time, dt, i);
@@ -56,10 +55,12 @@ void start_simulation(const char *output_directory) {
 			if(!output_file) {
 				std::fprintf(stderr, "CANNOT OPEN OUTPUT FILE!\n"); std::exit(1);
 			}
+			compute_eb_field(e_field, b_field, u_field, laser, time);
+			
 			output_vtk_header(output_file, particles);
-			output_vtk_particles_positions(output_file, particles, "pos");
 			output_vtk_vector_field(output_file, e_field, "E");
 			output_vtk_vector_field(output_file, b_field, "B");
+			output_vtk_particles_positions(output_file, particles, "pos");
 			std::printf("Computed step: %d/%d.\n", step, max_steps);
 		}
 	}
