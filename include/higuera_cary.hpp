@@ -95,16 +95,8 @@ inline std::array<T, 3> hc_u_plus(std::array<T, 3> u_minus, std::array<T, 3> u_p
 
 template<typename T>
 void higuera_cary_step(Particles<T> &particles, const Laser<T> &laser, T t, T dt, int idx) noexcept {
-	std::array<T, 3> r_vec = {
-		particles.x[idx],
-		particles.y[idx],
-		particles.z[idx]
-	};
-	std::array<T, 3> u_vec = {
-		particles.ux[idx],
-		particles.uy[idx],
-		particles.uz[idx]
-	};
+	std::array<T, 3> r_vec = particles.get_position(idx);
+	std::array<T, 3> u_vec = particles.get_velocity(idx);
 	
 	T gamma = particles.gamma[idx];
 	T half_dt_gamma = T(0.5) * dt / gamma;
@@ -128,14 +120,9 @@ void higuera_cary_step(Particles<T> &particles, const Laser<T> &laser, T t, T dt
 	gamma = comp_gamma(u_final);
 	half_dt_gamma = T(0.5) * dt / gamma;
 	r_vec += u_final * half_dt_gamma;
-	
-	particles.x[idx] = r_vec[0];
-	particles.y[idx] = r_vec[1];
-	particles.z[idx] = r_vec[2];
-	
-	particles.ux[idx] = u_final[0];
-	particles.uy[idx] = u_final[1];
-	particles.uz[idx] = u_final[2];
+
+	particles.set_position(r_vec, idx);
+	particles.set_velocity(u_final, idx);
 	particles.gamma[idx] = gamma;
 }
 

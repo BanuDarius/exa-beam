@@ -40,9 +40,9 @@ template <typename T> void output_vtk_header(std::ofstream &output_file, const V
 template <typename T> void output_vtk_header(std::ofstream &output_file, const Particles<T> &particles);
 void output_vtk_scalar_next(std::ofstream &output_file, const char *name);
 void output_vtk_vector_next(std::ofstream &output_file, const char *name);
-template <typename T> void output_vtk_scalar_field(std::ofstream &output_file, const ScalarField<T> &field, const char *name);
-template <typename T> void output_vtk_complex_scalar_field(std::ofstream &output_file, const ComplexScalarField<T> &field, const char *name);
-template <typename T> void output_vtk_vector_field(std::ofstream &output_file, const VectorField<T> &field, const char *name);
-template <typename T> void output_vtk_particles_positions(std::ofstream &output_file, const Particles<T> &particles, const char *name);
+template <typename T> void output_vtk_scalar_field(std::ofstream &output_file, DataVTK &data_vtk, const ScalarField<T> &field, const char *name);
+template <typename T> void output_vtk_complex_scalar_field(std::ofstream &output_file, DataVTK &data_vtk, const ComplexScalarField<T> &field, const char *name);
+template <typename T> void output_vtk_vector_field(std::ofstream &output_file, DataVTK &data_vtk, const VectorField<T> &field, const char *name);
+template <typename T> void output_vtk_particles_positions(std::ofstream &output_file, DataVTK &data_vtk, const Particles<T> &particles, const char *name);
 
 #endif

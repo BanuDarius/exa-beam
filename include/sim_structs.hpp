@@ -76,6 +76,20 @@ struct Particles {
 			}
 		}
 	}
+	inline std::array<T, 3> get_position(int idx) noexcept {
+		std::array<T, 3> r_vec = { x[idx], y[idx], z[idx] };
+		return r_vec;
+	}
+	inline std::array<T, 3> get_velocity(int idx) noexcept {
+		std::array<T, 3> u_vec = { ux[idx], uy[idx], uz[idx] };
+		return u_vec;
+	}
+	inline void set_position(std::array<T, 3> r_vec, int idx) noexcept {
+		x[idx] = r_vec[0]; y[idx] = r_vec[1]; z[idx] = r_vec[2];
+	}
+	inline void set_velocity(std::array<T, 3> u_vec, int idx) noexcept {
+		ux[idx] = u_vec[0]; uy[idx] = u_vec[1]; uz[idx] = u_vec[2];
+	}
 };
 
 template <typename T>
@@ -253,6 +267,22 @@ struct VectorField {
 	VectorField(VectorField &&other) noexcept = default;
 	VectorField &operator=(VectorField &&other) noexcept = default;
 	~VectorField() = default;
+};
+
+struct DataVTK {
+	std::size_t field_size;
+	std::unique_ptr<uint32_t[]> vtk_scalar, vtk_vector;
+	DataVTK(int nx, int ny, int nz) {
+		field_size = nx * ny * nz;
+		vtk_scalar = std::unique_ptr<uint32_t[]>(new uint32_t[field_size]);
+		vtk_vector = std::unique_ptr<uint32_t[]>(new uint32_t[3 * field_size]);
+		#pragma omp parallel for simd schedule(static)
+		for(std::size_t i = 0; i < field_size; i++)
+			vtk_scalar[i] = static_cast<uint32_t>(0.0);
+		#pragma omp parallel for simd schedule(static)
+		for(std::size_t i = 0; i < 3 * field_size; i++)
+			vtk_vector[i] = static_cast<uint32_t>(0.0);
+	}
 };
 
 #endif

@@ -75,10 +75,10 @@ void output_vtk_vector_next(std::ofstream &output_file, const char *name) {
 }
 
 template <typename T>
-void output_vtk_scalar_field(std::ofstream &output_file, const ScalarField<T> &field, const char *name) {
-	std::size_t nx = field.num[0], ny = field.num[1], nz = field.num[2], grid_size = nx * ny * nz;
-	std::unique_ptr<uint32_t[]> vtk_scalar(new uint32_t[grid_size]);
-	#pragma omp parallel for collapse(3)
+void output_vtk_scalar_field(std::ofstream &output_file, DataVTK &data_vtk, const ScalarField<T> &field, const char *name) {
+	std::size_t nx = field.num[0], ny = field.num[1], nz = field.num[2], field_size = nx * ny * nz;
+	uint32_t *vtk_scalar = data_vtk.vtk_scalar.get();
+	#pragma omp parallel for collapse(3) schedule(static)
 	for(std::size_t k = 0; k < nz; k++) {
 		for(std::size_t j = 0; j < ny; j++) {
 			for(std::size_t i = 0; i < nx; i++) {
@@ -89,14 +89,14 @@ void output_vtk_scalar_field(std::ofstream &output_file, const ScalarField<T> &f
 		}
 	}
 	output_vtk_scalar_next(output_file, name);
-	output_file.write(reinterpret_cast<const char*>(vtk_scalar.get()), grid_size * sizeof(uint32_t));
+	output_file.write(reinterpret_cast<const char*>(vtk_scalar), field_size * sizeof(uint32_t));
 }
 
 template <typename T>
-void output_vtk_complex_scalar_field(std::ofstream &output_file, const ComplexScalarField<T> &field, const char *name) {
-	std::size_t nx = field.num[0], ny = field.num[1], nz = field.num[2], grid_size = nx * ny * nz;
-	std::unique_ptr<uint32_t[]> vtk_scalar(new uint32_t[grid_size]);
-	#pragma omp parallel for collapse(3)
+void output_vtk_complex_scalar_field(std::ofstream &output_file, DataVTK &data_vtk, const ComplexScalarField<T> &field, const char *name) {
+	std::size_t nx = field.num[0], ny = field.num[1], nz = field.num[2], field_size = nx * ny * nz;
+	uint32_t *vtk_scalar = data_vtk.vtk_scalar.get();
+	#pragma omp parallel for collapse(3) schedule(static)
 	for(std::size_t k = 0; k < nz; k++) {
 		for(std::size_t j = 0; j < ny; j++) {
 			for(std::size_t i = 0; i < nx; i++) {
@@ -107,14 +107,14 @@ void output_vtk_complex_scalar_field(std::ofstream &output_file, const ComplexSc
 		}
 	}
 	output_vtk_scalar_next(output_file, name);
-	output_file.write(reinterpret_cast<const char*>(vtk_scalar.get()), grid_size * sizeof(uint32_t));
+	output_file.write(reinterpret_cast<const char*>(vtk_scalar), field_size * sizeof(uint32_t));
 }
 
 template <typename T>
-void output_vtk_vector_field(std::ofstream &output_file, const VectorField<T> &field, const char *name) {
-	std::size_t nx = field.num[0], ny = field.num[1], nz = field.num[2], grid_size = nx * ny * nz;
-	std::unique_ptr<uint32_t[]> vtk_vector(new uint32_t[3 * grid_size]);
-	#pragma omp parallel for collapse(3)
+void output_vtk_vector_field(std::ofstream &output_file, DataVTK &data_vtk, const VectorField<T> &field, const char *name) {
+	std::size_t nx = field.num[0], ny = field.num[1], nz = field.num[2], field_size = nx * ny * nz;
+	uint32_t *vtk_vector = data_vtk.vtk_vector.get();
+	#pragma omp parallel for collapse(3) schedule(static)
 	for(std::size_t k = 0; k < nz; k++) {
 		for(std::size_t j = 0; j < ny; j++) {
 			for(std::size_t i = 0; i < nx; i++) {
@@ -127,14 +127,14 @@ void output_vtk_vector_field(std::ofstream &output_file, const VectorField<T> &f
 		}
 	}
 	output_vtk_vector_next(output_file, name);
-	output_file.write(reinterpret_cast<const char*>(vtk_vector.get()), 3 * grid_size * sizeof(uint32_t));
+	output_file.write(reinterpret_cast<const char*>(vtk_vector), 3 * field_size * sizeof(uint32_t));
 }
 
 template <typename T>
-void output_vtk_particles_positions(std::ofstream &output_file, const Particles<T> &particles, const char *name) {
-	std::size_t nx = particles.num[0], ny = particles.num[1], nz = particles.num[2], grid_size = nx * ny * nz;
-	std::unique_ptr<uint32_t[]> vtk_vector(new uint32_t[3 * grid_size]);
-	#pragma omp parallel for collapse(3)
+void output_vtk_particles_positions(std::ofstream &output_file, DataVTK &data_vtk, const Particles<T> &particles, const char *name) {
+	std::size_t nx = particles.num[0], ny = particles.num[1], nz = particles.num[2], field_size = nx * ny * nz;
+	uint32_t *vtk_vector = data_vtk.vtk_vector.get();
+	#pragma omp parallel for collapse(3) schedule(static)
 	for(std::size_t k = 0; k < nz; k++) {
 		for(std::size_t j = 0; j < ny; j++) {
 			for(std::size_t i = 0; i < nx; i++) {
@@ -147,21 +147,21 @@ void output_vtk_particles_positions(std::ofstream &output_file, const Particles<
 		}
 	}
 	output_vtk_vector_next(output_file, name);
-	output_file.write(reinterpret_cast<const char*>(vtk_vector.get()), 3 * grid_size * sizeof(uint32_t));
+	output_file.write(reinterpret_cast<const char*>(vtk_vector), 3 * field_size * sizeof(uint32_t));
 }
 
 template void output_vtk_header<double>(std::ofstream &output_file, const ScalarField<double> &field);
 template void output_vtk_header<double>(std::ofstream &output_file, const VectorField<double> &field);
 template void output_vtk_header<double>(std::ofstream &output_file, const Particles<double> &particles);
-template void output_vtk_scalar_field<double>(std::ofstream &output_file, const ScalarField<double> &field, const char *name);
-template void output_vtk_complex_scalar_field<double>(std::ofstream &output_file, const ComplexScalarField<double> &field, const char *name);
-template void output_vtk_vector_field<double>(std::ofstream &output_file, const VectorField<double> &field, const char *name);
-template void output_vtk_particles_positions<double>(std::ofstream &output_file, const Particles<double> &particles, const char *name);
+template void output_vtk_scalar_field<double>(std::ofstream &output_file, DataVTK &data_vtk, const ScalarField<double> &field, const char *name);
+template void output_vtk_complex_scalar_field<double>(std::ofstream &output_file, DataVTK &data_vtk, const ComplexScalarField<double> &field, const char *name);
+template void output_vtk_vector_field<double>(std::ofstream &output_file, DataVTK &data_vtk, const VectorField<double> &field, const char *name);
+template void output_vtk_particles_positions<double>(std::ofstream &output_file, DataVTK &data_vtk, const Particles<double> &particles, const char *name);
 
 template void output_vtk_header<float>(std::ofstream &output_file, const ScalarField<float> &field);
 template void output_vtk_header<float>(std::ofstream &output_file, const VectorField<float> &field);
 template void output_vtk_header<float>(std::ofstream &output_file, const Particles<float> &particles);
-template void output_vtk_scalar_field<float>(std::ofstream &output_file, const ScalarField<float> &field, const char *name);
-template void output_vtk_complex_scalar_field<float>(std::ofstream &output_file, const ComplexScalarField<float> &field, const char *name);
-template void output_vtk_vector_field<float>(std::ofstream &output_file, const VectorField<float> &field, const char *name);
-template void output_vtk_particles_positions<float>(std::ofstream &output_file, const Particles<float> &particles, const char *name);
+template void output_vtk_scalar_field<float>(std::ofstream &output_file, DataVTK &data_vtk, const ScalarField<float> &field, const char *name);
+template void output_vtk_complex_scalar_field<float>(std::ofstream &output_file, DataVTK &data_vtk, const ComplexScalarField<float> &field, const char *name);
+template void output_vtk_vector_field<float>(std::ofstream &output_file, DataVTK &data_vtk, const VectorField<float> &field, const char *name);
+template void output_vtk_particles_positions<float>(std::ofstream &output_file, DataVTK &data_vtk, const Particles<float> &particles, const char *name);

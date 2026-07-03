@@ -40,9 +40,10 @@ void start_simulation(const char *output_directory) {
 	Laser<T> laser(0, 0, T(15.0), T(0.057), T(32.0), tau, -T(32.0) * tau, zeta_x, zeta_y);
 	VectorField<T> e_field(nx, nx, nx, laser.w0), b_field(nx, nx, nx, laser.w0);
 	ComplexScalarField<T> u_field(nx, nx, nx, laser.w0);
-	compute_u_field(u_field, laser);
 	Particles<T> particles(nx, nx, nx, laser.w0);
+	DataVTK data_vtk(nx, nx, nx);
 	
+	compute_u_field(u_field, laser);
 	for(int step = 0; step < max_steps; step++) {
 		T time = step * dt;
 		#pragma omp parallel for schedule(static)
@@ -58,9 +59,9 @@ void start_simulation(const char *output_directory) {
 			compute_eb_field(e_field, b_field, u_field, laser, time);
 			
 			output_vtk_header(output_file, particles);
-			output_vtk_vector_field(output_file, e_field, "E");
-			output_vtk_vector_field(output_file, b_field, "B");
-			output_vtk_particles_positions(output_file, particles, "pos");
+			output_vtk_vector_field(output_file, data_vtk, e_field, "E");
+			output_vtk_vector_field(output_file, data_vtk, b_field, "B");
+			output_vtk_particles_positions(output_file, data_vtk, particles, "pos");
 			std::printf("Computed step: %d/%d.\n", step, max_steps);
 		}
 	}
