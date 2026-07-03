@@ -29,6 +29,13 @@ SOFTWARE. */
 #include "math_functions.hpp"
 
 template <typename T>
+inline T comp_gamma(std::array<T, 3> u_vec) {
+	T u2 = dot(u_vec, u_vec);
+	T gamma = std::sqrt(T(1.0) + u2 / (c<T> * c<T>));
+	return gamma;
+}
+
+template <typename T>
 inline T hc_s_factor(std::array<T, 3> t_rot) noexcept {
 	T s_factor = T(2.0) / (T(1.0) + dot(t_rot, t_rot));
 	return s_factor;
@@ -36,7 +43,7 @@ inline T hc_s_factor(std::array<T, 3> t_rot) noexcept {
 
 template <typename T>
 inline std::array<T, 3> hc_beta(std::array<T, 3> B, T dt) noexcept {
-	T term = e_0<T> * dt / (T(2.0 * m_e<T>));
+	T term = e_0<T> * dt / (T(2.0) * m_e<T>);
 	std::array<T, 3> beta = B * term;
 	return beta;
 }
@@ -56,8 +63,8 @@ inline std::array<T, 3> hc_t_rot(std::array<T, 3> beta, T gamma_new) noexcept {
 }
 
 template <typename T>
-inline std::array<T, 3> hc_u_minus(std::array<T, 3> u_i, std::array<T, 3> epsilon) noexcept {
-	std::array<T, 3> u_minus = u_i + epsilon;
+inline std::array<T, 3> hc_u_minus(std::array<T, 3> u, std::array<T, 3> epsilon) noexcept {
+	std::array<T, 3> u_minus = u + epsilon;
 	return u_minus;
 }
 
@@ -73,7 +80,7 @@ inline T hc_gamma_new(std::array<T, 3> u_minus, std::array<T, 3> beta, T gamma_m
 	T t1 = gamma_minus * gamma_minus - dot(beta, beta);
 	T beta_dot_u = dot(beta, u_minus);
 	T t2 = dot(beta, beta) + (beta_dot_u * beta_dot_u) / (c<T> * c<T>);
-	T t3 = sqrt(T(0.5) * (t1 + sqrt(t1 * t1 + T(4.0) * t2)));
+	T t3 = std::sqrt(T(0.5) * (t1 + sqrt(t1 * t1 + T(4.0) * t2)));
 	return t3;
 }
 
@@ -83,6 +90,53 @@ inline std::array<T, 3> hc_u_plus(std::array<T, 3> u_minus, std::array<T, 3> u_p
 	std::array<T, 3> term = cross(u_prime, t_rot);
 	std::array<T, 3> u_plus = u_minus + term;
 	return u_plus;
+}
+
+template<typename T>
+void higuera_cary_step(Particles<T> &part, const Laser<T> &laser, T t, T dt, int idx) noexcept {
+	std::array<T, 3> r_vec = {
+		part.x[idx],
+		part.y[idx],
+		part.z[idx]
+	};
+	std::array<T, 3> u_vec = {
+		part.ux[idx],
+		part.uy[idx],
+		part.uz[idx]
+	};
+	
+	T gamma = part.gamma[idx];
+	T half_dt_gamma = T(0.5) * dt / gamma;
+	r_vec += u_vec * half_dt_gamma;
+	
+	EBVectors eb_vec = compute_e_b(laser, r_vec, t);
+	
+	std::array<T, 3> beta = hc_beta(eb_vec.b, dt);
+	std::array<T, 3> epsilon = hc_epsilon(eb_vec.e, dt);
+	std::array<T, 3> u_minus = hc_u_minus(u_vec, epsilon);
+	
+	T gamma_minus = comp_gamma(u_minus);
+	T gamma_new = hc_gamma_new(u_minus, beta, gamma_minus);
+	
+	std::array<T, 3> t_rot = hc_t_rot(beta, gamma_new);
+	T s_factor = hc_s_factor(t_rot);
+	std::array<T, 3> u_prime = hc_u_prime(u_minus, t_rot);
+	std::array<T, 3> u_plus = hc_u_plus(u_minus, u_prime, t_rot, s_factor);
+	
+	std::array<T, 3> u_final = u_plus + epsilon;
+	gamma = comp_gamma(u_final);
+	half_dt_gamma = T(0.5) * dt / gamma;
+	
+	r_vec += u_final * half_dt_gamma;
+	
+	part.x[idx] = r_vec[0];
+	part.y[idx] = r_vec[1];
+	part.z[idx] = r_vec[2];
+	
+	part.ux[idx] = u_final[0];
+	part.uy[idx] = u_final[1];
+	part.uz[idx] = u_final[2];
+	part.gamma[idx] = gamma;
 }
 
 #endif

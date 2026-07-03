@@ -53,7 +53,7 @@ template <typename T>
 struct Particles {
 	std::array<int, 3> num;
 	std::array<T, 2> r_max;
-	std::unique_ptr<T[]> x, y, z, px, py, pz;
+	std::unique_ptr<T[]> x, y, z, ux, uy, uz, gamma;
 	Particles(int nx, int ny, int nz, T r_max_n) {
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n };
@@ -61,13 +61,15 @@ struct Particles {
 		x = std::unique_ptr<T[]>(new T[total]);
 		y = std::unique_ptr<T[]>(new T[total]);
 		z = std::unique_ptr<T[]>(new T[total]);
-		px = std::unique_ptr<T[]>(new T[total]);
-		py = std::unique_ptr<T[]>(new T[total]);
-		pz = std::unique_ptr<T[]>(new T[total]);
+		ux = std::unique_ptr<T[]>(new T[total]);
+		uy = std::unique_ptr<T[]>(new T[total]);
+		uz = std::unique_ptr<T[]>(new T[total]);
+		gamma = std::unique_ptr<T[]>(new T[total]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < total; i++) {
 			x[i] = T(0.0); y[i] = T(0.0); z[i] = T(0.0);
-			px[i] = T(0.0); py[i] = T(0.0); pz[i] = T(0.0);
+			ux[i] = T(0.0); uy[i] = T(0.0); uz[i] = T(0.0);
+			gamma[i] = T(0.0);
 		}
 	}
 };
