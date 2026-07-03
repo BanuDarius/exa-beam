@@ -27,6 +27,7 @@ SOFTWARE. */
 
 #include "sim_structs.hpp"
 #include "math_functions.hpp"
+#include "laguerre_gauss.hpp"
 
 template <typename T>
 inline T comp_gamma(std::array<T, 3> u_vec) {
@@ -93,23 +94,23 @@ inline std::array<T, 3> hc_u_plus(std::array<T, 3> u_minus, std::array<T, 3> u_p
 }
 
 template<typename T>
-void higuera_cary_step(Particles<T> &part, const Laser<T> &laser, T t, T dt, int idx) noexcept {
+void higuera_cary_step(Particles<T> &particles, const Laser<T> &laser, T t, T dt, int idx) noexcept {
 	std::array<T, 3> r_vec = {
-		part.x[idx],
-		part.y[idx],
-		part.z[idx]
+		particles.x[idx],
+		particles.y[idx],
+		particles.z[idx]
 	};
 	std::array<T, 3> u_vec = {
-		part.ux[idx],
-		part.uy[idx],
-		part.uz[idx]
+		particles.ux[idx],
+		particles.uy[idx],
+		particles.uz[idx]
 	};
 	
-	T gamma = part.gamma[idx];
+	T gamma = particles.gamma[idx];
 	T half_dt_gamma = T(0.5) * dt / gamma;
 	r_vec += u_vec * half_dt_gamma;
 	
-	EBVectors eb_vec = compute_e_b(laser, r_vec, t);
+	EBVectors eb_vec = compute_eb(laser, r_vec, t);
 	
 	std::array<T, 3> beta = hc_beta(eb_vec.b, dt);
 	std::array<T, 3> epsilon = hc_epsilon(eb_vec.e, dt);
@@ -126,17 +127,16 @@ void higuera_cary_step(Particles<T> &part, const Laser<T> &laser, T t, T dt, int
 	std::array<T, 3> u_final = u_plus + epsilon;
 	gamma = comp_gamma(u_final);
 	half_dt_gamma = T(0.5) * dt / gamma;
-	
 	r_vec += u_final * half_dt_gamma;
 	
-	part.x[idx] = r_vec[0];
-	part.y[idx] = r_vec[1];
-	part.z[idx] = r_vec[2];
+	particles.x[idx] = r_vec[0];
+	particles.y[idx] = r_vec[1];
+	particles.z[idx] = r_vec[2];
 	
-	part.ux[idx] = u_final[0];
-	part.uy[idx] = u_final[1];
-	part.uz[idx] = u_final[2];
-	part.gamma[idx] = gamma;
+	particles.ux[idx] = u_final[0];
+	particles.uy[idx] = u_final[1];
+	particles.uz[idx] = u_final[2];
+	particles.gamma[idx] = gamma;
 }
 
 #endif

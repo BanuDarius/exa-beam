@@ -32,11 +32,7 @@ SOFTWARE. */
 
 template <typename T>
 void start_simulation(const char *output_directory) {
-	std::complex<T> zeta_x(T(0.707), T(0.0));
-	std::complex<T> zeta_y(T(0.0), -T(0.707));
-	int nx = 32;
-	Laser<T> laser(0, 0, T(0.1), T(0.057), T(15.0), T(4.0), zeta_x, zeta_y);
-	VectorField<T> e_field(nx, nx, nx, laser.w0), b_field(nx, nx, nx, laser.w0);
+	/*VectorField<T> e_field(nx, nx, nx, laser.w0), b_field(nx, nx, nx, laser.w0);
 	ComplexScalarField<T> u_field(nx, nx, nx, laser.w0);
 	compute_u_field(u_field, laser);
 	
@@ -55,6 +51,29 @@ void start_simulation(const char *output_directory) {
 		output_vtk_vector_field(output_file, e_field, "E");
 		output_vtk_vector_field(output_file, b_field, "B");
 		output_vtk_complex_scalar_field(output_file, u_field, "u00");
+		std::printf("Computed step: %d/%d.\n", step, max_steps);
+	}*/
+	std::complex<T> zeta_x(T(0.707), T(0.0));
+	std::complex<T> zeta_y(T(0.0), -T(0.707));
+	
+	T dt = T(10.0), tau = T(4.0);
+	int max_steps = 100, nx = 32, total = nx * nx * nx;
+	Laser<T> laser(0, 0, T(0.1), T(0.057), T(15.0), tau, T(4.0) * tau, zeta_x, zeta_y);
+	Particles<T> particles(nx, nx, nx, laser.w0);
+	
+	for(int step = 0; step < max_steps; step++) {
+		T t = step * dt;
+		#pragma omp parallel for schedule(static)
+		for(int i = 0; i < total; i++)
+			higuera_cary_step(particles, laser, t, dt, i);
+		char output_filename[string_size];
+		std::sprintf(output_filename, "%s/out-%04d.vtk", output_directory, step);
+		std::ofstream output_file(output_filename, std::ios::binary);
+		if(!output_file) {
+			std::fprintf(stderr, "CANNOT OPEN OUTPUT FILE!\n"); std::exit(1);
+		}
+		output_vtk_header(output_file, particles);
+		output_vtk_particles_positions(output_file, particles, "pos");
 		std::printf("Computed step: %d/%d.\n", step, max_steps);
 	}
 }

@@ -28,6 +28,8 @@ SOFTWARE. */
 #include <complex>
 #include <cassert>
 
+#include "math_functions.hpp"
+
 constexpr int string_size = 128;
 constexpr int input_file_count = 2;
 
@@ -35,11 +37,6 @@ template <typename T> constexpr T m_e = T(1.0);
 template <typename T> constexpr T e_0 = T(1.0);
 template <typename T> constexpr T c = T(137.036);
 template <typename T> constexpr T pi = T(3.14159265359);
-
-constexpr int grid_idx(int i, int j, int k, int nx, int ny, int nz) noexcept {
-	(void)nx;
-	return (i * ny * nz) + (j * nz) + k;
-}
 
 template <typename T>
 struct Parameters {
@@ -65,11 +62,18 @@ struct Particles {
 		uy = std::unique_ptr<T[]>(new T[total]);
 		uz = std::unique_ptr<T[]>(new T[total]);
 		gamma = std::unique_ptr<T[]>(new T[total]);
-		#pragma omp parallel for simd schedule(static)
-		for(std::size_t i = 0; i < total; i++) {
-			x[i] = T(0.0); y[i] = T(0.0); z[i] = T(0.0);
-			ux[i] = T(0.0); uy[i] = T(0.0); uz[i] = T(0.0);
-			gamma[i] = T(0.0);
+		#pragma omp parallel for simd collapse(3) schedule(static)
+		for(int i = 0; i < nx; i++) {
+			for(int j = 0; j < ny; j++) {
+				for(int k = 0; k < nz; k++) {
+					int idx = grid_idx(i, j, k, nx, ny, nz);
+					x[idx] = interpolate(-r_max[0], r_max[0], static_cast<T>(i), static_cast<T>(nx));
+					y[idx] = interpolate(-r_max[1], r_max[1], static_cast<T>(j), static_cast<T>(ny));
+					z[idx] = interpolate(-r_max[2], r_max[2], static_cast<T>(k), static_cast<T>(nz));
+					ux[idx] = T(0.0); uy[idx] = T(0.0); uz[idx] = T(0.0);
+					gamma[idx] = T(0.0);
+				}
+			}
 		}
 	}
 };
@@ -77,10 +81,10 @@ struct Particles {
 template <typename T>
 struct Laser {
 	int p, m;
-	T a0, omega, w0, k, lambda, z_r, tau, E0;
+	T a0, omega, w0, k, lambda, z_r, tau, E0, psi;
 	std::complex<T> zeta_x, zeta_y;
-	Laser(int p_n, int m_n, T(a0_n), T omega_n, T w0_multiplier, T tau_n, std::complex<T> zeta_x_n, std::complex<T> zeta_y_n)
-		: p(p_n), m(m_n), a0(a0_n), omega(omega_n), tau(tau_n), zeta_x(zeta_x_n), zeta_y(zeta_y_n) {
+	Laser(int p_n, int m_n, T(a0_n), T omega_n, T w0_multiplier, T tau_n, T psi_n, std::complex<T> zeta_x_n, std::complex<T> zeta_y_n)
+		: p(p_n), m(m_n), a0(a0_n), omega(omega_n), tau(tau_n), psi(psi_n), zeta_x(zeta_x_n), zeta_y(zeta_y_n) {
 		k = omega / c<T>;
 		lambda = (T(2.0) * pi<T> * c<T>) / omega;
 		w0 = lambda * w0_multiplier;

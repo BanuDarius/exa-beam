@@ -74,14 +74,14 @@ inline std::complex<T> compute_u(const Laser<T> &laser, std::array<T, 3> r_vec) 
 
 template <typename T>
 inline EBVectors<T> compute_eb(const Laser<T> &laser, std::array<T, 3> r_vec, T t) noexcept {
-	T w0 = laser.w0, k = laser.k, z_r = laser.z_r, E0 = laser.E0, tau = laser.tau;
+	T w0 = laser.w0, k = laser.k, z_r = laser.z_r, E0 = laser.E0, tau = laser.tau, psi = laser.psi;
 	std::complex<T> zeta_x = laser.zeta_x, zeta_y = laser.zeta_y;
 	T x = r_vec[0], y = r_vec[1], z = r_vec[2];
 	
 	T r_z = compute_r_z(z, z_r);
 	T w_z = compute_w_z(w0, z, z_r);
 	
-	T chi = laser.omega * t - k * z;
+	T chi = laser.omega * t - k * z + psi;
 	std::complex<T> u_pm = compute_u(laser, r_vec);
 	std::complex<T> phase(std::cos(chi), std::sin(chi));
 	u_pm *= E0 * phase * env(chi, tau);

@@ -26,6 +26,11 @@ SOFTWARE. */
 #include <array>
 #include <cmath>
 
+constexpr int grid_idx(int i, int j, int k, int nx, int ny, int nz) noexcept {
+	(void)nx;
+	return (i * ny * nz) + (j * nz) + k;
+}
+
 template <typename T>
 inline T interpolate(T min, T max, T i, T n) noexcept {
 	T x = min + (max - min) * i / n;
@@ -55,20 +60,26 @@ inline std::array<T, 3> cross(std::array<T, 3> a, std::array<T, 3> b) noexcept {
 }
 
 template <typename T>
-inline std::array<T, 3> operator+(std::array<T, 3> a, std::array<T, 3> b) noexcept {
-	std::array<T, 3> x = { a[0] + b[0], a[1] + b[1], a[2] + b[2] };
+inline std::array<T, 3> operator+(std::array<T, 3> lhs, const std::array<T, 3> rhs) noexcept {
+	std::array<T, 3> x = { lhs[0] + rhs[0], lhs[1] + rhs[1], lhs[2] + rhs[2] };
 	return x;
 }
 
 template <typename T>
-inline std::array<T, 3> operator-(std::array<T, 3> a, std::array<T, 3> b) noexcept {
-	std::array<T, 3> x = { a[0] - b[0], a[1] - b[1], a[2] - b[2] };
+inline std::array<T, 3> operator-(std::array<T, 3> lhs, const std::array<T, 3> rhs) noexcept {
+	std::array<T, 3> x = { lhs[0] - rhs[0], lhs[1] - rhs[1], lhs[2] - rhs[2] };
 	return x;
 }
 
 template <typename T>
-inline std::array<T, 3> operator*(std::array<T, 3> a, T b) noexcept {
-	std::array<T, 3> x = { a[0] * b, a[1] * b, a[2] * b };
+inline std::array<T, 3> &operator+=(std::array<T, 3> &lhs, const std::array<T, 3> &rhs) noexcept {
+	lhs[0] += rhs[0]; lhs[1] += rhs[1]; lhs[2] += rhs[2];
+	return lhs;
+}
+
+template <typename T>
+inline std::array<T, 3> operator*(std::array<T, 3> lhs, T b) noexcept {
+	std::array<T, 3> x = { lhs[0] *= b, lhs[1] *= b, lhs[2] *= b };
 	return x;
 }
 
