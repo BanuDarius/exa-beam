@@ -35,9 +35,9 @@ void start_simulation(const char *output_directory) {
 	std::complex<T> zeta_x(T(0.707), T(0.0));
 	std::complex<T> zeta_y(T(0.0), -T(0.707));
 	
-	T dt = T(5.0), tau = T(4.0);
-	int max_steps = 1000, nx = 32, total = nx * nx * nx;
-	Laser<T> laser(0, 0, T(0.1), T(0.057), T(32.0), tau, -T(64.0) * tau, zeta_x, zeta_y);
+	T dt = T(5.0), tau = T(8.0);
+	int max_steps = 5000, substeps = 10, nx = 32, total = nx * nx * nx;
+	Laser<T> laser(0, 0, T(15.0), T(0.057), T(32.0), tau, -T(32.0) * tau, zeta_x, zeta_y);
 	VectorField<T> e_field(nx, nx, nx, laser.w0), b_field(nx, nx, nx, laser.w0);
 	ComplexScalarField<T> u_field(nx, nx, nx, laser.w0);
 	compute_u_field(u_field, laser);
@@ -49,18 +49,19 @@ void start_simulation(const char *output_directory) {
 		#pragma omp parallel for schedule(static)
 		for(int i = 0; i < total; i++)
 			higuera_cary_step(particles, laser, time, dt, i);
-		
-		char output_filename[string_size];
-		std::sprintf(output_filename, "%s/out-%04d.vtk", output_directory, step);
-		std::ofstream output_file(output_filename, std::ios::binary);
-		if(!output_file) {
-			std::fprintf(stderr, "CANNOT OPEN OUTPUT FILE!\n"); std::exit(1);
+		if(step % substeps == 0) {
+			char output_filename[string_size];
+			std::sprintf(output_filename, "%s/out-%04d.vtk", output_directory, step / substeps);
+			std::ofstream output_file(output_filename, std::ios::binary);
+			if(!output_file) {
+				std::fprintf(stderr, "CANNOT OPEN OUTPUT FILE!\n"); std::exit(1);
+			}
+			output_vtk_header(output_file, particles);
+			output_vtk_particles_positions(output_file, particles, "pos");
+			output_vtk_vector_field(output_file, e_field, "E");
+			output_vtk_vector_field(output_file, b_field, "B");
+			std::printf("Computed step: %d/%d.\n", step, max_steps);
 		}
-		output_vtk_header(output_file, particles);
-		output_vtk_particles_positions(output_file, particles, "pos");
-		output_vtk_vector_field(output_file, e_field, "E");
-		output_vtk_vector_field(output_file, b_field, "B");
-		std::printf("Computed step: %d/%d.\n", step, max_steps);
 	}
 }
 

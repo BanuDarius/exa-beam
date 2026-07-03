@@ -110,7 +110,7 @@ void higuera_cary_step(Particles<T> &particles, const Laser<T> &laser, T t, T dt
 	T half_dt_gamma = T(0.5) * dt / gamma;
 	r_vec += u_vec * half_dt_gamma;
 	
-	EBVectors eb_vec = compute_eb(laser, r_vec, t);
+	EBVectors eb_vec = compute_eb(laser, r_vec, t + T(0.5) * dt);
 	
 	std::array<T, 3> beta = hc_beta(eb_vec.b, dt);
 	std::array<T, 3> epsilon = hc_epsilon(eb_vec.e, dt);
