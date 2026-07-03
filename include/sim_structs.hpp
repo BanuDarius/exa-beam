@@ -34,7 +34,7 @@ constexpr int string_size = 128;
 constexpr int input_file_count = 2;
 
 template <typename T> constexpr T m_e = T(1.0);
-template <typename T> constexpr T e_0 = T(1.0);
+template <typename T> constexpr T e_0 = T(-1.0);
 template <typename T> constexpr T c = T(137.036);
 template <typename T> constexpr T pi = T(3.14159265359);
 
@@ -49,11 +49,11 @@ struct Parameters {
 template <typename T>
 struct Particles {
 	std::array<int, 3> num;
-	std::array<T, 2> r_max;
+	std::array<T, 3> r_max;
 	std::unique_ptr<T[]> x, y, z, ux, uy, uz, gamma;
 	Particles(int nx, int ny, int nz, T r_max_n) {
 		num = { nx, ny, nz };
-		r_max = { r_max_n, r_max_n };
+		r_max = { r_max_n, r_max_n, r_max_n };
 		std::size_t total = nx * ny * nz;
 		x = std::unique_ptr<T[]>(new T[total]);
 		y = std::unique_ptr<T[]>(new T[total]);
@@ -71,7 +71,7 @@ struct Particles {
 					y[idx] = interpolate(-r_max[1], r_max[1], static_cast<T>(j), static_cast<T>(ny));
 					z[idx] = interpolate(-r_max[2], r_max[2], static_cast<T>(k), static_cast<T>(nz));
 					ux[idx] = T(0.0); uy[idx] = T(0.0); uz[idx] = T(0.0);
-					gamma[idx] = T(0.0);
+					gamma[idx] = T(1.0);
 				}
 			}
 		}
