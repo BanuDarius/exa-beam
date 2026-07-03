@@ -28,6 +28,7 @@ SOFTWARE. */
 #include "physics.hpp"
 #include "vtk_output.hpp"
 #include "sim_structs.hpp"
+#include "higuera_cary.hpp"
 
 template <typename T>
 void start_simulation(const char *output_directory) {

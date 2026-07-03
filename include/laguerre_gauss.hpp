@@ -55,7 +55,7 @@ inline T compute_guoy(T z, T z_r) noexcept {
 }
 
 template <typename T>
-inline std::complex<T> compute_u(const Laser<T> &laser, const std::array<T, 3> &r_vec) noexcept {
+inline std::complex<T> compute_u(const Laser<T> &laser, std::array<T, 3> r_vec) noexcept {
 	T w0 = laser.w0, k = laser.k, z_r = laser.z_r, z = r_vec[2];
 	T rho2 = r_vec[0] * r_vec[0] + r_vec[1] * r_vec[1];
 	
@@ -73,7 +73,7 @@ inline std::complex<T> compute_u(const Laser<T> &laser, const std::array<T, 3> &
 }
 
 template <typename T>
-inline EBVectors<T> compute_eb(const ComplexScalarField<T> &u_field, const Laser<T> &laser, const std::array<T, 3> &r_vec, T t, int idx) noexcept {
+inline EBVectors<T> compute_eb(const ComplexScalarField<T> &u_field, const Laser<T> &laser, std::array<T, 3> r_vec, T t, int idx) noexcept {
 	T w0 = laser.w0, k = laser.k, z_r = laser.z_r, E0 = laser.E0, tau = laser.tau;
 	std::complex<T> zeta_x = laser.zeta_x, zeta_y = laser.zeta_y;
 	T x = r_vec[0], y = r_vec[1], z = r_vec[2];

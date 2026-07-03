@@ -33,19 +33,19 @@ inline T interpolate(T min, T max, T i, T n) noexcept {
 }
 
 template <typename T>
-inline T dot(const std::array<T, 3> &a, const std::array<T, 3> &b) noexcept {
+inline T dot(std::array<T, 3> a, std::array<T, 3> b) noexcept {
 	T x = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 	return x;
 }
 
 template <typename T>
-inline T magnitude(const std::array<T, 3> &a) noexcept {
+inline T magnitude(std::array<T, 3> a) noexcept {
 	T x = std::sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
 	return x;
 }
 
 template <typename T>
-inline std::array<T, 3> cross(const std::array<T, 3> &a, const std::array<T, 3> &b) noexcept {
+inline std::array<T, 3> cross(std::array<T, 3> a, std::array<T, 3> b) noexcept {
 	std::array<T, 3> x = {
 		a[1] * b[2] - a[2] * b[1],
 		a[2] * b[0] - a[0] * b[2],
@@ -55,19 +55,19 @@ inline std::array<T, 3> cross(const std::array<T, 3> &a, const std::array<T, 3> 
 }
 
 template <typename T>
-inline std::array<T, 3> operator+(const std::array<T, 3> &a, const std::array<T, 3> &b) noexcept {
+inline std::array<T, 3> operator+(std::array<T, 3> a, std::array<T, 3> b) noexcept {
 	std::array<T, 3> x = { a[0] + b[0], a[1] + b[1], a[2] + b[2] };
 	return x;
 }
 
 template <typename T>
-inline std::array<T, 3> operator-(const std::array<T, 3> &a, const std::array<T, 3> &b) noexcept {
+inline std::array<T, 3> operator-(std::array<T, 3> a, std::array<T, 3> b) noexcept {
 	std::array<T, 3> x = { a[0] - b[0], a[1] - b[1], a[2] - b[2] };
 	return x;
 }
 
 template <typename T>
-inline std::array<T, 3> operator*(const std::array<T, 3> &a, T b) noexcept {
+inline std::array<T, 3> operator*(std::array<T, 3> a, T b) noexcept {
 	std::array<T, 3> x = { a[0] * b, a[1] * b, a[2] * b };
 	return x;
 }
