@@ -25,29 +25,27 @@ SOFTWARE. */
 #include <fstream>
 #include <cstdlib>
 
+#include "init.hpp"
 #include "physics.hpp"
 #include "vtk_output.hpp"
 #include "sim_structs.hpp"
 #include "higuera_cary.hpp"
 
 template <typename T>
-void start_simulation(const char *output_directory) {
-	std::complex<T> zeta_x(T(0.707), T(0.0));
-	std::complex<T> zeta_y(T(0.0), -T(0.707));
+void cpu_simulate(const Parameters<T> &parameters, const Laser<T> &laser, const char *output_directory) {
+	int steps = parameters.steps, substeps = parameters.substeps, nx = parameters.nx;
+	T dt = parameters.tf / steps;
 	
-	T dt = T(5.0), tau = T(8.0);
-	int max_steps = 5000, substeps = 10, nx = 32, total = nx * nx * nx;
-	Laser<T> laser(0, 0, T(15.0), T(0.057), T(32.0), tau, -T(32.0) * tau, zeta_x, zeta_y);
-	VectorField<T> e_field(nx, nx, nx, laser.w0), b_field(nx, nx, nx, laser.w0);
-	ComplexScalarField<T> u_field(nx, nx, nx, laser.w0);
-	Particles<T> particles(nx, nx, nx, laser.w0);
 	DataVTK data_vtk(nx, nx, nx);
+	Particles<T> particles(parameters, laser);
+	ComplexScalarField<T> u_field(parameters, laser);
+	VectorField<T> e_field(parameters, laser), b_field(parameters, laser);
 	
 	compute_u_field(u_field, laser);
-	for(int step = 0; step < max_steps; step++) {
+	for(int step = 0; step < steps; step++) {
 		T time = step * dt;
 		#pragma omp parallel for schedule(static)
-		for(int i = 0; i < total; i++)
+		for(int i = 0; i < nx * nx * nx; i++)
 			higuera_cary_step(particles, laser, time, dt, i);
 		if(step % substeps == 0) {
 			char output_filename[string_size];
@@ -62,20 +60,28 @@ void start_simulation(const char *output_directory) {
 			output_vtk_vector_field(output_file, data_vtk, e_field, "E");
 			output_vtk_vector_field(output_file, data_vtk, b_field, "B");
 			output_vtk_particles_positions(output_file, data_vtk, particles, "pos");
-			std::printf("Computed step: %d/%d.\n", step, max_steps);
+			std::printf("Computed step: %d/%d.\n", step, steps);
 		}
 	}
 }
 
+template <typename T>
+void start_simulation(const char *input_file, const char *output_directory) {
+	Laser<T> laser;
+	Parameters<T> parameters;
+	read_input_file(input_file, parameters, laser);
+	cpu_simulate(parameters, laser, output_directory);
+}
+
 int main(int argc, char **argv) {
-	if(argc != 2) {
+	if(argc != 3) {
 		std::fprintf(stderr, "%s BAD ARGUMENTS!\n", argv[0]);
 		return 1;
 	}
 	double start_time = omp_get_wtime();
 	std::printf("Simulation started.\n");
 	
-	start_simulation<double>(argv[1]);
+	start_simulation<double>(argv[1], argv[2]);
 	
 	std::printf("Simulation ended.\n");
 	std::printf("Time taken: %0.3lfs.\n", omp_get_wtime() - start_time);

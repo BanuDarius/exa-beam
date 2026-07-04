@@ -31,7 +31,7 @@ SOFTWARE. */
 #include "math_functions.hpp"
 
 constexpr int string_size = 128;
-constexpr int input_file_count = 2;
+constexpr int input_file_count = 16;
 
 template <typename T> constexpr T m_e = T(1.0);
 template <typename T> constexpr T e_0 = T(-1.0);
@@ -40,10 +40,27 @@ template <typename T> constexpr T pi = T(3.14159265359);
 
 template <typename T>
 struct Parameters {
-	int num;
-	T r_max;
-	Parameters(int num_n, T r_max_n) : num(num_n), r_max(r_max_n) {}
+	int nx, steps, substeps;
+	T tf, max_dim_mult;
+	Parameters(int nx_n, int steps_n, int substeps_n, T tf_n, T max_dim_mult_n)
+		: nx(nx_n), steps(steps_n), substeps(substeps_n), tf(tf_n), max_dim_mult(max_dim_mult_n) {}
 	Parameters() = default;
+};
+
+template <typename T>
+struct Laser {
+	int p, m;
+	T a0, omega, w0, k, lambda, z_r, tau, E0, psi;
+	std::complex<T> zeta_x, zeta_y;
+	Laser(int p_n, int m_n, T a0_n, T omega_n, T w0_multiplier, T tau_n, T psi_n, std::complex<T> zeta_x_n, std::complex<T> zeta_y_n)
+		: p(p_n), m(m_n), a0(a0_n), omega(omega_n), tau(tau_n), psi(psi_n), zeta_x(zeta_x_n), zeta_y(zeta_y_n) {
+		k = omega / c<T>;
+		lambda = (T(2.0) * pi<T> * c<T>) / omega;
+		w0 = lambda * w0_multiplier;
+		z_r = pi<T> * w0 * w0 / lambda;
+		E0 = omega * m_e<T> * c<T> * a0 / std::abs(e_0<T>);
+	}
+	Laser() = default;
 };
 
 template <typename T>
@@ -76,6 +93,33 @@ struct Particles {
 			}
 		}
 	}
+	Particles(const Parameters<T> &parameters, const Laser<T> &laser) {
+		int nx = parameters.nx;
+		T w0 = laser.w0, dim_mult = parameters.max_dim_mult;
+		num = { nx, nx, nx };
+		r_max = { w0 * dim_mult, w0 * dim_mult, w0 * dim_mult };
+		std::size_t total = nx * nx * nx;
+		x = std::unique_ptr<T[]>(new T[total]);
+		y = std::unique_ptr<T[]>(new T[total]);
+		z = std::unique_ptr<T[]>(new T[total]);
+		ux = std::unique_ptr<T[]>(new T[total]);
+		uy = std::unique_ptr<T[]>(new T[total]);
+		uz = std::unique_ptr<T[]>(new T[total]);
+		gamma = std::unique_ptr<T[]>(new T[total]);
+		#pragma omp parallel for simd collapse(3) schedule(static)
+		for(int i = 0; i < nx; i++) {
+			for(int j = 0; j < nx; j++) {
+				for(int k = 0; k < nx; k++) {
+					int idx = grid_idx(i, j, k, nx, nx, nx);
+					x[idx] = interpolate(-r_max[0], r_max[0], static_cast<T>(i), static_cast<T>(nx));
+					y[idx] = interpolate(-r_max[1], r_max[1], static_cast<T>(j), static_cast<T>(nx));
+					z[idx] = interpolate(-r_max[2], r_max[2], static_cast<T>(k), static_cast<T>(nx));
+					ux[idx] = T(0.0); uy[idx] = T(0.0); uz[idx] = T(0.0);
+					gamma[idx] = T(1.0);
+				}
+			}
+		}
+	}
 	inline std::array<T, 3> get_position(int idx) noexcept {
 		std::array<T, 3> r_vec = { x[idx], y[idx], z[idx] };
 		return r_vec;
@@ -93,27 +137,6 @@ struct Particles {
 };
 
 template <typename T>
-struct Laser {
-	int p, m;
-	T a0, omega, w0, k, lambda, z_r, tau, E0, psi;
-	std::complex<T> zeta_x, zeta_y;
-	Laser(int p_n, int m_n, T(a0_n), T omega_n, T w0_multiplier, T tau_n, T psi_n, std::complex<T> zeta_x_n, std::complex<T> zeta_y_n)
-		: p(p_n), m(m_n), a0(a0_n), omega(omega_n), tau(tau_n), psi(psi_n), zeta_x(zeta_x_n), zeta_y(zeta_y_n) {
-		k = omega / c<T>;
-		lambda = (T(2.0) * pi<T> * c<T>) / omega;
-		w0 = lambda * w0_multiplier;
-		z_r = pi<T> * w0 * w0 / lambda;
-		E0 = omega * m_e<T> * c<T> * a0 / std::abs(e_0<T>);
-	}
-};
-
-template <typename T>
-struct EBVectors {
-	std::array<T, 3> e, b;
-	EBVectors(std::array<T, 3> e_n, std::array<T, 3> b_n) : e(e_n), b(b_n) {}
-};
-
-template <typename T>
 struct ScalarField {
 	std::size_t field_size;
 	std::array<int, 3> num;
@@ -123,6 +146,17 @@ struct ScalarField {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n, r_max_n };
+		v = std::unique_ptr<T[]>(new T[field_size]);
+		#pragma omp parallel for simd schedule(static)
+		for(std::size_t i = 0; i < field_size; i++)
+			v[i] = T(0.0);
+	}
+	ScalarField(const Parameters<T> &parameters, const Laser<T> &laser) {
+		int nx = parameters.nx;
+		T w0 = laser.w0, dim_mult = parameters.max_dim_mult;
+		num = { nx, nx, nx };
+		r_max = { w0 * dim_mult, w0 * dim_mult, w0 * dim_mult };
+		field_size = nx * nx * nx;
 		v = std::unique_ptr<T[]>(new T[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
@@ -177,6 +211,17 @@ struct ComplexScalarField {
 		for(std::size_t i = 0; i < field_size; i++)
 			v[i] = { T(0.0), T(0.0) };
 	}
+	ComplexScalarField(const Parameters<T> &parameters, const Laser<T> &laser) {
+		int nx = parameters.nx;
+		T w0 = laser.w0, dim_mult = parameters.max_dim_mult;
+		num = { nx, nx, nx };
+		r_max = { w0 * dim_mult, w0 * dim_mult, w0 * dim_mult };
+		field_size = nx * nx * nx;
+		v = std::unique_ptr<std::complex<T>[]>(new std::complex<T>[field_size]);
+		#pragma omp parallel for simd schedule(static)
+		for(std::size_t i = 0; i < field_size; i++)
+			v[i] = { T(0.0), T(0.0) };
+	}
 	ComplexScalarField(const ComplexScalarField &other)
 		: field_size(other.field_size), num(other.num), r_max(other.r_max) {
 		v = std::unique_ptr<std::complex<T>[]>(new std::complex<T>[field_size]);
@@ -221,6 +266,20 @@ struct VectorField {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n, r_max_n };
+		x = std::unique_ptr<T[]>(new T[field_size]);
+		y = std::unique_ptr<T[]>(new T[field_size]);
+		z = std::unique_ptr<T[]>(new T[field_size]);
+		#pragma omp parallel for simd schedule(static)
+		for(std::size_t i = 0; i < field_size; i++) {
+			x[i] = T(0.0); y[i] = T(0.0); z[i] = T(0.0);
+		}
+	}
+	VectorField(const Parameters<T> &parameters, const Laser<T> &laser) {
+		int nx = parameters.nx;
+		T w0 = laser.w0, dim_mult = parameters.max_dim_mult;
+		num = { nx, nx, nx };
+		r_max = { w0 * dim_mult, w0 * dim_mult, w0 * dim_mult };
+		field_size = nx * nx * nx;
 		x = std::unique_ptr<T[]>(new T[field_size]);
 		y = std::unique_ptr<T[]>(new T[field_size]);
 		z = std::unique_ptr<T[]>(new T[field_size]);
@@ -283,6 +342,15 @@ struct DataVTK {
 		for(std::size_t i = 0; i < 3 * field_size; i++)
 			vtk_vector[i] = static_cast<uint32_t>(0.0);
 	}
+	DataVTK(DataVTK &&other) noexcept = default;
+	DataVTK &operator=(DataVTK &&other) noexcept = default;
+	~DataVTK() = default;
+};
+
+template <typename T>
+struct EBVectors {
+	std::array<T, 3> e, b;
+	EBVectors(std::array<T, 3> e_n, std::array<T, 3> b_n) : e(e_n), b(b_n) {}
 };
 
 #endif

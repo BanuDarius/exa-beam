@@ -1,4 +1,4 @@
-/* MIT License
+'''MIT License
 
 Copyright (c) 2026 Banu Darius-Matei
 
@@ -18,15 +18,44 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE. */
+SOFTWARE.'''
 
-#ifndef INIT_H
-#define INIT_H
+# ---------------------------------------------------------- #
 
-#include <cstdio>
+import scripts.sim_init as sim_init
+import scripts.programs as programs
 
-#include "sim_structs.hpp"
+# ---------------------------------------------------------- #
 
-template <typename T> void read_input_file(const char *input_filename, Parameters<T> &parameters, Laser<T> &laser);
+use_gpu = False
+use_floats = False
 
-#endif
+zeta_x_real = 0.707
+zeta_x_imag = 0.000
+zeta_y_real = 0.000
+zeta_y_imag = -0.707
+
+tf = 10000.0
+steps = 1000
+substeps = 10
+
+nx = 32
+a0 = 5.0
+p = 0
+m = 0
+tau = 4.0
+omega = 0.057
+w0_mult = 16.0
+psi = -32.0 * tau
+max_dim_mult = 3.0
+
+# ---------------------------------------------------------- #
+
+if __name__ == "__main__":
+    sim_parameters = sim_init.SimParameters(zeta_x_real, zeta_x_imag, zeta_y_real, zeta_y_imag, tf, steps, substeps, nx, a0, p, m, w0_mult, omega, tau, psi, max_dim_mult, use_gpu, use_floats)
+    
+    programs.run_simulation(sim_parameters)
+    
+    print("Exa-Beam finished!\a")
+
+# ---------------------------------------------------------- #
