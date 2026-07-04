@@ -23,7 +23,7 @@ SOFTWARE. */
 #ifndef INIT_H
 #define INIT_H
 
-#include <cstdio>
+#include <cstring>
 
 #include "sim_structs.hpp"
 

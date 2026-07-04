@@ -24,6 +24,7 @@ SOFTWARE. */
 #define HIGUERA_CARY_H
 
 #include <array>
+#include <cmath>
 
 #include "sim_structs.hpp"
 #include "math_functions.hpp"
@@ -81,7 +82,7 @@ inline T hc_gamma_new(std::array<T, 3> u_minus, std::array<T, 3> beta, T gamma_m
 	T t1 = gamma_minus * gamma_minus - dot(beta, beta);
 	T beta_dot_u = dot(beta, u_minus);
 	T t2 = dot(beta, beta) + (beta_dot_u * beta_dot_u) / (c<T> * c<T>);
-	T t3 = std::sqrt(T(0.5) * (t1 + sqrt(t1 * t1 + T(4.0) * t2)));
+	T t3 = std::sqrt(T(0.5) * (t1 + std::sqrt(t1 * t1 + T(4.0) * t2)));
 	return t3;
 }
 

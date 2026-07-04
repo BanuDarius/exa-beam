@@ -20,12 +20,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
+#include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <fstream>
+#include <complex>
 
 #include "init.hpp"
-#include "sim_structs.hpp"
 
 template <typename T>
 void read_input_file(const std::string &input_filename, Parameters<T> &parameters, Laser<T> &laser) {

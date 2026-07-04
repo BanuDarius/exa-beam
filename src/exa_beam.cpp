@@ -74,14 +74,17 @@ void start_simulation(const std::string &input_file, const std::string &output_d
 }
 
 int main(int argc, char **argv) {
-	if(argc != 3) {
+	if(argc > 4) {
 		std::fprintf(stderr, "%s BAD ARGUMENTS!\n", argv[0]);
 		return 1;
 	}
 	double start_time = omp_get_wtime();
 	std::printf("Simulation started.\n");
 	
-	start_simulation<double>(argv[1], argv[2]);
+	if(!strcmp(argv[1], "--float"))
+		start_simulation<float>(argv[2], argv[3]);
+	else
+		start_simulation<double>(argv[1], argv[2]);
 	
 	std::printf("Simulation ended.\n");
 	std::printf("Time taken: %0.3lfs.\n", omp_get_wtime() - start_time);

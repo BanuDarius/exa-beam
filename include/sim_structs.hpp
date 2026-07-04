@@ -27,6 +27,7 @@ SOFTWARE. */
 #include <memory>
 #include <complex>
 #include <cassert>
+#include <cstdint>
 
 #include "math_functions.hpp"
 
