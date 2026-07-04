@@ -1,7 +1,7 @@
 CC = g++
 OPT_FLAG = -O3
 WARNINGS = -Wall -Wextra -Wshadow
-CFLAGS = $(OPT_FLAG) -march=native -Iinclude -fopenmp -flto -MMD -MP -g $(WARNINGS)
+CFLAGS = -std=c++20 $(OPT_FLAG) -march=native -Iinclude -fopenmp -flto -MMD -MP -g $(WARNINGS)
 LDLIBS = -lm
 
 SRC_DIR = src

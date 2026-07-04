@@ -72,13 +72,13 @@ struct Particles {
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n, r_max_n };
 		std::size_t total = nx * ny * nz;
-		x = std::unique_ptr<T[]>(new T[total]);
-		y = std::unique_ptr<T[]>(new T[total]);
-		z = std::unique_ptr<T[]>(new T[total]);
-		ux = std::unique_ptr<T[]>(new T[total]);
-		uy = std::unique_ptr<T[]>(new T[total]);
-		uz = std::unique_ptr<T[]>(new T[total]);
-		gamma = std::unique_ptr<T[]>(new T[total]);
+		x = std::make_unique_for_overwrite<T[]>(total);
+		y = std::make_unique_for_overwrite<T[]>(total);
+		z = std::make_unique_for_overwrite<T[]>(total);
+		ux = std::make_unique_for_overwrite<T[]>(total);
+		uy = std::make_unique_for_overwrite<T[]>(total);
+		uz = std::make_unique_for_overwrite<T[]>(total);
+		gamma = std::make_unique_for_overwrite<T[]>(total);
 		#pragma omp parallel for simd collapse(3) schedule(static)
 		for(int i = 0; i < nx; i++) {
 			for(int j = 0; j < ny; j++) {
@@ -93,33 +93,8 @@ struct Particles {
 			}
 		}
 	}
-	Particles(const Parameters<T> &parameters, const Laser<T> &laser) {
-		int nx = parameters.nx;
-		T w0 = laser.w0, dim_mult = parameters.max_dim_mult;
-		num = { nx, nx, nx };
-		r_max = { w0 * dim_mult, w0 * dim_mult, w0 * dim_mult };
-		std::size_t total = nx * nx * nx;
-		x = std::unique_ptr<T[]>(new T[total]);
-		y = std::unique_ptr<T[]>(new T[total]);
-		z = std::unique_ptr<T[]>(new T[total]);
-		ux = std::unique_ptr<T[]>(new T[total]);
-		uy = std::unique_ptr<T[]>(new T[total]);
-		uz = std::unique_ptr<T[]>(new T[total]);
-		gamma = std::unique_ptr<T[]>(new T[total]);
-		#pragma omp parallel for simd collapse(3) schedule(static)
-		for(int i = 0; i < nx; i++) {
-			for(int j = 0; j < nx; j++) {
-				for(int k = 0; k < nx; k++) {
-					int idx = grid_idx(i, j, k, nx, nx, nx);
-					x[idx] = interpolate(-r_max[0], r_max[0], static_cast<T>(i), static_cast<T>(nx));
-					y[idx] = interpolate(-r_max[1], r_max[1], static_cast<T>(j), static_cast<T>(nx));
-					z[idx] = interpolate(-r_max[2], r_max[2], static_cast<T>(k), static_cast<T>(nx));
-					ux[idx] = T(0.0); uy[idx] = T(0.0); uz[idx] = T(0.0);
-					gamma[idx] = T(1.0);
-				}
-			}
-		}
-	}
+	Particles(const Parameters<T> &parameters, const Laser<T> &laser)
+		: Particles(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult) {}
 	inline std::array<T, 3> get_position(int idx) noexcept {
 		std::array<T, 3> r_vec = { x[idx], y[idx], z[idx] };
 		return r_vec;
@@ -146,22 +121,13 @@ struct ScalarField {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n, r_max_n };
-		v = std::unique_ptr<T[]>(new T[field_size]);
+		v = std::make_unique_for_overwrite<T[]>(field_size);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			v[i] = T(0.0);
 	}
-	ScalarField(const Parameters<T> &parameters, const Laser<T> &laser) {
-		int nx = parameters.nx;
-		T w0 = laser.w0, dim_mult = parameters.max_dim_mult;
-		num = { nx, nx, nx };
-		r_max = { w0 * dim_mult, w0 * dim_mult, w0 * dim_mult };
-		field_size = nx * nx * nx;
-		v = std::unique_ptr<T[]>(new T[field_size]);
-		#pragma omp parallel for simd schedule(static)
-		for(std::size_t i = 0; i < field_size; i++)
-			v[i] = T(0.0);
-	}
+	ScalarField(const Parameters<T> &parameters, const Laser<T> &laser)
+		: ScalarField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult) {}
 	ScalarField(const ScalarField &other)
 		: field_size(other.field_size), num(other.num), r_max(other.r_max) {
 		v = std::unique_ptr<T[]>(new T[field_size]);
@@ -206,22 +172,13 @@ struct ComplexScalarField {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n, r_max_n };
-		v = std::unique_ptr<std::complex<T>[]>(new std::complex<T>[field_size]);
+		v = std::make_unique_for_overwrite<std::complex<T>[]>(field_size);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			v[i] = { T(0.0), T(0.0) };
 	}
-	ComplexScalarField(const Parameters<T> &parameters, const Laser<T> &laser) {
-		int nx = parameters.nx;
-		T w0 = laser.w0, dim_mult = parameters.max_dim_mult;
-		num = { nx, nx, nx };
-		r_max = { w0 * dim_mult, w0 * dim_mult, w0 * dim_mult };
-		field_size = nx * nx * nx;
-		v = std::unique_ptr<std::complex<T>[]>(new std::complex<T>[field_size]);
-		#pragma omp parallel for simd schedule(static)
-		for(std::size_t i = 0; i < field_size; i++)
-			v[i] = { T(0.0), T(0.0) };
-	}
+	ComplexScalarField(const Parameters<T> &parameters, const Laser<T> &laser)
+		: ComplexScalarField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult) {}
 	ComplexScalarField(const ComplexScalarField &other)
 		: field_size(other.field_size), num(other.num), r_max(other.r_max) {
 		v = std::unique_ptr<std::complex<T>[]>(new std::complex<T>[field_size]);
@@ -266,28 +223,16 @@ struct VectorField {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n, r_max_n };
-		x = std::unique_ptr<T[]>(new T[field_size]);
-		y = std::unique_ptr<T[]>(new T[field_size]);
-		z = std::unique_ptr<T[]>(new T[field_size]);
+		x = std::make_unique_for_overwrite<T[]>(field_size);
+		y = std::make_unique_for_overwrite<T[]>(field_size);
+		z = std::make_unique_for_overwrite<T[]>(field_size);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++) {
 			x[i] = T(0.0); y[i] = T(0.0); z[i] = T(0.0);
 		}
 	}
-	VectorField(const Parameters<T> &parameters, const Laser<T> &laser) {
-		int nx = parameters.nx;
-		T w0 = laser.w0, dim_mult = parameters.max_dim_mult;
-		num = { nx, nx, nx };
-		r_max = { w0 * dim_mult, w0 * dim_mult, w0 * dim_mult };
-		field_size = nx * nx * nx;
-		x = std::unique_ptr<T[]>(new T[field_size]);
-		y = std::unique_ptr<T[]>(new T[field_size]);
-		z = std::unique_ptr<T[]>(new T[field_size]);
-		#pragma omp parallel for simd schedule(static)
-		for(std::size_t i = 0; i < field_size; i++) {
-			x[i] = T(0.0); y[i] = T(0.0); z[i] = T(0.0);
-		}
-	}
+	VectorField(const Parameters<T> &parameters, const Laser<T> &laser)
+		: VectorField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult) {}
 	VectorField(const VectorField &other)
 		: field_size(other.field_size), num(other.num), r_max(other.r_max) {
 		x = std::unique_ptr<T[]>(new T[field_size]);
@@ -333,8 +278,8 @@ struct DataVTK {
 	std::unique_ptr<uint32_t[]> vtk_scalar, vtk_vector;
 	DataVTK(int nx, int ny, int nz) {
 		field_size = nx * ny * nz;
-		vtk_scalar = std::unique_ptr<uint32_t[]>(new uint32_t[field_size]);
-		vtk_vector = std::unique_ptr<uint32_t[]>(new uint32_t[3 * field_size]);
+		vtk_scalar = std::make_unique_for_overwrite<uint32_t[]>(field_size);
+		vtk_vector = std::make_unique_for_overwrite<uint32_t[]>(3 * field_size);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			vtk_scalar[i] = static_cast<uint32_t>(0.0);

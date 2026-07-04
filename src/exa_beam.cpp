@@ -22,6 +22,7 @@ SOFTWARE. */
 
 #include <omp.h>
 #include <cstdio>
+#include <format>
 #include <fstream>
 #include <cstdlib>
 
@@ -32,7 +33,7 @@ SOFTWARE. */
 #include "higuera_cary.hpp"
 
 template <typename T>
-void cpu_simulate(const Parameters<T> &parameters, const Laser<T> &laser, const char *output_directory) {
+void cpu_simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std::string &output_directory) {
 	int steps = parameters.steps, substeps = parameters.substeps, nx = parameters.nx;
 	T dt = parameters.tf / steps;
 	
@@ -48,8 +49,7 @@ void cpu_simulate(const Parameters<T> &parameters, const Laser<T> &laser, const 
 		for(int i = 0; i < nx * nx * nx; i++)
 			higuera_cary_step(particles, laser, time, dt, i);
 		if(step % substeps == 0) {
-			char output_filename[string_size];
-			std::sprintf(output_filename, "%s/out-%04d.vtk", output_directory, step / substeps);
+			std::string output_filename = std::format("{}/out-{:04d}.vtk", output_directory, step / substeps);
 			std::ofstream output_file(output_filename, std::ios::binary);
 			if(!output_file) {
 				std::fprintf(stderr, "CANNOT OPEN OUTPUT FILE!\n"); std::exit(1);
@@ -66,7 +66,7 @@ void cpu_simulate(const Parameters<T> &parameters, const Laser<T> &laser, const 
 }
 
 template <typename T>
-void start_simulation(const char *input_file, const char *output_directory) {
+void start_simulation(const std::string &input_file, const std::string &output_directory) {
 	Laser<T> laser;
 	Parameters<T> parameters;
 	read_input_file(input_file, parameters, laser);

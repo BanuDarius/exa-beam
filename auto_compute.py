@@ -36,7 +36,7 @@ zeta_y_real = 0.000
 zeta_y_imag = -0.707
 
 tf = 10000.0
-steps = 1000
+steps = 5000
 substeps = 10
 
 nx = 32
@@ -46,7 +46,7 @@ m = 0
 tau = 4.0
 omega = 0.057
 w0_mult = 16.0
-psi = -32.0 * tau
+psi = -50.0 * tau
 max_dim_mult = 3.0
 
 # ---------------------------------------------------------- #
