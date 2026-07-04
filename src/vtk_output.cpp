@@ -65,17 +65,17 @@ void output_vtk_header(std::ofstream &output_file, const Particles<T> &particles
 	output_file << "POINT_DATA " << nx * ny * nz << "\n";
 }
 
-void output_vtk_scalar_next(std::ofstream &output_file, const char *name) {
+void output_vtk_scalar_next(std::ofstream &output_file, const std::string &name) {
 	output_file << "SCALARS " << name << " float 1\n";
 	output_file << "LOOKUP_TABLE default\n";
 }
 
-void output_vtk_vector_next(std::ofstream &output_file, const char *name) {
+void output_vtk_vector_next(std::ofstream &output_file, const std::string &name) {
 	output_file << "VECTORS " << name << " float\n";
 }
 
 template <typename T>
-void output_vtk_scalar_field(std::ofstream &output_file, DataVTK &data_vtk, const ScalarField<T> &field, const char *name) {
+void output_vtk_scalar_field(std::ofstream &output_file, DataVTK &data_vtk, const ScalarField<T> &field, const std::string &name) {
 	std::size_t nx = field.num[0], ny = field.num[1], nz = field.num[2], field_size = nx * ny * nz;
 	uint32_t *vtk_scalar = data_vtk.vtk_scalar.get();
 	#pragma omp parallel for collapse(3) schedule(static)
@@ -93,7 +93,7 @@ void output_vtk_scalar_field(std::ofstream &output_file, DataVTK &data_vtk, cons
 }
 
 template <typename T>
-void output_vtk_complex_scalar_field(std::ofstream &output_file, DataVTK &data_vtk, const ComplexScalarField<T> &field, const char *name) {
+void output_vtk_complex_scalar_field(std::ofstream &output_file, DataVTK &data_vtk, const ComplexScalarField<T> &field, const std::string &name) {
 	std::size_t nx = field.num[0], ny = field.num[1], nz = field.num[2], field_size = nx * ny * nz;
 	uint32_t *vtk_scalar = data_vtk.vtk_scalar.get();
 	#pragma omp parallel for collapse(3) schedule(static)
@@ -111,7 +111,7 @@ void output_vtk_complex_scalar_field(std::ofstream &output_file, DataVTK &data_v
 }
 
 template <typename T>
-void output_vtk_vector_field(std::ofstream &output_file, DataVTK &data_vtk, const VectorField<T> &field, const char *name) {
+void output_vtk_vector_field(std::ofstream &output_file, DataVTK &data_vtk, const VectorField<T> &field, const std::string &name) {
 	std::size_t nx = field.num[0], ny = field.num[1], nz = field.num[2], field_size = nx * ny * nz;
 	uint32_t *vtk_vector = data_vtk.vtk_vector.get();
 	#pragma omp parallel for collapse(3) schedule(static)
@@ -131,7 +131,7 @@ void output_vtk_vector_field(std::ofstream &output_file, DataVTK &data_vtk, cons
 }
 
 template <typename T>
-void output_vtk_particles_positions(std::ofstream &output_file, DataVTK &data_vtk, const Particles<T> &particles, const char *name) {
+void output_vtk_particles_positions(std::ofstream &output_file, DataVTK &data_vtk, const Particles<T> &particles, const std::string &name) {
 	std::size_t nx = particles.num[0], ny = particles.num[1], nz = particles.num[2], field_size = nx * ny * nz;
 	uint32_t *vtk_vector = data_vtk.vtk_vector.get();
 	#pragma omp parallel for collapse(3) schedule(static)
@@ -153,15 +153,15 @@ void output_vtk_particles_positions(std::ofstream &output_file, DataVTK &data_vt
 template void output_vtk_header<double>(std::ofstream &output_file, const ScalarField<double> &field);
 template void output_vtk_header<double>(std::ofstream &output_file, const VectorField<double> &field);
 template void output_vtk_header<double>(std::ofstream &output_file, const Particles<double> &particles);
-template void output_vtk_scalar_field<double>(std::ofstream &output_file, DataVTK &data_vtk, const ScalarField<double> &field, const char *name);
-template void output_vtk_complex_scalar_field<double>(std::ofstream &output_file, DataVTK &data_vtk, const ComplexScalarField<double> &field, const char *name);
-template void output_vtk_vector_field<double>(std::ofstream &output_file, DataVTK &data_vtk, const VectorField<double> &field, const char *name);
-template void output_vtk_particles_positions<double>(std::ofstream &output_file, DataVTK &data_vtk, const Particles<double> &particles, const char *name);
+template void output_vtk_scalar_field<double>(std::ofstream &output_file, DataVTK &data_vtk, const ScalarField<double> &field, const std::string &name);
+template void output_vtk_complex_scalar_field<double>(std::ofstream &output_file, DataVTK &data_vtk, const ComplexScalarField<double> &field, const std::string &name);
+template void output_vtk_vector_field<double>(std::ofstream &output_file, DataVTK &data_vtk, const VectorField<double> &field, const std::string &name);
+template void output_vtk_particles_positions<double>(std::ofstream &output_file, DataVTK &data_vtk, const Particles<double> &particles, const std::string &name);
 
 template void output_vtk_header<float>(std::ofstream &output_file, const ScalarField<float> &field);
 template void output_vtk_header<float>(std::ofstream &output_file, const VectorField<float> &field);
 template void output_vtk_header<float>(std::ofstream &output_file, const Particles<float> &particles);
-template void output_vtk_scalar_field<float>(std::ofstream &output_file, DataVTK &data_vtk, const ScalarField<float> &field, const char *name);
-template void output_vtk_complex_scalar_field<float>(std::ofstream &output_file, DataVTK &data_vtk, const ComplexScalarField<float> &field, const char *name);
-template void output_vtk_vector_field<float>(std::ofstream &output_file, DataVTK &data_vtk, const VectorField<float> &field, const char *name);
-template void output_vtk_particles_positions<float>(std::ofstream &output_file, DataVTK &data_vtk, const Particles<float> &particles, const char *name);
+template void output_vtk_scalar_field<float>(std::ofstream &output_file, DataVTK &data_vtk, const ScalarField<float> &field, const std::string &name);
+template void output_vtk_complex_scalar_field<float>(std::ofstream &output_file, DataVTK &data_vtk, const ComplexScalarField<float> &field, const std::string &name);
+template void output_vtk_vector_field<float>(std::ofstream &output_file, DataVTK &data_vtk, const VectorField<float> &field, const std::string &name);
+template void output_vtk_particles_positions<float>(std::ofstream &output_file, DataVTK &data_vtk, const Particles<float> &particles, const std::string &name);

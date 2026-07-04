@@ -30,7 +30,6 @@ SOFTWARE. */
 
 #include "math_functions.hpp"
 
-constexpr int string_size = 128;
 constexpr int input_file_count = 16;
 
 template <typename T> constexpr T m_e = T(1.0);
