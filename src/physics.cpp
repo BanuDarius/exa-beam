@@ -60,8 +60,10 @@ void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser) {
 					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
 					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
 				};
-				T r_z = compute_r_z(r_vec[2], laser.z_r);
-				T w_z = compute_w_z(laser.w0, r_vec[2], laser.z_r);
+				T z = r_vec[2], z_r = laser.z_r, w0 = laser.w0;
+				T r_z = compute_r_z(z, z_r);
+				T w_z = compute_w_z(w0, z, z_r);
+				
 				std::complex<T> u_i = compute_u(laser, r_vec, r_z, w_z);
 				int idx = grid_idx(i, j, k, nx, ny, nz);
 				
