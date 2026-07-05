@@ -109,6 +109,9 @@ struct Particles {
 	inline void set_velocity(std::array<T, 3> u_vec, int idx) noexcept {
 		ux[idx] = u_vec[0]; uy[idx] = u_vec[1]; uz[idx] = u_vec[2];
 	}
+	Particles(Particles &&other) noexcept = default;
+	Particles &operator=(Particles &&other) noexcept = default;
+	~Particles() = default;
 };
 
 template <typename T>
@@ -130,7 +133,7 @@ struct ScalarField {
 		: ScalarField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult) {}
 	ScalarField(const ScalarField &other)
 		: field_size(other.field_size), num(other.num), r_max(other.r_max) {
-		v = std::unique_ptr<T[]>(new T[field_size]);
+		v = std::make_unique_for_overwrite<T[]>(field_size);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			v[i] = other.v[i];
@@ -181,7 +184,7 @@ struct ComplexScalarField {
 		: ComplexScalarField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult) {}
 	ComplexScalarField(const ComplexScalarField &other)
 		: field_size(other.field_size), num(other.num), r_max(other.r_max) {
-		v = std::unique_ptr<std::complex<T>[]>(new std::complex<T>[field_size]);
+		v = std::make_unique_for_overwrite<std::complex<T>[]>(field_size);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			v[i] = other.v[i];
@@ -235,9 +238,9 @@ struct VectorField {
 		: VectorField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult) {}
 	VectorField(const VectorField &other)
 		: field_size(other.field_size), num(other.num), r_max(other.r_max) {
-		x = std::unique_ptr<T[]>(new T[field_size]);
-		y = std::unique_ptr<T[]>(new T[field_size]);
-		z = std::unique_ptr<T[]>(new T[field_size]);
+		x = std::make_unique_for_overwrite<T[]>(field_size);
+		y = std::make_unique_for_overwrite<T[]>(field_size);
+		z = std::make_unique_for_overwrite<T[]>(field_size);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++) {
 			x[i] = other.x[i]; y[i] = other.y[i]; z[i] = other.z[i];
