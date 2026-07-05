@@ -43,9 +43,9 @@ nx = 32
 a0 = 0.5
 p = 0
 m = 0
-tau = 8.0
+tau = 4.0
 omega = 0.057
-w0_mult = 2.0
+w0_mult = 3.0
 psi = -30.0 * tau
 max_dim_mult = 2.0
 
