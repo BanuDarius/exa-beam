@@ -88,8 +88,8 @@ inline EBVectors<T> compute_eb(const Laser<T> &laser, std::array<T, 3> r_vec, T 
 	
 	std::complex<T> field_term(T(1.0) / r_z, -T(2.0) / (k * w_z * w_z));
 	
-	std::complex<T> e_z = -field_term * u_pm * (zeta_x * x + zeta_y * y);
-	std::complex<T> b_z = -field_term * u_pm * (zeta_x * y - zeta_y * x);
+	std::complex<T> e_z = field_term * u_pm * (zeta_x * x + zeta_y * y);
+	std::complex<T> b_z = field_term * u_pm * (zeta_x * y - zeta_y * x);
 	
 	std::array<T, 3> e_vec = {
 		std::real(u_pm * zeta_x),
@@ -121,8 +121,8 @@ inline EBVectors<T> compute_eb_field(const ComplexScalarField<T> &u_field, const
 	
 	std::complex<T> field_term(T(1.0) / r_z, -T(2.0) / (k * w_z * w_z));
 	
-	std::complex<T> e_z = -field_term * u_pm * (zeta_x * x + zeta_y * y);
-	std::complex<T> b_z = -field_term * u_pm * (zeta_x * y - zeta_y * x);
+	std::complex<T> e_z = field_term * u_pm * (zeta_x * x + zeta_y * y);
+	std::complex<T> b_z = field_term * u_pm * (zeta_x * y - zeta_y * x);
 	
 	std::array<T, 3> e_vec = {
 		std::real(u_pm * zeta_x),
