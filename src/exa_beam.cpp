@@ -24,7 +24,6 @@ SOFTWARE. */
 #include <cstdio>
 #include <format>
 #include <fstream>
-#include <cstdlib>
 #include <concepts>
 
 #include "init.hpp"
@@ -40,6 +39,7 @@ void cpu_simulate(const Parameters<T> &parameters, const Laser<T> &laser, const 
 	
 	DataVTK data_vtk(nx, nx, nx);
 	Particles<T> particles(parameters, laser);
+	ScalarField<T> lz_field(parameters, laser);
 	ComplexScalarField<T> u_field(parameters, laser);
 	VectorField<T> e_field(parameters, laser), b_field(parameters, laser);
 	
@@ -50,13 +50,13 @@ void cpu_simulate(const Parameters<T> &parameters, const Laser<T> &laser, const 
 		for(int i = 0; i < nx * nx * nx; i++)
 			higuera_cary_step(particles, laser, time, dt, i);
 		if(step % substeps == 0) {
-			std::string output_filename_fields = std::format("{}/out-fields-{:04d}.vtk", output_directory, step / substeps);
-			std::string output_filename_particles = std::format("{}/out-particles-{:04d}.vtk", output_directory, step / substeps);
+			std::string filename_fields = std::format("{}/out-fields-{:04d}.vtk", output_directory, step / substeps);
+			std::string filename_particles = std::format("{}/out-particles-{:04d}.vtk", output_directory, step / substeps);
 			
-			std::ofstream output_fields(output_filename_fields, std::ios::binary);
-			std::ofstream output_particles(output_filename_particles, std::ios::binary);
+			std::ofstream output_fields(filename_fields, std::ios::binary);
+			std::ofstream output_particles(filename_particles, std::ios::binary);
 			if(!output_fields || !output_particles) {
-				std::fprintf(stderr, "CANNOT OPEN OUTPUT FILE!\n"); std::exit(1);
+				std::fprintf(stderr, "CANNOT OPEN OUTPUT FILE!\n"); return;
 			}
 			compute_eb_field(e_field, b_field, u_field, laser, time);
 			
@@ -68,6 +68,15 @@ void cpu_simulate(const Parameters<T> &parameters, const Laser<T> &laser, const 
 			std::printf("Computed step: %d/%d.\n", step, steps);
 		}
 	}
+	std::string filename_lz = std::format("{}/out-lz.vtk", output_directory);
+	std::ofstream output_lz(filename_lz, std::ios::binary);
+	if(!output_lz) {
+		std::fprintf(stderr, "CANNOT OPEN OUTPUT LZ FILE!\n"); return;
+	}
+	compute_lz(particles, lz_field);
+	
+	output_vtk_header(output_lz, lz_field);
+	output_vtk_scalar_field(output_lz, data_vtk, lz_field, "Lz");
 }
 
 template <std::floating_point T>

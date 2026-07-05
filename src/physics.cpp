@@ -35,12 +35,12 @@ void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser) {
 	for(int i = 0; i < nx; i++) {
 		for(int j = 0; j < ny; j++) {
 			for(int k = 0; k < nz; k++) {
-				std::array<T, 3> r_i = {
+				std::array<T, 3> r_vec = {
 					interpolate(-r_max_x, r_max_x, static_cast<T>(i), static_cast<T>(nx)),
 					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
 					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
 				};
-				std::complex<T> u_i = compute_u(laser, r_i);
+				std::complex<T> u_i = compute_u(laser, r_vec);
 				int idx = grid_idx(i, j, k, nx, ny, nz);
 				
 				u_field.v[idx] = u_i;
@@ -57,14 +57,14 @@ void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const Co
 	for(int i = 0; i < nx; i++) {
 		for(int j = 0; j < ny; j++) {
 			for(int k = 0; k < nz; k++) {
-				std::array<T, 3> r_i = {
+				std::array<T, 3> r_vec = {
 					interpolate(-r_max_x, r_max_x, static_cast<T>(i), static_cast<T>(nx)),
 					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
 					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
 				};
 				int idx = grid_idx(i, j, k, nx, ny, nz);
 				
-				EBVectors<T> eb_vec = compute_eb_field(u_field, laser, r_i, t, idx);
+				EBVectors<T> eb_vec = compute_eb_field(u_field, laser, r_vec, t, idx);
 				std::array<T, 3> e_vec = eb_vec.e;
 				std::array<T, 3> b_vec = eb_vec.b;
 				
@@ -80,8 +80,30 @@ void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const Co
 	}
 }
 
+template <std::floating_point T>
+void compute_lz(Particles<T> &particles, ScalarField<T> &lz_field) {
+	int nx = particles.num[0], ny = particles.num[1], nz = particles.num[2];
+	#pragma omp parallel for collapse(3) schedule(static)
+	for(int i = 0; i < nx; i++) {
+		for(int j = 0; j < ny; j++) {
+			for(int k = 0; k < nz; k++) {
+				int idx = grid_idx(i, j, k, nx, ny, nz);
+				std::array<T, 3> r_vec = particles.get_position(idx);
+				std::array<T, 3> u_vec = particles.get_velocity(idx);
+				T x = r_vec[0], y = r_vec[1];
+				T ux = u_vec[0], uy = u_vec[1];
+				
+				T lz = m_e<T> * (x * uy - y * ux);
+				lz_field.v[idx] = lz;
+			}
+		}
+	}
+}
+
 template void compute_u_field<double>(ComplexScalarField<double> &u_field, const Laser<double> &laser);
 template void compute_eb_field<double>(VectorField<double> &e_field, VectorField<double> &b_field, const ComplexScalarField<double> &u_field, const Laser<double> &laser, double t);
+template void compute_lz<double>(Particles<double> &particles, ScalarField<double> &lz_field);
  
 template void compute_u_field<float>(ComplexScalarField<float> &u_field, const Laser<float> &laser);
 template void compute_eb_field<float>(VectorField<float> &e_field, VectorField<float> &b_field,  const ComplexScalarField<float> &u_field, const Laser<float> &laser, float t);
+template void compute_lz<float>(Particles<float> &particles, ScalarField<float> &lz_field);

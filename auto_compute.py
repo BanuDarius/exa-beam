@@ -25,6 +25,8 @@ SOFTWARE.'''
 import scripts.sim_init as sim_init
 import scripts.programs as programs
 
+c = 137.036
+
 # ---------------------------------------------------------- #
 
 use_gpu = False
@@ -35,19 +37,19 @@ zeta_x_imag = 0.000
 zeta_y_real = 0.000
 zeta_y_imag = -0.707
 
-tf = 10000.0
 steps = 5000
 substeps = 10
+max_dim_mult = 1.5
 
 nx = 32
-a0 = 0.5
+a0 = 0.1
 p = 0
 m = 0
-tau = 4.0
+tau = 10.0
 omega = 0.057
-w0_mult = 3.0
-psi = -30.0 * tau
-max_dim_mult = 2.0
+w0_mult = 75.0
+tf = 30.0 * c * tau
+psi = -c * tau
 
 # ---------------------------------------------------------- #
 
