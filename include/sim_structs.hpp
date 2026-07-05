@@ -26,19 +26,20 @@ SOFTWARE. */
 #include <array>
 #include <memory>
 #include <complex>
-#include <cassert>
 #include <cstdint>
+#include <cassert>
+#include <concepts>
 
 #include "math_functions.hpp"
 
 constexpr int input_file_count = 16;
 
-template <typename T> constexpr T m_e = T(1.0);
-template <typename T> constexpr T e_0 = T(-1.0);
-template <typename T> constexpr T c = T(137.036);
-template <typename T> constexpr T pi = T(3.14159265359);
+template <std::floating_point T> constexpr T m_e = T(1.0);
+template <std::floating_point T> constexpr T e_0 = T(-1.0);
+template <std::floating_point T> constexpr T c = T(137.036);
+template <std::floating_point T> constexpr T pi = T(3.14159265359);
 
-template <typename T>
+template <std::floating_point T>
 struct Parameters {
 	int nx, steps, substeps;
 	T tf, max_dim_mult;
@@ -47,7 +48,7 @@ struct Parameters {
 	Parameters() = default;
 };
 
-template <typename T>
+template <std::floating_point T>
 struct Laser {
 	int p, m;
 	T a0, omega, w0, k, lambda, z_r, tau, E0, psi;
@@ -63,7 +64,7 @@ struct Laser {
 	Laser() = default;
 };
 
-template <typename T>
+template <std::floating_point T>
 struct Particles {
 	std::array<int, 3> num;
 	std::array<T, 3> r_max;
@@ -114,7 +115,7 @@ struct Particles {
 	~Particles() = default;
 };
 
-template <typename T>
+template <std::floating_point T>
 struct ScalarField {
 	std::size_t field_size;
 	std::array<int, 3> num;
@@ -165,7 +166,7 @@ struct ScalarField {
 	~ScalarField() = default;
 };
 
-template <typename T>
+template <std::floating_point T>
 struct ComplexScalarField {
 	std::size_t field_size;
 	std::array<int, 3> num;
@@ -216,7 +217,7 @@ struct ComplexScalarField {
 	~ComplexScalarField() = default;
 };
 
-template <typename T>
+template <std::floating_point T>
 struct VectorField {
 	std::size_t field_size;
 	std::array<int, 3> num;
@@ -295,7 +296,7 @@ struct DataVTK {
 	~DataVTK() = default;
 };
 
-template <typename T>
+template <std::floating_point T>
 struct EBVectors {
 	std::array<T, 3> e, b;
 	EBVectors(std::array<T, 3> e_n, std::array<T, 3> b_n) : e(e_n), b(b_n) {}

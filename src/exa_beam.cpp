@@ -25,6 +25,7 @@ SOFTWARE. */
 #include <format>
 #include <fstream>
 #include <cstdlib>
+#include <concepts>
 
 #include "init.hpp"
 #include "physics.hpp"
@@ -32,7 +33,7 @@ SOFTWARE. */
 #include "sim_structs.hpp"
 #include "higuera_cary.hpp"
 
-template <typename T>
+template <std::floating_point T>
 void cpu_simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std::string &output_directory) {
 	int steps = parameters.steps, substeps = parameters.substeps, nx = parameters.nx;
 	T dt = parameters.tf / steps;
@@ -49,23 +50,27 @@ void cpu_simulate(const Parameters<T> &parameters, const Laser<T> &laser, const 
 		for(int i = 0; i < nx * nx * nx; i++)
 			higuera_cary_step(particles, laser, time, dt, i);
 		if(step % substeps == 0) {
-			std::string output_filename = std::format("{}/out-{:04d}.vtk", output_directory, step / substeps);
-			std::ofstream output_file(output_filename, std::ios::binary);
-			if(!output_file) {
+			std::string output_filename_fields = std::format("{}/out-fields-{:04d}.vtk", output_directory, step / substeps);
+			std::string output_filename_particles = std::format("{}/out-particles-{:04d}.vtk", output_directory, step / substeps);
+			
+			std::ofstream output_fields(output_filename_fields, std::ios::binary);
+			std::ofstream output_particles(output_filename_particles, std::ios::binary);
+			if(!output_fields || !output_particles) {
 				std::fprintf(stderr, "CANNOT OPEN OUTPUT FILE!\n"); std::exit(1);
 			}
 			compute_eb_field(e_field, b_field, u_field, laser, time);
 			
-			output_vtk_header(output_file, particles);
-			output_vtk_vector_field(output_file, data_vtk, e_field, "E");
-			output_vtk_vector_field(output_file, data_vtk, b_field, "B");
-			output_vtk_particles_positions(output_file, data_vtk, particles, "pos");
+			output_vtk_header(output_fields, e_field);
+			output_vtk_vector_field(output_fields, data_vtk, e_field, "E");
+			output_vtk_vector_field(output_fields, data_vtk, b_field, "B");
+			
+			output_vtk_particles(output_particles, data_vtk, particles);
 			std::printf("Computed step: %d/%d.\n", step, steps);
 		}
 	}
 }
 
-template <typename T>
+template <std::floating_point T>
 void start_simulation(const std::string &input_file, const std::string &output_directory) {
 	Laser<T> laser;
 	Parameters<T> parameters;

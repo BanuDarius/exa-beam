@@ -25,36 +25,37 @@ SOFTWARE. */
 
 #include <cmath>
 #include <complex>
+#include <concepts>
 
 #include "sim_structs.hpp"
 #include "math_functions.hpp"
 
-template <typename T>
+template <std::floating_point T>
 inline T env(T chi, T tau) noexcept {
 	T term = T(4.0) * pi<T> * pi<T> * tau * tau; 
 	T x = std::exp(-(chi * chi) / term);
 	return x;
 }
 
-template <typename T>
+template <std::floating_point T>
 inline T compute_w_z(T w0, T z, T z_r) noexcept {
 	T w_z = w0 * std::sqrt(T(1.0) + z * z / (z_r * z_r));
 	return w_z;
 }
 
-template <typename T>
+template <std::floating_point T>
 inline T compute_r_z(T z, T z_r) noexcept {
 	T r_z = z + z_r * z_r / z;
 	return r_z;
 }
 
-template <typename T>
+template <std::floating_point T>
 inline T compute_guoy(T z, T z_r) noexcept {
 	T psi = std::atan(z / z_r);
 	return psi;
 }
 
-template <typename T>
+template <std::floating_point T>
 inline std::complex<T> compute_u(const Laser<T> &laser, std::array<T, 3> r_vec) noexcept {
 	T w0 = laser.w0, k = laser.k, z_r = laser.z_r, z = r_vec[2];
 	T rho2 = r_vec[0] * r_vec[0] + r_vec[1] * r_vec[1];
@@ -72,7 +73,7 @@ inline std::complex<T> compute_u(const Laser<T> &laser, std::array<T, 3> r_vec) 
 	return u;
 }
 
-template <typename T>
+template <std::floating_point T>
 inline EBVectors<T> compute_eb(const Laser<T> &laser, std::array<T, 3> r_vec, T t) noexcept {
 	T w0 = laser.w0, k = laser.k, z_r = laser.z_r, E0 = laser.E0, tau = laser.tau, psi = laser.psi;
 	std::complex<T> zeta_x = laser.zeta_x, zeta_y = laser.zeta_y;
@@ -105,7 +106,7 @@ inline EBVectors<T> compute_eb(const Laser<T> &laser, std::array<T, 3> r_vec, T 
 	return eb_vec;
 }
 
-template <typename T>
+template <std::floating_point T>
 inline EBVectors<T> compute_eb_field(const ComplexScalarField<T> &u_field, const Laser<T> &laser, std::array<T, 3> r_vec, T t, int idx) noexcept {
 	T w0 = laser.w0, k = laser.k, z_r = laser.z_r, E0 = laser.E0, tau = laser.tau, psi = laser.psi;
 	std::complex<T> zeta_x = laser.zeta_x, zeta_y = laser.zeta_y;

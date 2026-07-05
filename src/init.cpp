@@ -27,7 +27,7 @@ SOFTWARE. */
 
 #include "init.hpp"
 
-template <typename T>
+template <std::floating_point T>
 void read_input_file(const std::string &input_filename, Parameters<T> &parameters, Laser<T> &laser) {
 	double a0, tf, tau, psi, omega, w0_mult, max_dim_mult, zeta_x_real, zeta_x_imag, zeta_y_real, zeta_y_imag;
 	int i = 0, p, m, nx, steps, substeps;

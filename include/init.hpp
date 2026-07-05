@@ -24,9 +24,10 @@ SOFTWARE. */
 #define INIT_H
 
 #include <cstring>
+#include <concepts>
 
 #include "sim_structs.hpp"
 
-template <typename T> void read_input_file(const std::string &input_filename, Parameters<T> &parameters, Laser<T> &laser);
+template <std::floating_point T> void read_input_file(const std::string &input_filename, Parameters<T> &parameters, Laser<T> &laser);
 
 #endif

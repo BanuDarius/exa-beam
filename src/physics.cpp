@@ -27,7 +27,7 @@ SOFTWARE. */
 #include "laguerre_gauss.hpp"
 #include "math_functions.hpp"
 
-template <typename T>
+template <std::floating_point T>
 void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser) {
 	int nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
 	T r_max_x = u_field.r_max[0], r_max_y = u_field.r_max[1], r_max_z = u_field.r_max[2];
@@ -49,7 +49,7 @@ void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser) {
 	}
 }
 
-template <typename T>
+template <std::floating_point T>
 void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const ComplexScalarField<T> &u_field, const Laser<T> &laser, T t) {
 	int nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
 	T r_max_x = e_field.r_max[0], r_max_y = e_field.r_max[1], r_max_z = e_field.r_max[2];
