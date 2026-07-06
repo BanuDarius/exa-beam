@@ -23,6 +23,8 @@ SOFTWARE. */
 #include "vtk_output.hpp"
 #include "sim_structs.hpp"
 
+#include <cuda/std/complex>
+
 template <std::floating_point T>
 void output_vtk_header(std::ofstream &output_file, const ScalarField<T> &field) {
 	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
@@ -88,7 +90,7 @@ void output_vtk_complex_scalar_field(std::ofstream &output_file, DataVTK &data_v
 			for(std::size_t i = 0; i < nx; i++) {
 				int idx = grid_idx(i, j, k, nx, ny, nz);
 				int write_idx = (k * ny * nx) + (j * nx) + i;
-				vtk_scalar[write_idx] = swap_endian(static_cast<float>(std::real(field.v[idx])));
+				vtk_scalar[write_idx] = swap_endian(static_cast<float>(cuda::std::real(field.v[idx])));
 			}
 		}
 	}

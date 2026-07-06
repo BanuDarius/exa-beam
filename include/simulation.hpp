@@ -28,6 +28,5 @@ SOFTWARE. */
 #include "sim_structs.hpp"
 
 template <std::floating_point T> void cpu_simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std::string &output_directory);
-template <std::floating_point T> void gpu_simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std::string &output_directory);
 
 #endif

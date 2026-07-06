@@ -29,7 +29,9 @@ SOFTWARE. */
 #include <cstdint>
 #include <cassert>
 #include <concepts>
+
 #include <cuda_runtime.h>
+#include <cuda/std/complex>
 
 #include "math_functions.hpp"
 
@@ -66,7 +68,7 @@ struct Laser {
 	Laser() = default;
 };
 
-template <std::floating_point T>
+template <typename T>
 struct CUDAMemoryAdmin {
 	void operator()(T* ptr) noexcept {
 		if(ptr) cudaFree(ptr);
@@ -230,21 +232,29 @@ struct ScalarField {
 
 template <std::floating_point T>
 struct ComplexScalarField {
+	bool use_gpu;
 	std::size_t field_size;
 	std::array<int, 3> num;
 	std::array<T, 3> r_max;
-	std::unique_ptr<std::complex<T>[]> v;
-	ComplexScalarField(int nx, int ny, int nz, T r_max_n) {
+	std::unique_ptr<cuda::std::complex<T>[]> v;
+	std::unique_ptr<cuda::std::complex<T>[], CUDAMemoryAdmin<cuda::std::complex<T>>> d_v;
+	ComplexScalarField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n, r_max_n };
-		v = std::make_unique_for_overwrite<std::complex<T>[]>(field_size);
+		v = std::make_unique_for_overwrite<cuda::std::complex<T>[]>(field_size);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			v[i] = { T(0.0), T(0.0) };
+		if(use_gpu) {
+			cuda::std::complex<T> *raw_v;
+			
+			cudaMalloc(&raw_v, field_size * sizeof(cuda::std::complex<T>));
+			
+			d_v.reset(raw_v);
+			transfer_data_cpu_to_gpu();
+		}
 	}
-	ComplexScalarField(const Parameters<T> &parameters, const Laser<T> &laser)
-		: ComplexScalarField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult) {}
 	ComplexScalarField(const ComplexScalarField &other)
 		: field_size(other.field_size), num(other.num), r_max(other.r_max) {
 		v = std::make_unique_for_overwrite<std::complex<T>[]>(field_size);
@@ -274,6 +284,14 @@ struct ComplexScalarField {
 			v[i] -= other.v[i];
 		return *this;
 	}
+	inline void transfer_data_cpu_to_gpu() noexcept {
+		cudaMemcpy(d_v.get(), v.get(), 2 * field_size * sizeof(T), cudaMemcpyHostToDevice);
+	}
+	inline void transfer_data_gpu_to_cpu() noexcept {
+		cudaMemcpy(v.get(), d_v.get(), 2 * field_size * sizeof(T), cudaMemcpyDeviceToHost);
+	}
+	ComplexScalarField(const Parameters<T> &parameters, const Laser<T> &laser)
+		: ComplexScalarField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult, parameters.use_gpu) {}
 	ComplexScalarField(ComplexScalarField &&other) noexcept = default;
 	ComplexScalarField &operator=(ComplexScalarField &&other) noexcept = default;
 	~ComplexScalarField() = default;
@@ -281,11 +299,13 @@ struct ComplexScalarField {
 
 template <std::floating_point T>
 struct VectorField {
+	bool use_gpu;
 	std::size_t field_size;
 	std::array<int, 3> num;
 	std::array<T, 3> r_max;
 	std::unique_ptr<T[]> x, y, z;
-	VectorField(int nx, int ny, int nz, T r_max_n) {
+	std::unique_ptr<T[], CUDAMemoryAdmin<T>> d_x, d_y, d_z;
+	VectorField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n, r_max_n };
@@ -296,9 +316,17 @@ struct VectorField {
 		for(std::size_t i = 0; i < field_size; i++) {
 			x[i] = T(0.0); y[i] = T(0.0); z[i] = T(0.0);
 		}
+		if(use_gpu) {
+			T *raw_x, *raw_y, *raw_z;
+			
+			cudaMalloc(&raw_x, field_size * sizeof(T));
+			cudaMalloc(&raw_y, field_size * sizeof(T));
+			cudaMalloc(&raw_z, field_size * sizeof(T));
+			
+			d_x.reset(raw_x); d_y.reset(raw_y); d_z.reset(raw_z);
+			transfer_data_cpu_to_gpu();
+		}
 	}
-	VectorField(const Parameters<T> &parameters, const Laser<T> &laser)
-		: VectorField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult) {}
 	VectorField(const VectorField &other)
 		: field_size(other.field_size), num(other.num), r_max(other.r_max) {
 		x = std::make_unique_for_overwrite<T[]>(field_size);
@@ -334,15 +362,24 @@ struct VectorField {
 		}
 		return *this;
 	}
+	inline void transfer_data_cpu_to_gpu() noexcept {
+		cudaMemcpy(d_x.get(), x.get(), field_size * sizeof(T), cudaMemcpyHostToDevice);
+	}
+	inline void transfer_data_gpu_to_cpu() noexcept {
+		cudaMemcpy(x.get(), d_x.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost);
+	}
+	VectorField(const Parameters<T> &parameters, const Laser<T> &laser)
+		: VectorField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult, parameters.use_gpu) {}
 	VectorField(VectorField &&other) noexcept = default;
 	VectorField &operator=(VectorField &&other) noexcept = default;
 	~VectorField() = default;
 };
 
 struct DataVTK {
+	bool use_gpu;
 	std::size_t field_size;
 	std::unique_ptr<uint32_t[]> vtk_scalar, vtk_vector;
-	DataVTK(int nx, int ny, int nz) {
+	DataVTK(int nx, int ny, int nz, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		field_size = nx * ny * nz;
 		vtk_scalar = std::make_unique_for_overwrite<uint32_t[]>(field_size);
 		vtk_vector = std::make_unique_for_overwrite<uint32_t[]>(3 * field_size);
@@ -353,6 +390,10 @@ struct DataVTK {
 		for(std::size_t i = 0; i < 3 * field_size; i++)
 			vtk_vector[i] = static_cast<uint32_t>(0.0);
 	}
+	DataVTK(const Parameters<double> &parameters)
+		: DataVTK(parameters.nx, parameters.nx, parameters.nx, parameters.use_gpu) {}
+	DataVTK(const Parameters<float> &parameters)
+		: DataVTK(parameters.nx, parameters.nx, parameters.nx, parameters.use_gpu) {}
 	DataVTK(DataVTK &&other) noexcept = default;
 	DataVTK &operator=(DataVTK &&other) noexcept = default;
 	~DataVTK() = default;

@@ -34,10 +34,7 @@ void start_simulation(const std::string &input_file, const std::string &output_d
 	Laser<T> laser;
 	Parameters<T> parameters;
 	read_input_file(input_file, parameters, laser);
-	if(!parameters.use_gpu)
-		cpu_simulate(parameters, laser, output_directory);
-	else
-		gpu_simulate(parameters, laser, output_directory);
+	cpu_simulate(parameters, laser, output_directory);
 }
 
 int main(int argc, char **argv) {
