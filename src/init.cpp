@@ -25,6 +25,9 @@ SOFTWARE. */
 #include <fstream>
 #include <complex>
 
+#include <cuda_runtime.h>
+#include <cuda/std/complex>
+
 #include "init.hpp"
 
 template <std::floating_point T>
@@ -93,8 +96,8 @@ void read_input_file(const std::string &input_filename, Parameters<T> &parameter
 	if(i != input_file_count) {
 		std::fprintf(stderr, "INVALID INPUT FILE!\n"); std::exit(1);
 	}
-	std::complex<T> zeta_x = { T(zeta_x_real), T(zeta_x_imag) };
-	std::complex<T> zeta_y = { T(zeta_y_real), T(zeta_y_imag) };
+	cuda::std::complex<T> zeta_x = { T(zeta_x_real), T(zeta_x_imag) };
+	cuda::std::complex<T> zeta_y = { T(zeta_y_real), T(zeta_y_imag) };
 	parameters = Parameters(nx, steps, substeps, T(tf), T(max_dim_mult), static_cast<bool>(use_gpu));
 	laser = Laser(p, m, T(a0), T(omega), T(w0_mult), T(tau), T(psi), zeta_x, zeta_y);
 }

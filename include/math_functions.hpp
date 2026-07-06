@@ -27,31 +27,34 @@ SOFTWARE. */
 #include <cmath>
 #include <concepts>
 
+#include <cuda_runtime.h>
+
 constexpr int grid_idx(int i, int j, int k, int nx, int ny, int nz) noexcept {
 	(void)nx;
 	return (i * ny * nz) + (j * nz) + k;
 }
 
 template <std::floating_point T>
-inline T interpolate(T min, T max, T i, T n) noexcept {
+__device__ __host__ inline T interpolate(T min, T max, T i, T n) noexcept {
 	T x = min + (max - min) * i / n;
 	return x;
 }
 
 template <std::floating_point T>
-inline T dot(std::array<T, 3> a, std::array<T, 3> b) noexcept {
+__device__ __host__ inline T dot(std::array<T, 3> a, std::array<T, 3> b) noexcept {
 	T x = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 	return x;
 }
 
 template <std::floating_point T>
-inline T magnitude(std::array<T, 3> a) noexcept {
-	T x = std::sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
+__device__ __host__ inline T magnitude(std::array<T, 3> a) noexcept {
+	using std::sqrt;
+	T x = sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
 	return x;
 }
 
 template <std::floating_point T>
-inline std::array<T, 3> cross(std::array<T, 3> a, std::array<T, 3> b) noexcept {
+__device__ __host__ inline std::array<T, 3> cross(std::array<T, 3> a, std::array<T, 3> b) noexcept {
 	std::array<T, 3> x = {
 		a[1] * b[2] - a[2] * b[1],
 		a[2] * b[0] - a[0] * b[2],
@@ -61,26 +64,26 @@ inline std::array<T, 3> cross(std::array<T, 3> a, std::array<T, 3> b) noexcept {
 }
 
 template <std::floating_point T>
-inline std::array<T, 3> operator+(std::array<T, 3> lhs, const std::array<T, 3> rhs) noexcept {
-	std::array<T, 3> x = { lhs[0] + rhs[0], lhs[1] + rhs[1], lhs[2] + rhs[2] };
+__device__ __host__ inline std::array<T, 3> operator+(std::array<T, 3> a, const std::array<T, 3> b) noexcept {
+	std::array<T, 3> x = { a[0] + b[0], a[1] + b[1], a[2] + b[2] };
 	return x;
 }
 
 template <std::floating_point T>
-inline std::array<T, 3> operator-(std::array<T, 3> lhs, const std::array<T, 3> rhs) noexcept {
-	std::array<T, 3> x = { lhs[0] - rhs[0], lhs[1] - rhs[1], lhs[2] - rhs[2] };
+__device__ __host__ inline std::array<T, 3> operator-(std::array<T, 3> a, const std::array<T, 3> b) noexcept {
+	std::array<T, 3> x = { a[0] - b[0], a[1] - b[1], a[2] - b[2] };
 	return x;
 }
 
 template <std::floating_point T>
-inline std::array<T, 3> &operator+=(std::array<T, 3> &lhs, const std::array<T, 3> &rhs) noexcept {
-	lhs[0] += rhs[0]; lhs[1] += rhs[1]; lhs[2] += rhs[2];
-	return lhs;
+__device__ __host__ inline std::array<T, 3> &operator+=(std::array<T, 3> &a, const std::array<T, 3> &b) noexcept {
+	a[0] += b[0]; a[1] += b[1]; a[2] += b[2];
+	return a;
 }
 
 template <std::floating_point T>
-inline std::array<T, 3> operator*(std::array<T, 3> lhs, T b) noexcept {
-	std::array<T, 3> x = { lhs[0] *= b, lhs[1] *= b, lhs[2] *= b };
+__device__ __host__ inline std::array<T, 3> operator*(std::array<T, 3> a, T b) noexcept {
+	std::array<T, 3> x = { a[0] *= b, a[1] *= b, a[2] *= b };
 	return x;
 }
 

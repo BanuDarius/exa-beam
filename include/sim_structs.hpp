@@ -56,8 +56,8 @@ template <std::floating_point T>
 struct Laser {
 	int p, m;
 	T a0, omega, w0, k, lambda, z_r, tau, E0, psi;
-	std::complex<T> zeta_x, zeta_y;
-	Laser(int p_n, int m_n, T a0_n, T omega_n, T w0_multiplier, T tau_n, T psi_n, std::complex<T> zeta_x_n, std::complex<T> zeta_y_n)
+	cuda::std::complex<T> zeta_x, zeta_y;
+	Laser(int p_n, int m_n, T a0_n, T omega_n, T w0_multiplier, T tau_n, T psi_n, cuda::std::complex<T> zeta_x_n, cuda::std::complex<T> zeta_y_n)
 		: p(p_n), m(m_n), a0(a0_n), omega(omega_n), tau(tau_n), psi(psi_n), zeta_x(zeta_x_n), zeta_y(zeta_y_n) {
 		k = omega / c<T>;
 		lambda = (T(2.0) * pi<T> * c<T>) / omega;
@@ -76,13 +76,36 @@ struct CUDAMemoryAdmin {
 };
 
 template <std::floating_point T>
+struct ParticlesView {
+	T *__restrict__ x, *__restrict__ y, *__restrict__ z;
+	T *__restrict__ ux, *__restrict__ uy, *__restrict__ uz, *__restrict__ gamma;
+	__device__ __host__ inline std::array<T, 3> get_position(int idx) const noexcept {
+		std::array<T, 3> r_vec = { x[idx], y[idx], z[idx] };
+		return r_vec;
+	}
+	__device__ __host__ inline std::array<T, 3> get_velocity(int idx) const noexcept {
+		std::array<T, 3> u_vec = { ux[idx], uy[idx], uz[idx] };
+		return u_vec;
+	}
+	__device__ __host__ inline void set_position(const std::array<T, 3> r_vec, int idx) noexcept {
+		x[idx] = r_vec[0]; y[idx] = r_vec[1]; z[idx] = r_vec[2];
+	}
+	__device__ __host__ inline void set_velocity(const std::array<T, 3> u_vec, int idx) noexcept {
+		ux[idx] = u_vec[0]; uy[idx] = u_vec[1]; uz[idx] = u_vec[2];
+	}
+	ParticlesView(T *x_n, T *y_n, T *z_n, T *ux_n, T *uy_n, T *uz_n, T *gamma_n)
+		: x(x_n), y(y_n), z(z_n), ux(ux_n), uy(uy_n), uz(uz_n), gamma(gamma_n) {}
+};
+
+template <std::floating_point T>
 struct Particles {
+	bool use_gpu;
 	std::size_t particle_num;
 	std::array<int, 3> num;
 	std::array<T, 3> r_max;
 	std::unique_ptr<T[]> x, y, z, ux, uy, uz, gamma;
 	std::unique_ptr<T[], CUDAMemoryAdmin<T>> d_x, d_y, d_z, d_ux, d_uy, d_uz, d_gamma;
-	Particles(int nx, int ny, int nz, T r_max_n, bool use_gpu) {
+	Particles(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		particle_num = nx * ny * nz;
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n, r_max_n };
@@ -144,19 +167,11 @@ struct Particles {
 		cudaMemcpy(uz.get(), d_uz.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
 		cudaMemcpy(gamma.get(), d_gamma.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
 	}
-	inline std::array<T, 3> get_position(int idx) const noexcept {
-		std::array<T, 3> r_vec = { x[idx], y[idx], z[idx] };
-		return r_vec;
+	ParticlesView<T> get_cpu_view() const noexcept {
+		return ParticlesView<T>(x.get(), y.get(), z.get(), ux.get(), uy.get(), uz.get(), gamma.get());
 	}
-	inline std::array<T, 3> get_velocity(int idx) const noexcept {
-		std::array<T, 3> u_vec = { ux[idx], uy[idx], uz[idx] };
-		return u_vec;
-	}
-	inline void set_position(std::array<T, 3> r_vec, int idx) noexcept {
-		x[idx] = r_vec[0]; y[idx] = r_vec[1]; z[idx] = r_vec[2];
-	}
-	inline void set_velocity(std::array<T, 3> u_vec, int idx) noexcept {
-		ux[idx] = u_vec[0]; uy[idx] = u_vec[1]; uz[idx] = u_vec[2];
+	ParticlesView<T> get_gpu_view() const noexcept {
+		return ParticlesView<T>(d_x.get(), d_y.get(), d_z.get(), d_ux.get(), d_uy.get(), d_uz.get(), d_gamma.get());
 	}
 	Particles(const Parameters<T> &parameters, const Laser<T> &laser)
 		: Particles(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult, parameters.use_gpu) {}

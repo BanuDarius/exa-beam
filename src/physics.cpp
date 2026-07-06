@@ -35,8 +35,8 @@ void compute_lz(Particles<T> &particles, ScalarField<T> &lz_field) {
 		for(int j = 0; j < ny; j++) {
 			for(int k = 0; k < nz; k++) {
 				int idx = grid_idx(i, j, k, nx, ny, nz);
-				std::array<T, 3> r_vec = particles.get_position(idx);
-				std::array<T, 3> u_vec = particles.get_velocity(idx);
+				std::array<T, 3> r_vec = particles.get_cpu_view().get_position(idx);
+				std::array<T, 3> u_vec = particles.get_cpu_view().get_velocity(idx);
 				T x = r_vec[0], y = r_vec[1];
 				T ux = u_vec[0], uy = u_vec[1];
 				
