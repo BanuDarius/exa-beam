@@ -75,21 +75,22 @@ struct CUDAMemoryAdmin {
 
 template <std::floating_point T>
 struct Particles {
+	std::size_t particle_num;
 	std::array<int, 3> num;
 	std::array<T, 3> r_max;
 	std::unique_ptr<T[]> x, y, z, ux, uy, uz, gamma;
 	std::unique_ptr<T[], CUDAMemoryAdmin<T>> d_x, d_y, d_z, d_ux, d_uy, d_uz, d_gamma;
 	Particles(int nx, int ny, int nz, T r_max_n, bool use_gpu) {
+		particle_num = nx * ny * nz;
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n, r_max_n };
-		std::size_t total = nx * ny * nz;
-		x = std::make_unique_for_overwrite<T[]>(total);
-		y = std::make_unique_for_overwrite<T[]>(total);
-		z = std::make_unique_for_overwrite<T[]>(total);
-		ux = std::make_unique_for_overwrite<T[]>(total);
-		uy = std::make_unique_for_overwrite<T[]>(total);
-		uz = std::make_unique_for_overwrite<T[]>(total);
-		gamma = std::make_unique_for_overwrite<T[]>(total);
+		x = std::make_unique_for_overwrite<T[]>(particle_num);
+		y = std::make_unique_for_overwrite<T[]>(particle_num);
+		z = std::make_unique_for_overwrite<T[]>(particle_num);
+		ux = std::make_unique_for_overwrite<T[]>(particle_num);
+		uy = std::make_unique_for_overwrite<T[]>(particle_num);
+		uz = std::make_unique_for_overwrite<T[]>(particle_num);
+		gamma = std::make_unique_for_overwrite<T[]>(particle_num);
 		#pragma omp parallel for simd collapse(3) schedule(static)
 		for(int i = 0; i < nx; i++) {
 			for(int j = 0; j < ny; j++) {
@@ -104,20 +105,47 @@ struct Particles {
 			}
 		}
 		if(use_gpu) {
-			cudaMalloc((T**)d_x.get(), total * sizeof(T));
-			cudaMalloc((T**)d_y.get(), total * sizeof(T));
-			cudaMalloc((T**)d_z.get(), total * sizeof(T));
-			cudaMalloc((T**)d_ux.get(), total * sizeof(T));
-			cudaMalloc((T**)d_uy.get(), total * sizeof(T));
-			cudaMalloc((T**)d_uz.get(), total * sizeof(T));
-			cudaMalloc((T**)d_gamma.get(), total * sizeof(T));
+			T *raw_x, *raw_y, *raw_z, *raw_ux, *raw_uy, *raw_uz, *raw_gamma;
+			
+			std::size_t data_size = particle_num * sizeof(T);
+			cudaMalloc(&raw_x, data_size);
+			cudaMalloc(&raw_y, data_size);
+			cudaMalloc(&raw_z, data_size);
+			cudaMalloc(&raw_ux, data_size);
+			cudaMalloc(&raw_uy, data_size);
+			cudaMalloc(&raw_uz, data_size);
+			cudaMalloc(&raw_gamma, data_size);
+			
+			d_x.reset(raw_x); d_y.reset(raw_y); d_z.reset(raw_z);
+			d_ux.reset(raw_ux); d_uy.reset(raw_uy); d_uz.reset(raw_uz);
+			d_gamma.reset(raw_gamma);
+			
+			transfer_data_cpu_to_gpu();
 		}
 	}
-	inline std::array<T, 3> get_position(int idx) noexcept {
+	inline void transfer_data_cpu_to_gpu() noexcept {
+		cudaMemcpy(d_x.get(), x.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice);
+		cudaMemcpy(d_y.get(), y.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice);
+		cudaMemcpy(d_z.get(), z.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice);
+		cudaMemcpy(d_ux.get(), ux.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice);
+		cudaMemcpy(d_uy.get(), uy.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice);
+		cudaMemcpy(d_uz.get(), uz.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice);
+		cudaMemcpy(d_gamma.get(), gamma.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice);
+	}
+	inline void transfer_data_gpu_to_cpu() noexcept {
+		cudaMemcpy(x.get(), d_x.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
+		cudaMemcpy(y.get(), d_y.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
+		cudaMemcpy(z.get(), d_z.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
+		cudaMemcpy(ux.get(), d_ux.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
+		cudaMemcpy(uy.get(), d_uy.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
+		cudaMemcpy(uz.get(), d_uz.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
+		cudaMemcpy(gamma.get(), d_gamma.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
+	}
+	inline std::array<T, 3> get_position(int idx) const noexcept {
 		std::array<T, 3> r_vec = { x[idx], y[idx], z[idx] };
 		return r_vec;
 	}
-	inline std::array<T, 3> get_velocity(int idx) noexcept {
+	inline std::array<T, 3> get_velocity(int idx) const noexcept {
 		std::array<T, 3> u_vec = { ux[idx], uy[idx], uz[idx] };
 		return u_vec;
 	}
@@ -140,7 +168,8 @@ struct ScalarField {
 	std::array<int, 3> num;
 	std::array<T, 3> r_max;
 	std::unique_ptr<T[]> v;
-	ScalarField(int nx, int ny, int nz, T r_max_n) {
+	std::unique_ptr<T[], CUDAMemoryAdmin<T>> d_v;
+	ScalarField(int nx, int ny, int nz, T r_max_n, bool use_gpu) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n, r_max_n };
@@ -148,9 +177,15 @@ struct ScalarField {
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			v[i] = T(0.0);
+		if(use_gpu) {
+			T *raw_v;
+			
+			cudaMalloc(&raw_v, field_size * sizeof(T));
+			
+			d_v.reset(raw_v);
+			transfer_data_cpu_to_gpu();
+		}
 	}
-	ScalarField(const Parameters<T> &parameters, const Laser<T> &laser)
-		: ScalarField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult) {}
 	ScalarField(const ScalarField &other)
 		: field_size(other.field_size), num(other.num), r_max(other.r_max) {
 		v = std::make_unique_for_overwrite<T[]>(field_size);
@@ -180,6 +215,14 @@ struct ScalarField {
 			v[i] -= other.v[i];
 		return *this;
 	}
+	inline void transfer_data_cpu_to_gpu() noexcept {
+		cudaMemcpy(d_v.get(), v.get(), field_size * sizeof(T), cudaMemcpyHostToDevice);
+	}
+	inline void transfer_data_gpu_to_cpu() noexcept {
+		cudaMemcpy(v.get(), d_v.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost);
+	}
+	ScalarField(const Parameters<T> &parameters, const Laser<T> &laser)
+		: ScalarField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult, parameters.use_gpu) {}
 	ScalarField(ScalarField &&other) noexcept = default;
 	ScalarField &operator=(ScalarField &&other) noexcept = default;
 	~ScalarField() = default;
