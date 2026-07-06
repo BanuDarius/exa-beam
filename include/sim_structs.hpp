@@ -29,10 +29,11 @@ SOFTWARE. */
 #include <cstdint>
 #include <cassert>
 #include <concepts>
+#include <cuda_runtime.h>
 
 #include "math_functions.hpp"
 
-constexpr int input_file_count = 16;
+constexpr int input_file_count = 17;
 
 template <std::floating_point T> constexpr T m_e = T(1.0);
 template <std::floating_point T> constexpr T e_0 = T(-1.0);
@@ -43,8 +44,9 @@ template <std::floating_point T>
 struct Parameters {
 	int nx, steps, substeps;
 	T tf, max_dim_mult;
-	Parameters(int nx_n, int steps_n, int substeps_n, T tf_n, T max_dim_mult_n)
-		: nx(nx_n), steps(steps_n), substeps(substeps_n), tf(tf_n), max_dim_mult(max_dim_mult_n) {}
+	bool use_gpu;
+	Parameters(int nx_n, int steps_n, int substeps_n, T tf_n, T max_dim_mult_n, bool use_gpu_n)
+		: nx(nx_n), steps(steps_n), substeps(substeps_n), tf(tf_n), max_dim_mult(max_dim_mult_n), use_gpu(use_gpu_n) {}
 	Parameters() = default;
 };
 
@@ -65,11 +67,19 @@ struct Laser {
 };
 
 template <std::floating_point T>
+struct CUDAMemoryAdmin {
+	void operator()(T* ptr) noexcept {
+		if(ptr) cudaFree(ptr);
+	}
+};
+
+template <std::floating_point T>
 struct Particles {
 	std::array<int, 3> num;
 	std::array<T, 3> r_max;
 	std::unique_ptr<T[]> x, y, z, ux, uy, uz, gamma;
-	Particles(int nx, int ny, int nz, T r_max_n) {
+	std::unique_ptr<T[], CUDAMemoryAdmin<T>> d_x, d_y, d_z, d_ux, d_uy, d_uz, d_gamma;
+	Particles(int nx, int ny, int nz, T r_max_n, bool use_gpu) {
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n, r_max_n };
 		std::size_t total = nx * ny * nz;
@@ -93,9 +103,16 @@ struct Particles {
 				}
 			}
 		}
+		if(use_gpu) {
+			cudaMalloc((T**)d_x.get(), total * sizeof(T));
+			cudaMalloc((T**)d_y.get(), total * sizeof(T));
+			cudaMalloc((T**)d_z.get(), total * sizeof(T));
+			cudaMalloc((T**)d_ux.get(), total * sizeof(T));
+			cudaMalloc((T**)d_uy.get(), total * sizeof(T));
+			cudaMalloc((T**)d_uz.get(), total * sizeof(T));
+			cudaMalloc((T**)d_gamma.get(), total * sizeof(T));
+		}
 	}
-	Particles(const Parameters<T> &parameters, const Laser<T> &laser)
-		: Particles(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult) {}
 	inline std::array<T, 3> get_position(int idx) noexcept {
 		std::array<T, 3> r_vec = { x[idx], y[idx], z[idx] };
 		return r_vec;
@@ -110,6 +127,8 @@ struct Particles {
 	inline void set_velocity(std::array<T, 3> u_vec, int idx) noexcept {
 		ux[idx] = u_vec[0]; uy[idx] = u_vec[1]; uz[idx] = u_vec[2];
 	}
+	Particles(const Parameters<T> &parameters, const Laser<T> &laser)
+		: Particles(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult, parameters.use_gpu) {}
 	Particles(Particles &&other) noexcept = default;
 	Particles &operator=(Particles &&other) noexcept = default;
 	~Particles() = default;

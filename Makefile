@@ -1,8 +1,8 @@
-CC = g++
+CC = nvcc
 OPT_FLAG = -O3
 WARNINGS = -Wall -Wextra -Wshadow
-CFLAGS = -std=c++20 $(OPT_FLAG) -march=native -Iinclude -fopenmp -flto -MMD -MP -g $(WARNINGS)
-LDLIBS = -lm
+CFLAGS = -std=c++20 $(OPT_FLAG) -arch=native -Iinclude -Xcompiler "-march=native -fopenmp -flto $(WARNINGS)" -MMD -MP -g
+LDLIBS = -lm -lgomp
 
 SRC_DIR = src
 BUILD_DIR = build
@@ -44,4 +44,4 @@ clean:
 
 -include $(OBJS:.o=.d)
 
-.PHONY: all clean output_dirs fast
+.PHONY: all clean output-dirs fast

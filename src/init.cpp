@@ -30,7 +30,7 @@ SOFTWARE. */
 template <std::floating_point T>
 void read_input_file(const std::string &input_filename, Parameters<T> &parameters, Laser<T> &laser) {
 	double a0, tf, tau, psi, omega, w0_mult, max_dim_mult, zeta_x_real, zeta_x_imag, zeta_y_real, zeta_y_imag;
-	int i = 0, p, m, nx, steps, substeps;
+	int i = 0, p, m, nx, steps, substeps, use_gpu;
 	
 	std::string current;
 	std::ifstream in(input_filename);
@@ -65,6 +65,9 @@ void read_input_file(const std::string &input_filename, Parameters<T> &parameter
 		else if(current == "steps") {
 			if(in >> steps) i++;
 		}
+		else if(current == "use_gpu") {
+			if(in >> use_gpu) i++;
+		}
 		else if(current == "w0_mult") {
 			if(in >> w0_mult) i++;
 		}
@@ -92,7 +95,7 @@ void read_input_file(const std::string &input_filename, Parameters<T> &parameter
 	}
 	std::complex<T> zeta_x = { T(zeta_x_real), T(zeta_x_imag) };
 	std::complex<T> zeta_y = { T(zeta_y_real), T(zeta_y_imag) };
-	parameters = Parameters(nx, steps, substeps, T(tf), T(max_dim_mult));
+	parameters = Parameters(nx, steps, substeps, T(tf), T(max_dim_mult), static_cast<bool>(use_gpu));
 	laser = Laser(p, m, T(a0), T(omega), T(w0_mult), T(tau), T(psi), zeta_x, zeta_y);
 }
 

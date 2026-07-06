@@ -49,6 +49,7 @@ def output_init_file(sim_parameters):
         file.write(f"omega {sim_parameters.omega}\n")
         file.write(f"w0_mult {sim_parameters.w0_mult}\n")
         file.write(f"substeps {sim_parameters.substeps}\n")
+        file.write(f"use_gpu {int(sim_parameters.use_gpu)}\n")
         file.write(f"max_dim_mult {sim_parameters.max_dim_mult}\n")
         file.write(f"zeta_x_real {sim_parameters.zeta_x_real}\n")
         file.write(f"zeta_x_imag {sim_parameters.zeta_x_imag}\n")
