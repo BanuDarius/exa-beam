@@ -104,7 +104,7 @@ __device__ __host__ void higuera_cary_step(Particles<T> &particles, const Laser<
 	std::array<T, 3> r_vec = particles.get_cpu_view().get_position(idx);
 	std::array<T, 3> u_vec = particles.get_cpu_view().get_velocity(idx);
 	
-	T gamma = particles.gamma[idx];
+	T gamma = particles.get_cpu_view().get_gamma(idx);
 	T half_dt_gamma = T(0.5) * dt / gamma;
 	r_vec += u_vec * half_dt_gamma;
 	
@@ -129,7 +129,7 @@ __device__ __host__ void higuera_cary_step(Particles<T> &particles, const Laser<
 
 	particles.get_cpu_view().set_position(r_vec, idx);
 	particles.get_cpu_view().set_velocity(u_final, idx);
-	particles.get_cpu_view().gamma[idx] = gamma;
+	particles.get_cpu_view().set_gamma(gamma, idx);
 }
 
 #endif

@@ -79,6 +79,10 @@ template <std::floating_point T>
 struct ParticlesView {
 	T *__restrict__ x, *__restrict__ y, *__restrict__ z;
 	T *__restrict__ ux, *__restrict__ uy, *__restrict__ uz, *__restrict__ gamma;
+	__device__ __host__ inline T get_gamma(int idx) const noexcept {
+		T gamma_v = gamma[idx];
+		return gamma_v;
+	}
 	__device__ __host__ inline std::array<T, 3> get_position(int idx) const noexcept {
 		std::array<T, 3> r_vec = { x[idx], y[idx], z[idx] };
 		return r_vec;
@@ -86,6 +90,9 @@ struct ParticlesView {
 	__device__ __host__ inline std::array<T, 3> get_velocity(int idx) const noexcept {
 		std::array<T, 3> u_vec = { ux[idx], uy[idx], uz[idx] };
 		return u_vec;
+	}
+	__device__ __host__ inline void set_gamma(T gamma_v, int idx) noexcept {
+		gamma[idx] = gamma_v;
 	}
 	__device__ __host__ inline void set_position(const std::array<T, 3> r_vec, int idx) noexcept {
 		x[idx] = r_vec[0]; y[idx] = r_vec[1]; z[idx] = r_vec[2];

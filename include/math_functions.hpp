@@ -29,7 +29,7 @@ SOFTWARE. */
 
 #include <cuda_runtime.h>
 
-constexpr int grid_idx(int i, int j, int k, int nx, int ny, int nz) noexcept {
+__device__ __host__ constexpr int grid_idx(int i, int j, int k, int nx, int ny, int nz) noexcept {
 	(void)nx;
 	return (i * ny * nz) + (j * nz) + k;
 }
