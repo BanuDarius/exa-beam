@@ -107,7 +107,8 @@ struct Particles {
 			}
 		}
 		if(use_gpu) {
-			T *raw_x, *raw_y, *raw_z, *raw_ux, *raw_uy, *raw_uz, *raw_gamma;
+			T *raw_x = nullptr, *raw_y = nullptr, *raw_z = nullptr;
+			T *raw_ux = nullptr, *raw_uy = nullptr, *raw_uz = nullptr, *raw_gamma = nullptr;
 			
 			std::size_t data_size = particle_num * sizeof(T);
 			cudaMalloc(&raw_x, data_size);
@@ -166,12 +167,13 @@ struct Particles {
 
 template <std::floating_point T>
 struct ScalarField {
+	bool use_gpu;
 	std::size_t field_size;
 	std::array<int, 3> num;
 	std::array<T, 3> r_max;
 	std::unique_ptr<T[]> v;
 	std::unique_ptr<T[], CUDAMemoryAdmin<T>> d_v;
-	ScalarField(int nx, int ny, int nz, T r_max_n, bool use_gpu) {
+	ScalarField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n, r_max_n };
@@ -180,7 +182,7 @@ struct ScalarField {
 		for(std::size_t i = 0; i < field_size; i++)
 			v[i] = T(0.0);
 		if(use_gpu) {
-			T *raw_v;
+			T *raw_v = nullptr;
 			
 			cudaMalloc(&raw_v, field_size * sizeof(T));
 			
@@ -189,11 +191,19 @@ struct ScalarField {
 		}
 	}
 	ScalarField(const ScalarField &other)
-		: field_size(other.field_size), num(other.num), r_max(other.r_max) {
+		: field_size(other.field_size), num(other.num), r_max(other.r_max), use_gpu(other.use_gpu) {
 		v = std::make_unique_for_overwrite<T[]>(field_size);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			v[i] = other.v[i];
+		if(use_gpu) {
+			T *raw_v = nullptr;
+			
+			cudaMalloc(&raw_v, field_size * sizeof(T));
+			
+			d_v.reset(raw_v);
+			cudaMemcpy(d_v.get(), other.d_v.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
+		}
 	}
 	ScalarField &operator=(const ScalarField &other) {
 		if(this == &other) return *this;
@@ -201,6 +211,8 @@ struct ScalarField {
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < other.field_size; i++)
 			v[i] = other.v[i];
+		if(use_gpu)
+			cudaMemcpy(d_v.get(), other.d_v.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
 		return *this;
 	}
 	ScalarField &operator+=(const ScalarField &other) {
@@ -247,7 +259,7 @@ struct ComplexScalarField {
 		for(std::size_t i = 0; i < field_size; i++)
 			v[i] = { T(0.0), T(0.0) };
 		if(use_gpu) {
-			cuda::std::complex<T> *raw_v;
+			cuda::std::complex<T> *raw_v = nullptr;
 			
 			cudaMalloc(&raw_v, field_size * sizeof(cuda::std::complex<T>));
 			
@@ -317,7 +329,7 @@ struct VectorField {
 			x[i] = T(0.0); y[i] = T(0.0); z[i] = T(0.0);
 		}
 		if(use_gpu) {
-			T *raw_x, *raw_y, *raw_z;
+			T *raw_x = nullptr, *raw_y = nullptr, *raw_z = nullptr;
 			
 			cudaMalloc(&raw_x, field_size * sizeof(T));
 			cudaMalloc(&raw_y, field_size * sizeof(T));
@@ -336,6 +348,18 @@ struct VectorField {
 		for(std::size_t i = 0; i < field_size; i++) {
 			x[i] = other.x[i]; y[i] = other.y[i]; z[i] = other.z[i];
 		}
+		if(use_gpu) {
+			T *raw_x = nullptr, *raw_y = nullptr, *raw_z = nullptr;
+			
+			cudaMalloc(&raw_x, field_size * sizeof(T));
+			cudaMalloc(&raw_y, field_size * sizeof(T));
+			cudaMalloc(&raw_z, field_size * sizeof(T));
+			
+			d_x.reset(raw_x); d_y.reset(raw_y); d_z.reset(raw_z);
+			cudaMemcpy(d_x.get(), other.d_x.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
+			cudaMemcpy(d_y.get(), other.d_y.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
+			cudaMemcpy(d_z.get(), other.d_z.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
+		}
 	}
 	VectorField &operator=(const VectorField &other) {
 		if(this == &other) return *this;
@@ -343,6 +367,11 @@ struct VectorField {
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < other.field_size; i++) {
 			x[i] = other.x[i]; y[i] = other.y[i]; z[i] = other.z[i];
+		}
+		if(use_gpu) {
+			cudaMemcpy(d_x.get(), other.d_x.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
+			cudaMemcpy(d_y.get(), other.d_y.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
+			cudaMemcpy(d_z.get(), other.d_z.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
 		}
 		return *this;
 	}
