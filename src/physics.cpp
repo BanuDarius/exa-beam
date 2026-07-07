@@ -89,7 +89,7 @@ void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const Co
 				};
 				int idx = grid_idx(i, j, k, nx, ny, nz);
 				
-				EBVectors<T> eb_vec = compute_eb_field(u_field, laser, r_vec, t, idx);
+				EBVectors<T> eb_vec = compute_eb(u_field, laser, r_vec, t, idx);
 				std::array<T, 3> e_vec = eb_vec.e;
 				std::array<T, 3> b_vec = eb_vec.b;
 				
