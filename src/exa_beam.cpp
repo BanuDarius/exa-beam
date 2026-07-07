@@ -34,7 +34,7 @@ SOFTWARE. */
 
 template <std::floating_point T>
 void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std::string &output_directory) {
-	int steps = parameters.steps, substeps = parameters.substeps, nx = parameters.nx;
+	int steps = parameters.steps, substeps = parameters.substeps;
 	T dt = parameters.tf / steps;
 	
 	DataVTK data_vtk(parameters);
@@ -47,7 +47,7 @@ void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std:
 	for(int step = 0; step < steps; step++) {
 		T time = step * dt;
 		#pragma omp parallel for schedule(static)
-		for(int i = 0; i < nx * nx * nx; i++)
+		for(std::size_t i = 0; i < particles.particle_num; i++)
 			higuera_cary_step(particles, laser, time, dt, i);
 		if(step % substeps == 0) {
 			std::string filename_fields = std::format("{}/out-fields-{:04d}.vtk", output_directory, step / substeps);

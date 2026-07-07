@@ -100,7 +100,7 @@ __device__ __host__ inline std::array<T, 3> hc_u_plus(std::array<T, 3> u_minus, 
 }
 
 template<std::floating_point T>
-__device__ __host__ void higuera_cary_step(Particles<T> &particles, const Laser<T> &laser, T t, T dt, int idx) noexcept {
+__device__ __host__ void higuera_cary_step(Particles<T> &particles, const Laser<T> &laser, T t, T dt, std::size_t idx) noexcept {
 	ParticlesView particles_view = particles.get_cpu_view();
 	std::array<T, 3> r_vec = particles_view.get_position(idx);
 	std::array<T, 3> u_vec = particles_view.get_velocity(idx);

@@ -39,16 +39,16 @@ zeta_y_imag = -0.707
 
 steps = 5000
 substeps = 10
-max_dim_mult = 2.5
+max_dim_mult = 3.0
 
-nx = 32
+nx = 64
 a0 = 0.5
 p = 0
 m = 0
 tau = 10.0
 omega = 0.057
 w0_mult = 2.0
-psi = -c * tau
+psi = -0.8 * c * tau
 tf = 25.0 * c * tau
 
 # ---------------------------------------------------------- #

@@ -33,25 +33,25 @@ template <std::floating_point T>
 struct ParticlesView {
 	T *__restrict__ x, *__restrict__ y, *__restrict__ z;
 	T *__restrict__ ux, *__restrict__ uy, *__restrict__ uz, *__restrict__ gamma;
-	__device__ __host__ inline T get_gamma(int idx) const noexcept {
+	__device__ __host__ inline T get_gamma(std::size_t idx) const noexcept {
 		T gamma_v = gamma[idx];
 		return gamma_v;
 	}
-	__device__ __host__ inline std::array<T, 3> get_position(int idx) const noexcept {
+	__device__ __host__ inline std::array<T, 3> get_position(std::size_t idx) const noexcept {
 		std::array<T, 3> r_vec = { x[idx], y[idx], z[idx] };
 		return r_vec;
 	}
-	__device__ __host__ inline std::array<T, 3> get_velocity(int idx) const noexcept {
+	__device__ __host__ inline std::array<T, 3> get_velocity(std::size_t idx) const noexcept {
 		std::array<T, 3> u_vec = { ux[idx], uy[idx], uz[idx] };
 		return u_vec;
 	}
-	__device__ __host__ inline void set_gamma(T gamma_v, int idx) noexcept {
+	__device__ __host__ inline void set_gamma(T gamma_v, std::size_t idx) noexcept {
 		gamma[idx] = gamma_v;
 	}
-	__device__ __host__ inline void set_position(const std::array<T, 3> r_vec, int idx) noexcept {
+	__device__ __host__ inline void set_position(const std::array<T, 3> r_vec, std::size_t idx) noexcept {
 		x[idx] = r_vec[0]; y[idx] = r_vec[1]; z[idx] = r_vec[2];
 	}
-	__device__ __host__ inline void set_velocity(const std::array<T, 3> u_vec, int idx) noexcept {
+	__device__ __host__ inline void set_velocity(const std::array<T, 3> u_vec, std::size_t idx) noexcept {
 		ux[idx] = u_vec[0]; uy[idx] = u_vec[1]; uz[idx] = u_vec[2];
 	}
 	ParticlesView(T *x_n, T *y_n, T *z_n, T *ux_n, T *uy_n, T *uz_n, T *gamma_n)
@@ -61,11 +61,11 @@ struct ParticlesView {
 template <std::floating_point T>
 struct ScalarFieldView {
 	T *__restrict__ v;
-	__device__ __host__ inline T get_field(int idx) const noexcept {
+	__device__ __host__ inline T get_field(std::size_t idx) const noexcept {
 		T v_n = v[idx];
 		return v_n;
 	}
-	__device__ __host__ inline void set_field(T v_n, int idx) noexcept {
+	__device__ __host__ inline void set_field(T v_n, std::size_t idx) noexcept {
 		v[idx] = v_n;
 	}
 	ScalarFieldView(T *v_n) : v(v_n) {}
@@ -74,11 +74,11 @@ struct ScalarFieldView {
 template <std::floating_point T>
 struct ComplexScalarFieldView {
 	cuda::std::complex<T> *__restrict__ v;
-	__device__ __host__ inline cuda::std::complex<T> get_field(int idx) const noexcept {
+	__device__ __host__ inline cuda::std::complex<T> get_field(std::size_t idx) const noexcept {
 		cuda::std::complex<T> v_n = v[idx];
 		return v_n;
 	}
-	__device__ __host__ inline void set_field(cuda::std::complex<T> v_n, int idx) noexcept {
+	__device__ __host__ inline void set_field(cuda::std::complex<T> v_n, std::size_t idx) noexcept {
 		v[idx] = v_n;
 	}
 	ComplexScalarFieldView(cuda::std::complex<T> *v_n) : v(v_n) {}
@@ -87,11 +87,11 @@ struct ComplexScalarFieldView {
 template <std::floating_point T>
 struct VectorFieldView {
 	T *__restrict__ x, *__restrict__ y, *__restrict__ z;
-	__device__ __host__ inline std::array<T, 3> get_field(int idx) const noexcept {
+	__device__ __host__ inline std::array<T, 3> get_field(std::size_t idx) const noexcept {
 		std::array<T, 3> vec = { x[idx], y[idx], z[idx] };
 		return vec;
 	}
-	__device__ __host__ inline void set_field(std::array<T, 3> vec, int idx) noexcept {
+	__device__ __host__ inline void set_field(std::array<T, 3> vec, std::size_t idx) noexcept {
 		x[idx] = vec[0]; y[idx] = vec[1]; z[idx] = vec[2];
 	}
 	VectorFieldView(T *x_n, T *y_n, T *z_n) : x(x_n), y(y_n), z(z_n) {}

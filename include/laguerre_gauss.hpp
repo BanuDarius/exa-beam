@@ -112,7 +112,7 @@ __device__ __host__ inline EBVectors<T> compute_eb(const Laser<T> &laser, std::a
 }
 
 template <std::floating_point T>
-__device__ __host__ inline EBVectors<T> compute_eb(const ComplexScalarField<T> &u_field, const Laser<T> &laser, std::array<T, 3> r_vec, T t, int idx) noexcept {
+__device__ __host__ inline EBVectors<T> compute_eb(const ComplexScalarField<T> &u_field, const Laser<T> &laser, std::array<T, 3> r_vec, T t, std::size_t idx) noexcept {
 	using std::cos; using std::sin;
 	T w0 = laser.w0, k = laser.k, z_r = laser.z_r, E0 = laser.E0, tau = laser.tau, psi = laser.psi;
 	cuda::std::complex<T> zeta_x = laser.zeta_x, zeta_y = laser.zeta_y;

@@ -112,14 +112,13 @@ struct Particles {
 			T *raw_x = nullptr, *raw_y = nullptr, *raw_z = nullptr;
 			T *raw_ux = nullptr, *raw_uy = nullptr, *raw_uz = nullptr, *raw_gamma = nullptr;
 			
-			std::size_t data_size = particle_num * sizeof(T);
-			cudaMalloc(&raw_x, data_size);
-			cudaMalloc(&raw_y, data_size);
-			cudaMalloc(&raw_z, data_size);
-			cudaMalloc(&raw_ux, data_size);
-			cudaMalloc(&raw_uy, data_size);
-			cudaMalloc(&raw_uz, data_size);
-			cudaMalloc(&raw_gamma, data_size);
+			cudaMalloc(&raw_x, particle_num * sizeof(T));
+			cudaMalloc(&raw_y, particle_num * sizeof(T));
+			cudaMalloc(&raw_z, particle_num * sizeof(T));
+			cudaMalloc(&raw_ux, particle_num * sizeof(T));
+			cudaMalloc(&raw_uy, particle_num * sizeof(T));
+			cudaMalloc(&raw_uz, particle_num * sizeof(T));
+			cudaMalloc(&raw_gamma, particle_num * sizeof(T));
 			
 			d_x.reset(raw_x); d_y.reset(raw_y); d_z.reset(raw_z);
 			d_ux.reset(raw_ux); d_uy.reset(raw_uy); d_uz.reset(raw_uz);
@@ -269,10 +268,18 @@ struct ComplexScalarField {
 	}
 	ComplexScalarField(const ComplexScalarField &other)
 		: field_size(other.field_size), num(other.num), r_max(other.r_max) {
-		h_v = std::make_unique_for_overwrite<std::complex<T>[]>(field_size);
+		h_v = std::make_unique_for_overwrite<cuda::std::complex<T>[]>(field_size);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			h_v[i] = other.h_v[i];
+		if(use_gpu) {
+			T *raw_v = nullptr;
+			
+			cudaMalloc(&raw_v, field_size * sizeof(cuda::std::complex<T>));
+			
+			d_v.reset(raw_v);
+			cudaMemcpy(d_v.get(), other.d_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyDeviceToDevice);
+		}
 	}
 	ComplexScalarField &operator=(const ComplexScalarField &other) {
 		if(this == &other) return *this;
@@ -280,6 +287,8 @@ struct ComplexScalarField {
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < other.field_size; i++)
 			h_v[i] = other.h_v[i];
+		if(use_gpu)
+			cudaMemcpy(d_v.get(), other.d_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyDeviceToDevice);
 		return *this;
 	}
 	ComplexScalarField &operator+=(const ComplexScalarField &other) {
@@ -297,10 +306,10 @@ struct ComplexScalarField {
 		return *this;
 	}
 	inline void transfer_data_cpu_to_gpu() noexcept {
-		cudaMemcpy(d_v.get(), h_v.get(), 2 * field_size * sizeof(T), cudaMemcpyHostToDevice);
+		cudaMemcpy(d_v.get(), h_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyHostToDevice);
 	}
 	inline void transfer_data_gpu_to_cpu() noexcept {
-		cudaMemcpy(h_v.get(), d_v.get(), 2 * field_size * sizeof(T), cudaMemcpyDeviceToHost);
+		cudaMemcpy(h_v.get(), d_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyDeviceToHost);
 	}
 	ComplexScalarFieldView<T> get_cpu_view() const noexcept {
 		return ComplexScalarFieldView<T>(h_v.get());
@@ -426,10 +435,10 @@ struct DataVTK {
 		vtk_vector = std::make_unique_for_overwrite<uint32_t[]>(3 * field_size);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
-			vtk_scalar[i] = static_cast<uint32_t>(0.0);
+			vtk_scalar[i] = 0u;
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < 3 * field_size; i++)
-			vtk_vector[i] = static_cast<uint32_t>(0.0);
+			vtk_vector[i] = 0u;
 	}
 	DataVTK(const Parameters<double> &parameters)
 		: DataVTK(parameters.nx, parameters.nx, parameters.nx, parameters.use_gpu) {}

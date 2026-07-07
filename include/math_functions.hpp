@@ -29,9 +29,9 @@ SOFTWARE. */
 
 #include <cuda_runtime.h>
 
-__device__ __host__ constexpr int grid_idx(int i, int j, int k, int nx, int ny, int nz) noexcept {
+__device__ __host__ constexpr std::size_t grid_idx(int i, int j, int k, int nx, int ny, int nz) noexcept {
 	(void)nx;
-	return (i * ny * nz) + (j * nz) + k;
+	return (static_cast<std::size_t>(i) * ny * nz) + (static_cast<std::size_t>(j) * nz) + k;
 }
 
 template <std::floating_point T>
