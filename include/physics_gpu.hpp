@@ -28,6 +28,8 @@ SOFTWARE. */
 #include "sim_structs.hpp"
 
 template <std::floating_point T> __global__ void compute_u_field_gpu_kernel(ComplexScalarField<T> u_field, Laser<T> laser);
+template <std::floating_point T> __global__ void compute_eb_field_gpu_kernel(VectorFieldView<T> e_field_view, VectorFieldView<T> b_field_view, ComplexScalarFieldView<T> u_field_view, Laser<T> laser, T t);
 template <std::floating_point T> void compute_u_field_gpu(ComplexScalarField<T> &u_field, const Laser<T> &laser);
+template <std::floating_point T> void compute_eb_field_gpu(VectorField<T> &e_field, VectorField<T> &b_field, ComplexScalarField<T> &u_field, const Laser<T> &laser, T t);
 
 #endif

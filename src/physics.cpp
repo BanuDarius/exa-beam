@@ -89,12 +89,11 @@ void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const Co
 				};
 				int idx = grid_idx(i, j, k, nx, ny, nz);
 				
-				EBVectors<T> eb_vec = compute_eb(u_field, laser, r_vec, t, idx);
-				cuda::std::array<T, 3> e_vec = eb_vec.e;
-				cuda::std::array<T, 3> b_vec = eb_vec.b;
+				ComplexScalarFieldView<T> u_field_view = u_field.get_cpu_view();
+				EBVectors<T> eb_vec = compute_eb(u_field_view, laser, r_vec, t, idx);
 				
-				e_field.get_cpu_view().set_field(e_vec, idx);
-				b_field.get_cpu_view().set_field(b_vec, idx);
+				e_field.get_cpu_view().set_field(eb_vec.e, idx);
+				b_field.get_cpu_view().set_field(eb_vec.b, idx);
 			}
 		}
 	}

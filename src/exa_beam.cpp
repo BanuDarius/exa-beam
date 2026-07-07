@@ -32,6 +32,8 @@ SOFTWARE. */
 #include "sim_structs.hpp"
 #include "higuera_cary.hpp"
 
+#include "physics_gpu.hpp"
+
 template <std::floating_point T>
 void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std::string &output_directory) {
 	int steps = parameters.steps, substeps = parameters.substeps;
@@ -44,8 +46,8 @@ void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std:
 	ComplexScalarField<T> u_field(parameters, laser);
 	VectorField<T> e_field(parameters, laser), b_field(parameters, laser);
 	
-	if(!use_gpu) compute_u_field(u_field, laser);
-	else compute_u_field_gpu(u_field, laser)
+	if(use_gpu) compute_u_field_gpu(u_field, laser);
+	else compute_u_field(u_field, laser);
 	for(int step = 0; step < steps; step++) {
 		T time = step * dt;
 		#pragma omp parallel for simd schedule(static)
@@ -60,11 +62,13 @@ void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std:
 			if(!output_fields || !output_particles) {
 				std::fprintf(stderr, "CANNOT OPEN OUTPUT FILES!\n"); return;
 			}
-			compute_eb_field(e_field, b_field, u_field, laser, time);
+			if(use_gpu) compute_eb_field_gpu(e_field, b_field, u_field, laser, time);
+			else compute_eb_field(e_field, b_field, u_field, laser, time);
 			
 			output_vtk_header(output_fields, e_field);
 			output_vtk_vector_field(output_fields, data_vtk, e_field, "E");
 			output_vtk_vector_field(output_fields, data_vtk, b_field, "B");
+			output_vtk_complex_scalar_field(output_fields, data_vtk, u_field, "u00");
 			
 			output_vtk_particles(output_particles, data_vtk, particles);
 			std::printf("Computed step: %d/%d.\n", step, steps);

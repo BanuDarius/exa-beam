@@ -147,10 +147,10 @@ struct Particles {
 		cudaMemcpy(h_gamma.get(), d_gamma.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
 	}
 	ParticlesView<T> get_cpu_view() const noexcept {
-		return ParticlesView<T>(h_x.get(), h_y.get(), h_z.get(), h_ux.get(), h_uy.get(), h_uz.get(), h_gamma.get(), num, r_max);
+		return ParticlesView<T>(h_x.get(), h_y.get(), h_z.get(), h_ux.get(), h_uy.get(), h_uz.get(), h_gamma.get(), num, r_max, particle_num);
 	}
 	ParticlesView<T> get_gpu_view() const noexcept {
-		return ParticlesView<T>(d_x.get(), d_y.get(), d_z.get(), d_ux.get(), d_uy.get(), d_uz.get(), d_gamma.get(), num, r_max);
+		return ParticlesView<T>(d_x.get(), d_y.get(), d_z.get(), d_ux.get(), d_uy.get(), d_uz.get(), d_gamma.get(), num, r_max, particle_num);
 	}
 	Particles(const Parameters<T> &parameters, const Laser<T> &laser)
 		: Particles(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult, parameters.use_gpu) {}
@@ -230,10 +230,10 @@ struct ScalarField {
 		cudaMemcpy(h_v.get(), d_v.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost);
 	}
 	ScalarFieldView<T> get_cpu_view() const noexcept {
-		return ScalarFieldView<T>(h_v.get(), num, r_max);
+		return ScalarFieldView<T>(h_v.get(), num, r_max, field_size);
 	}
 	ScalarFieldView<T> get_gpu_view() const noexcept {
-		return ScalarFieldView<T>(d_v.get(), num, r_max);
+		return ScalarFieldView<T>(d_v.get(), num, r_max, field_size);
 	}
 	ScalarField(const Parameters<T> &parameters, const Laser<T> &laser)
 		: ScalarField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult, parameters.use_gpu) {}
@@ -313,10 +313,10 @@ struct ComplexScalarField {
 		cudaMemcpy(h_v.get(), d_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyDeviceToHost);
 	}
 	ComplexScalarFieldView<T> get_cpu_view() const noexcept {
-		return ComplexScalarFieldView<T>(h_v.get(), num, r_max);
+		return ComplexScalarFieldView<T>(h_v.get(), num, r_max, field_size);
 	}
 	ComplexScalarFieldView<T> get_gpu_view() const noexcept {
-		return ComplexScalarFieldView<T>(d_v.get(), num, r_max);
+		return ComplexScalarFieldView<T>(d_v.get(), num, r_max, field_size);
 	}
 	ComplexScalarField(const Parameters<T> &parameters, const Laser<T> &laser)
 		: ComplexScalarField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult, parameters.use_gpu) {}
@@ -414,10 +414,10 @@ struct VectorField {
 		cudaMemcpy(h_x.get(), d_x.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost);
 	}
 	VectorFieldView<T> get_cpu_view() const noexcept {
-		return VectorFieldView<T>(h_x.get(), h_y.get(), h_z.get(), num, r_max);
+		return VectorFieldView<T>(h_x.get(), h_y.get(), h_z.get(), num, r_max, field_size);
 	}
 	VectorFieldView<T> get_gpu_view() const noexcept {
-		return VectorFieldView<T>(d_x.get(), d_y.get(), d_z.get(), num, r_max);
+		return VectorFieldView<T>(d_x.get(), d_y.get(), d_z.get(), num, r_max, field_size);
 	}
 	VectorField(const Parameters<T> &parameters, const Laser<T> &laser)
 		: VectorField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult, parameters.use_gpu) {}
@@ -453,7 +453,7 @@ struct DataVTK {
 template <std::floating_point T>
 struct EBVectors {
 	cuda::std::array<T, 3> e, b;
-	EBVectors(cuda::std::array<T, 3> e_n, cuda::std::array<T, 3> b_n) : e(e_n), b(b_n) {}
+	__device__ __host__ EBVectors(cuda::std::array<T, 3> e_n, cuda::std::array<T, 3> b_n) : e(e_n), b(b_n) {}
 };
 
 #endif
