@@ -1,4 +1,4 @@
-'''MIT License
+/* MIT License
 
 Copyright (c) 2026 Banu Darius-Matei
 
@@ -18,46 +18,16 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.'''
+SOFTWARE. */
 
-# ---------------------------------------------------------- #
+#ifndef PHYSICS_GPU_H
+#define PHYSICS_GPU_H
 
-import scripts.sim_init as sim_init
-import scripts.programs as programs
+#include <concepts>
 
-c = 137.036
+#include "sim_structs.hpp"
 
-# ---------------------------------------------------------- #
+template <std::floating_point T> __global__ void compute_u_field_gpu_kernel(ComplexScalarField<T> u_field, Laser<T> laser);
+template <std::floating_point T> void compute_u_field_gpu(ComplexScalarField<T> &u_field, const Laser<T> &laser);
 
-use_gpu = False
-use_floats = False
-
-zeta_x_real = 0.707
-zeta_x_imag = 0.000
-zeta_y_real = 0.000
-zeta_y_imag = -0.707
-
-steps = 5000
-substeps = 10
-max_dim_mult = 3.0
-
-nx = 32
-a0 = 1.0
-p = 0
-m = 0
-tau = 10.0
-omega = 0.057
-w0_mult = 2.0
-psi = -0.5 * c * tau
-tf = 25.0 * c * tau
-
-# ---------------------------------------------------------- #
-
-if __name__ == "__main__":
-    sim_parameters = sim_init.SimParameters(zeta_x_real, zeta_x_imag, zeta_y_real, zeta_y_imag, tf, steps, substeps, nx, a0, p, m, w0_mult, omega, tau, psi, max_dim_mult, use_gpu, use_floats)
-    
-    programs.run_simulation(sim_parameters)
-    
-    print("Exa-Beam finished!\a")
-
-# ---------------------------------------------------------- #
+#endif

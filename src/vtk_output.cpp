@@ -23,6 +23,8 @@ SOFTWARE. */
 #include "vtk_output.hpp"
 #include "sim_structs.hpp"
 
+#include <cuda_runtime.h>
+#include <cuda/std/array>
 #include <cuda/std/complex>
 
 template <std::floating_point T>
@@ -116,7 +118,7 @@ void output_vtk_vector_field(std::ofstream &output_file, DataVTK &data_vtk, cons
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				std::size_t write_idx = (static_cast<std::size_t>(k) * ny * nx) + (static_cast<T>(j) * nx) + i;
 				
-				std::array<T, 3> vec = field.get_cpu_view().get_field(idx);
+				cuda::std::array<T, 3> vec = field.get_cpu_view().get_field(idx);
 				vtk_vector[3 * write_idx] = swap_endian(static_cast<float>(vec[0]));
 				vtk_vector[3 * write_idx + 1] = swap_endian(static_cast<float>(vec[1]));
 				vtk_vector[3 * write_idx + 2] = swap_endian(static_cast<float>(vec[2]));
@@ -139,7 +141,7 @@ void output_vtk_particles(std::ofstream &output_file, DataVTK &data_vtk, const P
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				std::size_t write_idx = (static_cast<std::size_t>(k) * ny * nx) + (static_cast<T>(j) * nx) + i;
 				
-				std::array<T, 3> r_vec = particles.get_cpu_view().get_position(idx);
+				cuda::std::array<T, 3> r_vec = particles.get_cpu_view().get_position(idx);
 				vtk_vector[3 * write_idx] = swap_endian(static_cast<float>(r_vec[0]));
 				vtk_vector[3 * write_idx + 1] = swap_endian(static_cast<float>(r_vec[1]));
 				vtk_vector[3 * write_idx + 2] = swap_endian(static_cast<float>(r_vec[2]));
@@ -159,7 +161,7 @@ void output_vtk_particles(std::ofstream &output_file, DataVTK &data_vtk, const P
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				std::size_t write_idx = (static_cast<std::size_t>(k) * ny * nx) + (static_cast<T>(j) * nx) + i;
 				
-				std::array<T, 3> u_vec = particles.get_cpu_view().get_velocity(idx);
+				cuda::std::array<T, 3> u_vec = particles.get_cpu_view().get_velocity(idx);
 				vtk_vector[3 * write_idx] = swap_endian(static_cast<float>(u_vec[0]));
 				vtk_vector[3 * write_idx + 1] = swap_endian(static_cast<float>(u_vec[1]));
 				vtk_vector[3 * write_idx + 2] = swap_endian(static_cast<float>(u_vec[2]));

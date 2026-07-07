@@ -23,20 +23,20 @@ SOFTWARE. */
 #ifndef SIM_STRUCTS_H
 #define SIM_STRUCTS_H
 
-#include <array>
 #include <memory>
-#include <complex>
 #include <cstdint>
 #include <cassert>
 #include <numbers>
 #include <concepts>
 
 #include <cuda_runtime.h>
+#include <cuda/std/array>
 #include <cuda/std/complex>
 
 #include "structs_view.hpp"
 #include "math_functions.hpp"
 
+constexpr int threads_3d_nx = 8;
 constexpr int input_file_count = 17;
 
 template <std::floating_point T> constexpr T m_e = T(1.0);
@@ -81,14 +81,14 @@ template <std::floating_point T>
 struct Particles {
 	bool use_gpu;
 	std::size_t particle_num;
-	std::array<int, 3> num;
-	std::array<T, 3> r_max;
+	cuda::std::array<int, 3> num;
+	cuda::std::array<T, 3> r_max;
 	std::unique_ptr<T[]> h_x, h_y, h_z, h_ux, h_uy, h_uz, h_gamma;
 	std::unique_ptr<T[], CUDAMemoryAdmin<T>> d_x, d_y, d_z, d_ux, d_uy, d_uz, d_gamma;
 	Particles(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		particle_num = nx * ny * nz;
 		num = { nx, ny, nz };
-		r_max = { r_max_n, r_max_n, 4 * r_max_n };
+		r_max = { r_max_n, r_max_n, r_max_n };
 		h_x = std::make_unique_for_overwrite<T[]>(particle_num);
 		h_y = std::make_unique_for_overwrite<T[]>(particle_num);
 		h_z = std::make_unique_for_overwrite<T[]>(particle_num);
@@ -128,7 +128,7 @@ struct Particles {
 			transfer_data_cpu_to_gpu();
 		}
 	}
-	inline void transfer_data_cpu_to_gpu() noexcept {
+	void transfer_data_cpu_to_gpu() noexcept {
 		cudaMemcpy(d_x.get(), h_x.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice);
 		cudaMemcpy(d_y.get(), h_y.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice);
 		cudaMemcpy(d_z.get(), h_z.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice);
@@ -137,7 +137,7 @@ struct Particles {
 		cudaMemcpy(d_uz.get(), h_uz.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice);
 		cudaMemcpy(d_gamma.get(), h_gamma.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice);
 	}
-	inline void transfer_data_gpu_to_cpu() noexcept {
+	void transfer_data_gpu_to_cpu() noexcept {
 		cudaMemcpy(h_x.get(), d_x.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
 		cudaMemcpy(h_y.get(), d_y.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
 		cudaMemcpy(h_z.get(), d_z.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
@@ -147,10 +147,10 @@ struct Particles {
 		cudaMemcpy(h_gamma.get(), d_gamma.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
 	}
 	ParticlesView<T> get_cpu_view() const noexcept {
-		return ParticlesView<T>(h_x.get(), h_y.get(), h_z.get(), h_ux.get(), h_uy.get(), h_uz.get(), h_gamma.get());
+		return ParticlesView<T>(h_x.get(), h_y.get(), h_z.get(), h_ux.get(), h_uy.get(), h_uz.get(), h_gamma.get(), num, r_max);
 	}
 	ParticlesView<T> get_gpu_view() const noexcept {
-		return ParticlesView<T>(d_x.get(), d_y.get(), d_z.get(), d_ux.get(), d_uy.get(), d_uz.get(), d_gamma.get());
+		return ParticlesView<T>(d_x.get(), d_y.get(), d_z.get(), d_ux.get(), d_uy.get(), d_uz.get(), d_gamma.get(), num, r_max);
 	}
 	Particles(const Parameters<T> &parameters, const Laser<T> &laser)
 		: Particles(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult, parameters.use_gpu) {}
@@ -163,8 +163,8 @@ template <std::floating_point T>
 struct ScalarField {
 	bool use_gpu;
 	std::size_t field_size;
-	std::array<int, 3> num;
-	std::array<T, 3> r_max;
+	cuda::std::array<int, 3> num;
+	cuda::std::array<T, 3> r_max;
 	std::unique_ptr<T[]> h_v;
 	std::unique_ptr<T[], CUDAMemoryAdmin<T>> d_v;
 	ScalarField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
@@ -223,17 +223,17 @@ struct ScalarField {
 			h_v[i] -= other.h_v[i];
 		return *this;
 	}
-	inline void transfer_data_cpu_to_gpu() noexcept {
+	void transfer_data_cpu_to_gpu() noexcept {
 		cudaMemcpy(d_v.get(), h_v.get(), field_size * sizeof(T), cudaMemcpyHostToDevice);
 	}
-	inline void transfer_data_gpu_to_cpu() noexcept {
+	void transfer_data_gpu_to_cpu() noexcept {
 		cudaMemcpy(h_v.get(), d_v.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost);
 	}
 	ScalarFieldView<T> get_cpu_view() const noexcept {
-		return ScalarFieldView<T>(h_v.get());
+		return ScalarFieldView<T>(h_v.get(), num, r_max);
 	}
 	ScalarFieldView<T> get_gpu_view() const noexcept {
-		return ScalarFieldView<T>(d_v.get());
+		return ScalarFieldView<T>(d_v.get(), num, r_max);
 	}
 	ScalarField(const Parameters<T> &parameters, const Laser<T> &laser)
 		: ScalarField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult, parameters.use_gpu) {}
@@ -246,8 +246,8 @@ template <std::floating_point T>
 struct ComplexScalarField {
 	bool use_gpu;
 	std::size_t field_size;
-	std::array<int, 3> num;
-	std::array<T, 3> r_max;
+	cuda::std::array<int, 3> num;
+	cuda::std::array<T, 3> r_max;
 	std::unique_ptr<cuda::std::complex<T>[]> h_v;
 	std::unique_ptr<cuda::std::complex<T>[], CUDAMemoryAdmin<cuda::std::complex<T>>> d_v;
 	ComplexScalarField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
@@ -274,7 +274,7 @@ struct ComplexScalarField {
 		for(std::size_t i = 0; i < field_size; i++)
 			h_v[i] = other.h_v[i];
 		if(use_gpu) {
-			T *raw_v = nullptr;
+			cuda::std::complex<T> *raw_v = nullptr;
 			
 			cudaMalloc(&raw_v, field_size * sizeof(cuda::std::complex<T>));
 			
@@ -306,17 +306,17 @@ struct ComplexScalarField {
 			h_v[i] -= other.h_v[i];
 		return *this;
 	}
-	inline void transfer_data_cpu_to_gpu() noexcept {
+	void transfer_data_cpu_to_gpu() noexcept {
 		cudaMemcpy(d_v.get(), h_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyHostToDevice);
 	}
-	inline void transfer_data_gpu_to_cpu() noexcept {
+	void transfer_data_gpu_to_cpu() noexcept {
 		cudaMemcpy(h_v.get(), d_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyDeviceToHost);
 	}
 	ComplexScalarFieldView<T> get_cpu_view() const noexcept {
-		return ComplexScalarFieldView<T>(h_v.get());
+		return ComplexScalarFieldView<T>(h_v.get(), num, r_max);
 	}
 	ComplexScalarFieldView<T> get_gpu_view() const noexcept {
-		return ComplexScalarFieldView<T>(d_v.get());
+		return ComplexScalarFieldView<T>(d_v.get(), num, r_max);
 	}
 	ComplexScalarField(const Parameters<T> &parameters, const Laser<T> &laser)
 		: ComplexScalarField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult, parameters.use_gpu) {}
@@ -329,8 +329,8 @@ template <std::floating_point T>
 struct VectorField {
 	bool use_gpu;
 	std::size_t field_size;
-	std::array<int, 3> num;
-	std::array<T, 3> r_max;
+	cuda::std::array<int, 3> num;
+	cuda::std::array<T, 3> r_max;
 	std::unique_ptr<T[]> h_x, h_y, h_z;
 	std::unique_ptr<T[], CUDAMemoryAdmin<T>> d_x, d_y, d_z;
 	VectorField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
@@ -407,17 +407,17 @@ struct VectorField {
 		}
 		return *this;
 	}
-	inline void transfer_data_cpu_to_gpu() noexcept {
+	void transfer_data_cpu_to_gpu() noexcept {
 		cudaMemcpy(d_x.get(), h_x.get(), field_size * sizeof(T), cudaMemcpyHostToDevice);
 	}
-	inline void transfer_data_gpu_to_cpu() noexcept {
+	void transfer_data_gpu_to_cpu() noexcept {
 		cudaMemcpy(h_x.get(), d_x.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost);
 	}
 	VectorFieldView<T> get_cpu_view() const noexcept {
-		return VectorFieldView<T>(h_x.get(), h_y.get(), h_z.get());
+		return VectorFieldView<T>(h_x.get(), h_y.get(), h_z.get(), num, r_max);
 	}
 	VectorFieldView<T> get_gpu_view() const noexcept {
-		return VectorFieldView<T>(d_x.get(), d_y.get(), d_z.get());
+		return VectorFieldView<T>(d_x.get(), d_y.get(), d_z.get(), num, r_max);
 	}
 	VectorField(const Parameters<T> &parameters, const Laser<T> &laser)
 		: VectorField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult, parameters.use_gpu) {}
@@ -452,8 +452,8 @@ struct DataVTK {
 
 template <std::floating_point T>
 struct EBVectors {
-	std::array<T, 3> e, b;
-	EBVectors(std::array<T, 3> e_n, std::array<T, 3> b_n) : e(e_n), b(b_n) {}
+	cuda::std::array<T, 3> e, b;
+	EBVectors(cuda::std::array<T, 3> e_n, cuda::std::array<T, 3> b_n) : e(e_n), b(b_n) {}
 };
 
 #endif

@@ -1,7 +1,7 @@
 CC = nvcc
 OPT_FLAG = -O3
 WARNINGS = -Wall -Wextra -Wshadow
-CFLAGS = -std=c++20 -arch=native -Iinclude -Xcompiler "$(OPT_FLAG) -march=native -fopenmp -flto $(WARNINGS)" -MMD -MP -g
+CFLAGS = -std=c++20 -arch=native -dlto -Iinclude -Xcompiler "$(OPT_FLAG) -march=native -fopenmp $(WARNINGS)" -MMD -MP -g
 LDLIBS = -lm -lgomp
 
 SRC_DIR = src
@@ -13,9 +13,13 @@ OUTPUT_IMAGE = output-image
 
 TARGET = $(BIN_DIR)/exa_beam
 
-SRCS = $(wildcard $(SRC_DIR)/*.cpp)
+SRCS_CPP = $(wildcard $(SRC_DIR)/*.cpp)
+SRCS_CU  = $(wildcard $(SRC_DIR)/*.cu)
 
-OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SRCS))
+OBJS_CPP = $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SRCS_CPP))
+OBJS_CU  = $(patsubst $(SRC_DIR)/%.cu, $(BUILD_DIR)/%.o, $(SRCS_CU))
+
+OBJS = $(OBJS_CPP) $(OBJS_CU)
 
 all: output-dirs $(TARGET)
 
@@ -28,7 +32,11 @@ $(TARGET): $(OBJS) | $(BIN_DIR)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
 	@$(CC) $(CFLAGS) -c $< -o $@
-	$(info Compiled $@.)
+	$(info Compiled CPU object $@.)
+
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cu | $(BUILD_DIR)
+	@$(CC) $(CFLAGS) -c $< -o $@
+	$(info Compiled CUDA object $@.)
 
 $(BIN_DIR) $(BUILD_DIR):
 	@mkdir -p $@

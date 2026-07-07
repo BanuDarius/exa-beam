@@ -27,6 +27,7 @@ SOFTWARE. */
 #include <concepts>
 
 #include <cuda_runtime.h>
+#include <cuda/std/array>
 #include <cuda/std/complex>
 
 #include "sim_structs.hpp"
@@ -61,7 +62,7 @@ __device__ __host__ inline T compute_guoy(T z, T z_r) noexcept {
 }
 
 template <std::floating_point T>
-__device__ __host__ inline cuda::std::complex<T> compute_u(const Laser<T> &laser, std::array<T, 3> r_vec, T r_z, T w_z) noexcept {
+__device__ __host__ inline cuda::std::complex<T> compute_u(const Laser<T> &laser, cuda::std::array<T, 3> r_vec, T r_z, T w_z) noexcept {
 	using std::exp; using std::cos; using std::sin;
 	T w0 = laser.w0, k = laser.k, z_r = laser.z_r, z = r_vec[2];
 	T rho2 = r_vec[0] * r_vec[0] + r_vec[1] * r_vec[1];
@@ -78,7 +79,7 @@ __device__ __host__ inline cuda::std::complex<T> compute_u(const Laser<T> &laser
 }
 
 template <std::floating_point T>
-__device__ __host__ inline EBVectors<T> compute_eb(const Laser<T> &laser, std::array<T, 3> r_vec, T t) noexcept {
+__device__ __host__ inline EBVectors<T> compute_eb(const Laser<T> &laser, cuda::std::array<T, 3> r_vec, T t) noexcept {
 	using std::cos; using std::sin;
 	T w0 = laser.w0, k = laser.k, z_r = laser.z_r, E0 = laser.E0, tau = laser.tau, psi = laser.psi;
 	cuda::std::complex<T> zeta_x = laser.zeta_x, zeta_y = laser.zeta_y;
@@ -97,12 +98,12 @@ __device__ __host__ inline EBVectors<T> compute_eb(const Laser<T> &laser, std::a
 	cuda::std::complex<T> e_z = field_term * u_pm * (zeta_x * x + zeta_y * y);
 	cuda::std::complex<T> b_z = field_term * u_pm * (zeta_x * y - zeta_y * x);
 	
-	std::array<T, 3> e_vec = {
+	cuda::std::array<T, 3> e_vec = {
 		cuda::std::real(u_pm * zeta_x),
 		cuda::std::real(u_pm * zeta_y),
 		cuda::std::real(e_z)
 	};
-	std::array<T, 3> b_vec = {
+	cuda::std::array<T, 3> b_vec = {
 		-cuda::std::real(u_pm * zeta_y) / c<T>,
 		cuda::std::real(u_pm * zeta_x) / c<T>,
 		cuda::std::real(b_z) / c<T>
@@ -112,7 +113,7 @@ __device__ __host__ inline EBVectors<T> compute_eb(const Laser<T> &laser, std::a
 }
 
 template <std::floating_point T>
-__device__ __host__ inline EBVectors<T> compute_eb(const ComplexScalarField<T> &u_field, const Laser<T> &laser, std::array<T, 3> r_vec, T t, std::size_t idx) noexcept {
+__device__ __host__ inline EBVectors<T> compute_eb(const ComplexScalarField<T> &u_field, const Laser<T> &laser, cuda::std::array<T, 3> r_vec, T t, std::size_t idx) noexcept {
 	using std::cos; using std::sin;
 	T w0 = laser.w0, k = laser.k, z_r = laser.z_r, E0 = laser.E0, tau = laser.tau, psi = laser.psi;
 	cuda::std::complex<T> zeta_x = laser.zeta_x, zeta_y = laser.zeta_y;
@@ -131,12 +132,12 @@ __device__ __host__ inline EBVectors<T> compute_eb(const ComplexScalarField<T> &
 	cuda::std::complex<T> e_z = field_term * u_pm * (zeta_x * x + zeta_y * y);
 	cuda::std::complex<T> b_z = field_term * u_pm * (zeta_x * y - zeta_y * x);
 	
-	std::array<T, 3> e_vec = {
+	cuda::std::array<T, 3> e_vec = {
 		cuda::std::real(u_pm * zeta_x),
 		cuda::std::real(u_pm * zeta_y),
 		cuda::std::real(e_z)
 	};
-	std::array<T, 3> b_vec = {
+	cuda::std::array<T, 3> b_vec = {
 		-cuda::std::real(u_pm * zeta_y) / c<T>,
 		cuda::std::real(u_pm * zeta_x) / c<T>,
 		cuda::std::real(b_z) / c<T>

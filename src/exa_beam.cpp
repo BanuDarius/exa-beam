@@ -36,6 +36,7 @@ template <std::floating_point T>
 void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std::string &output_directory) {
 	int steps = parameters.steps, substeps = parameters.substeps;
 	T dt = parameters.tf / steps;
+	bool use_gpu = parameters.use_gpu;
 	
 	DataVTK data_vtk(parameters);
 	Particles<T> particles(parameters, laser);
@@ -43,7 +44,8 @@ void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std:
 	ComplexScalarField<T> u_field(parameters, laser);
 	VectorField<T> e_field(parameters, laser), b_field(parameters, laser);
 	
-	compute_u_field(u_field, laser);
+	if(!use_gpu) compute_u_field(u_field, laser);
+	else compute_u_field_gpu(u_field, laser)
 	for(int step = 0; step < steps; step++) {
 		T time = step * dt;
 		#pragma omp parallel for simd schedule(static)

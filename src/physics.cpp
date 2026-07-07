@@ -20,8 +20,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
-#include <array>
-#include <complex>
+#include <cuda/std/array>
+#include <cuda/std/complex>
 
 #include "physics.hpp"
 #include "laguerre_gauss.hpp"
@@ -34,9 +34,9 @@ void compute_lz(Particles<T> &particles, ScalarField<T> &lz_field) {
 	for(int i = 0; i < nx; i++) {
 		for(int j = 0; j < ny; j++) {
 			for(int k = 0; k < nz; k++) {
-				int idx = grid_idx(i, j, k, nx, ny, nz);
-				std::array<T, 3> r_vec = particles.get_cpu_view().get_position(idx);
-				std::array<T, 3> u_vec = particles.get_cpu_view().get_velocity(idx);
+				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
+				cuda::std::array<T, 3> r_vec = particles.get_cpu_view().get_position(idx);
+				cuda::std::array<T, 3> u_vec = particles.get_cpu_view().get_velocity(idx);
 				T x = r_vec[0], y = r_vec[1];
 				T ux = u_vec[0], uy = u_vec[1];
 				
@@ -51,22 +51,22 @@ void compute_lz(Particles<T> &particles, ScalarField<T> &lz_field) {
 template <std::floating_point T>
 void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser) {
 	int nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
-	T r_max_x = u_field.r_max[0], r_max_y = u_field.r_max[1], r_max_z = u_field.r_max[2];
+	T r_max_x = u_field.r_max[0], r_max_y = u_field.r_max[1], r_max_z = u_field.r_max[2], z_r = laser.z_r, w0 = laser.w0;
 	#pragma omp parallel for collapse(3) schedule(static)
 	for(int i = 0; i < nx; i++) {
 		for(int j = 0; j < ny; j++) {
 			for(int k = 0; k < nz; k++) {
-				std::array<T, 3> r_vec = {
+				cuda::std::array<T, 3> r_vec = {
 					interpolate(-r_max_x, r_max_x, static_cast<T>(i), static_cast<T>(nx)),
 					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
 					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
 				};
-				T z = r_vec[2], z_r = laser.z_r, w0 = laser.w0;
+				T z = r_vec[2];
 				T r_z = compute_r_z(z, z_r);
 				T w_z = compute_w_z(w0, z, z_r);
 				
-				std::complex<T> u_i = compute_u(laser, r_vec, r_z, w_z);
-				int idx = grid_idx(i, j, k, nx, ny, nz);
+				cuda::std::complex<T> u_i = compute_u(laser, r_vec, r_z, w_z);
+				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				
 				u_field.get_cpu_view().set_field(u_i, idx);
 			}
@@ -82,7 +82,7 @@ void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const Co
 	for(int i = 0; i < nx; i++) {
 		for(int j = 0; j < ny; j++) {
 			for(int k = 0; k < nz; k++) {
-				std::array<T, 3> r_vec = {
+				cuda::std::array<T, 3> r_vec = {
 					interpolate(-r_max_x, r_max_x, static_cast<T>(i), static_cast<T>(nx)),
 					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
 					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
@@ -90,8 +90,8 @@ void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const Co
 				int idx = grid_idx(i, j, k, nx, ny, nz);
 				
 				EBVectors<T> eb_vec = compute_eb(u_field, laser, r_vec, t, idx);
-				std::array<T, 3> e_vec = eb_vec.e;
-				std::array<T, 3> b_vec = eb_vec.b;
+				cuda::std::array<T, 3> e_vec = eb_vec.e;
+				cuda::std::array<T, 3> b_vec = eb_vec.b;
 				
 				e_field.get_cpu_view().set_field(e_vec, idx);
 				b_field.get_cpu_view().set_field(b_vec, idx);
