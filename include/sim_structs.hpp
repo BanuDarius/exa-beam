@@ -269,7 +269,7 @@ struct ComplexScalarField {
 		}
 	}
 	ComplexScalarField(const ComplexScalarField &other)
-		: field_size(other.field_size), num(other.num), r_max(other.r_max) {
+		: field_size(other.field_size), num(other.num), r_max(other.r_max), use_gpu(other.use_gpu) {
 		h_v = std::make_unique_for_overwrite<cuda::std::complex<T>[]>(field_size);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
@@ -357,7 +357,7 @@ struct VectorField {
 		}
 	}
 	VectorField(const VectorField &other)
-		: field_size(other.field_size), num(other.num), r_max(other.r_max) {
+		: field_size(other.field_size), num(other.num), r_max(other.r_max), use_gpu(other.use_gpu) {
 		h_x = std::make_unique_for_overwrite<T[]>(field_size);
 		h_y = std::make_unique_for_overwrite<T[]>(field_size);
 		h_z = std::make_unique_for_overwrite<T[]>(field_size);
