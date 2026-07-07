@@ -83,7 +83,7 @@ __device__ __host__ inline std::array<T, 3> &operator+=(std::array<T, 3> &a, con
 
 template <std::floating_point T>
 __device__ __host__ inline std::array<T, 3> operator*(std::array<T, 3> a, T b) noexcept {
-	std::array<T, 3> x = { a[0] *= b, a[1] *= b, a[2] *= b };
+	std::array<T, 3> x = { a[0] * b, a[1] * b, a[2] * b };
 	return x;
 }
 

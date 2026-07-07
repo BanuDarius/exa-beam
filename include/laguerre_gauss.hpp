@@ -122,7 +122,7 @@ __device__ __host__ inline EBVectors<T> compute_eb_field(const ComplexScalarFiel
 	T w_z = compute_w_z(w0, z, z_r);
 	
 	T chi = laser.omega * t - k * z + psi;
-	cuda::std::complex<T> u_pm = u_field.v[idx];
+	cuda::std::complex<T> u_pm = u_field.get_cpu_view().get_field(idx);
 	cuda::std::complex<T> phase(cos(chi), sin(chi));
 	u_pm *= E0 * phase * env(chi, tau);
 	

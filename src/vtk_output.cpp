@@ -72,7 +72,9 @@ void output_vtk_scalar_field(std::ofstream &output_file, DataVTK &data_vtk, cons
 			for(std::size_t i = 0; i < nx; i++) {
 				int idx = grid_idx(i, j, k, nx, ny, nz);
 				int write_idx = (k * ny * nx) + (j * nx) + i;
-				vtk_scalar[write_idx] = swap_endian(static_cast<float>(field.v[idx]));
+				
+				T field_v = field.get_cpu_view().get_field(idx);
+				vtk_scalar[write_idx] = swap_endian(static_cast<float>(field_v));
 			}
 		}
 	}
@@ -90,7 +92,9 @@ void output_vtk_complex_scalar_field(std::ofstream &output_file, DataVTK &data_v
 			for(std::size_t i = 0; i < nx; i++) {
 				int idx = grid_idx(i, j, k, nx, ny, nz);
 				int write_idx = (k * ny * nx) + (j * nx) + i;
-				vtk_scalar[write_idx] = swap_endian(static_cast<float>(cuda::std::real(field.v[idx])));
+				
+				cuda::std::complex<T> field_v = field.get_cpu_view().get_field(idx);
+				vtk_scalar[write_idx] = swap_endian(static_cast<float>(cuda::std::real(field_v)));
 			}
 		}
 	}
@@ -108,9 +112,11 @@ void output_vtk_vector_field(std::ofstream &output_file, DataVTK &data_vtk, cons
 			for(std::size_t i = 0; i < nx; i++) {
 				int idx = grid_idx(i, j, k, nx, ny, nz);
 				int write_idx = (k * ny * nx) + (j * nx) + i;
-				vtk_vector[3 * write_idx] = swap_endian(static_cast<float>(field.x[idx]));
-				vtk_vector[3 * write_idx + 1] = swap_endian(static_cast<float>(field.y[idx]));
-				vtk_vector[3 * write_idx + 2] = swap_endian(static_cast<float>(field.z[idx]));
+				
+				std::array<T, 3> vec = field.get_cpu_view().get_field(idx);
+				vtk_vector[3 * write_idx] = swap_endian(static_cast<float>(vec[0]));
+				vtk_vector[3 * write_idx + 1] = swap_endian(static_cast<float>(vec[1]));
+				vtk_vector[3 * write_idx + 2] = swap_endian(static_cast<float>(vec[2]));
 			}
 		}
 	}
@@ -128,9 +134,11 @@ void output_vtk_particles(std::ofstream &output_file, DataVTK &data_vtk, const P
 			for(std::size_t i = 0; i < nx; i++) {
 				int idx = grid_idx(i, j, k, nx, ny, nz);
 				int write_idx = (k * ny * nx) + (j * nx) + i;
-				vtk_vector[3 * write_idx] = swap_endian(static_cast<float>(particles.x[idx]));
-				vtk_vector[3 * write_idx + 1] = swap_endian(static_cast<float>(particles.y[idx]));
-				vtk_vector[3 * write_idx + 2] = swap_endian(static_cast<float>(particles.z[idx]));
+				
+				std::array<T, 3> r_vec = particles.get_cpu_view().get_position(idx);
+				vtk_vector[3 * write_idx] = swap_endian(static_cast<float>(r_vec[0]));
+				vtk_vector[3 * write_idx + 1] = swap_endian(static_cast<float>(r_vec[1]));
+				vtk_vector[3 * write_idx + 2] = swap_endian(static_cast<float>(r_vec[2]));
 			}
 		}
 	}
@@ -146,9 +154,11 @@ void output_vtk_particles(std::ofstream &output_file, DataVTK &data_vtk, const P
 			for(std::size_t i = 0; i < nx; i++) {
 				int idx = grid_idx(i, j, k, nx, ny, nz);
 				int write_idx = (k * ny * nx) + (j * nx) + i;
-				vtk_vector[3 * write_idx] = swap_endian(static_cast<float>(particles.ux[idx]));
-				vtk_vector[3 * write_idx + 1] = swap_endian(static_cast<float>(particles.uy[idx]));
-				vtk_vector[3 * write_idx + 2] = swap_endian(static_cast<float>(particles.uz[idx]));
+				
+				std::array<T, 3> u_vec = particles.get_cpu_view().get_velocity(idx);
+				vtk_vector[3 * write_idx] = swap_endian(static_cast<float>(u_vec[0]));
+				vtk_vector[3 * write_idx + 1] = swap_endian(static_cast<float>(u_vec[1]));
+				vtk_vector[3 * write_idx + 2] = swap_endian(static_cast<float>(u_vec[2]));
 			}
 		}
 	}

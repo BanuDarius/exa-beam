@@ -101,10 +101,11 @@ __device__ __host__ inline std::array<T, 3> hc_u_plus(std::array<T, 3> u_minus, 
 
 template<std::floating_point T>
 __device__ __host__ void higuera_cary_step(Particles<T> &particles, const Laser<T> &laser, T t, T dt, int idx) noexcept {
-	std::array<T, 3> r_vec = particles.get_cpu_view().get_position(idx);
-	std::array<T, 3> u_vec = particles.get_cpu_view().get_velocity(idx);
+	ParticlesView particles_view = particles.get_cpu_view();
+	std::array<T, 3> r_vec = particles_view.get_position(idx);
+	std::array<T, 3> u_vec = particles_view.get_velocity(idx);
+	T gamma = particles_view.get_gamma(idx);
 	
-	T gamma = particles.get_cpu_view().get_gamma(idx);
 	T half_dt_gamma = T(0.5) * dt / gamma;
 	r_vec += u_vec * half_dt_gamma;
 	
@@ -127,9 +128,9 @@ __device__ __host__ void higuera_cary_step(Particles<T> &particles, const Laser<
 	half_dt_gamma = T(0.5) * dt / gamma;
 	r_vec += u_final * half_dt_gamma;
 
-	particles.get_cpu_view().set_position(r_vec, idx);
-	particles.get_cpu_view().set_velocity(u_final, idx);
-	particles.get_cpu_view().set_gamma(gamma, idx);
+	particles_view.set_position(r_vec, idx);
+	particles_view.set_velocity(u_final, idx);
+	particles_view.set_gamma(gamma, idx);
 }
 
 #endif

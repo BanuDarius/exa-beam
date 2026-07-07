@@ -41,7 +41,8 @@ void compute_lz(Particles<T> &particles, ScalarField<T> &lz_field) {
 				T ux = u_vec[0], uy = u_vec[1];
 				
 				T lz = m_e<T> * (x * uy - y * ux);
-				lz_field.v[idx] = lz;
+				
+				lz_field.get_cpu_view().set_field(lz, idx);
 			}
 		}
 	}
@@ -67,7 +68,7 @@ void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser) {
 				std::complex<T> u_i = compute_u(laser, r_vec, r_z, w_z);
 				int idx = grid_idx(i, j, k, nx, ny, nz);
 				
-				u_field.v[idx] = u_i;
+				u_field.get_cpu_view().set_field(u_i, idx);
 			}
 		}
 	}
@@ -92,13 +93,8 @@ void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const Co
 				std::array<T, 3> e_vec = eb_vec.e;
 				std::array<T, 3> b_vec = eb_vec.b;
 				
-				e_field.x[idx] = e_vec[0];
-				e_field.y[idx] = e_vec[1];
-				e_field.z[idx] = e_vec[2];
-				
-				b_field.x[idx] = b_vec[0];
-				b_field.y[idx] = b_vec[1];
-				b_field.z[idx] = b_vec[2];
+				e_field.get_cpu_view().set_field(e_vec, idx);
+				b_field.get_cpu_view().set_field(b_vec, idx);
 			}
 		}
 	}
