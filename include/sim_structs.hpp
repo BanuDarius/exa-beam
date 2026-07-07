@@ -28,6 +28,7 @@ SOFTWARE. */
 #include <complex>
 #include <cstdint>
 #include <cassert>
+#include <numbers>
 #include <concepts>
 
 #include <cuda_runtime.h>
@@ -41,7 +42,7 @@ constexpr int input_file_count = 17;
 template <std::floating_point T> constexpr T m_e = T(1.0);
 template <std::floating_point T> constexpr T e_0 = T(-1.0);
 template <std::floating_point T> constexpr T c = T(137.036);
-template <std::floating_point T> constexpr T pi = T(3.14159265359);
+template <std::floating_point T> constexpr T pi = std::numbers::pi_v<T>;
 
 template <std::floating_point T>
 struct Parameters {
@@ -87,7 +88,7 @@ struct Particles {
 	Particles(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		particle_num = nx * ny * nz;
 		num = { nx, ny, nz };
-		r_max = { r_max_n, r_max_n, r_max_n };
+		r_max = { r_max_n, r_max_n, 4 * r_max_n };
 		h_x = std::make_unique_for_overwrite<T[]>(particle_num);
 		h_y = std::make_unique_for_overwrite<T[]>(particle_num);
 		h_z = std::make_unique_for_overwrite<T[]>(particle_num);

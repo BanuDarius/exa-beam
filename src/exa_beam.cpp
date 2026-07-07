@@ -46,7 +46,7 @@ void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std:
 	compute_u_field(u_field, laser);
 	for(int step = 0; step < steps; step++) {
 		T time = step * dt;
-		#pragma omp parallel for schedule(static)
+		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < particles.particle_num; i++)
 			higuera_cary_step(particles, laser, time, dt, i);
 		if(step % substeps == 0) {
@@ -56,7 +56,7 @@ void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std:
 			std::ofstream output_fields(filename_fields, std::ios::binary);
 			std::ofstream output_particles(filename_particles, std::ios::binary);
 			if(!output_fields || !output_particles) {
-				std::fprintf(stderr, "CANNOT OPEN OUTPUT FILE!\n"); return;
+				std::fprintf(stderr, "CANNOT OPEN OUTPUT FILES!\n"); return;
 			}
 			compute_eb_field(e_field, b_field, u_field, laser, time);
 			

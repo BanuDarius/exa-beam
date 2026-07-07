@@ -1,7 +1,7 @@
 CC = nvcc
 OPT_FLAG = -O3
 WARNINGS = -Wall -Wextra -Wshadow
-CFLAGS = -std=c++20 $(OPT_FLAG) -arch=native -Iinclude -Xcompiler "-march=native -fopenmp -flto $(WARNINGS)" -MMD -MP -g
+CFLAGS = -std=c++20 -arch=native -Iinclude -Xcompiler "$(OPT_FLAG) -march=native -fopenmp -flto $(WARNINGS)" -MMD -MP -g
 LDLIBS = -lm -lgomp
 
 SRC_DIR = src
