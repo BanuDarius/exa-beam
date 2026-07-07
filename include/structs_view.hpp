@@ -74,7 +74,8 @@ struct ScalarFieldView {
 	__device__ __host__ inline void set_field(T v_n, std::size_t idx) noexcept {
 		v[idx] = v_n;
 	}
-	ScalarFieldView(T *v_n, cuda::std::array<int, 3> num_n, cuda::std::array<T, 3> r_max_n, std::size_t field_size_n) : v(v_n), num(num_n), r_max(r_max_n), field_size(field_size_n) {}
+	ScalarFieldView(T *v_n, cuda::std::array<int, 3> num_n, cuda::std::array<T, 3> r_max_n, std::size_t field_size_n)
+		: v(v_n), num(num_n), r_max(r_max_n), field_size(field_size_n) {}
 };
 
 template <std::floating_point T>
@@ -90,7 +91,8 @@ struct ComplexScalarFieldView {
 	__device__ __host__ inline void set_field(cuda::std::complex<T> v_n, std::size_t idx) noexcept {
 		v[idx] = v_n;
 	}
-	ComplexScalarFieldView(cuda::std::complex<T> *v_n, cuda::std::array<int, 3> num_n, cuda::std::array<T, 3> r_max_n, std::size_t field_size_n) : v(v_n), num(num_n), r_max(r_max_n), field_size(field_size_n) {}
+	ComplexScalarFieldView(cuda::std::complex<T> *v_n, cuda::std::array<int, 3> num_n, cuda::std::array<T, 3> r_max_n, std::size_t field_size_n)
+		: v(v_n), num(num_n), r_max(r_max_n), field_size(field_size_n) {}
 };
 
 template <std::floating_point T>
@@ -106,7 +108,8 @@ struct VectorFieldView {
 	__device__ __host__ inline void set_field(cuda::std::array<T, 3> vec, std::size_t idx) noexcept {
 		x[idx] = vec[0]; y[idx] = vec[1]; z[idx] = vec[2];
 	}
-	VectorFieldView(T *x_n, T *y_n, T *z_n, cuda::std::array<int, 3> num_n, cuda::std::array<T, 3> r_max_n, std::size_t field_size_n) : x(x_n), y(y_n), z(z_n), num(num_n), r_max(r_max_n), field_size(field_size_n) {}
+	VectorFieldView(T *x_n, T *y_n, T *z_n, cuda::std::array<int, 3> num_n, cuda::std::array<T, 3> r_max_n, std::size_t field_size_n)
+		: x(x_n), y(y_n), z(z_n), num(num_n), r_max(r_max_n), field_size(field_size_n) {}
 };
 
 #endif
