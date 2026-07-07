@@ -43,53 +43,37 @@ void read_input_file(const std::string &input_filename, Parameters<T> &parameter
 	while(in >> current) {
 		if(current == "p") {
 			if(in >> p) i++;
-		}
-		else if(current == "m") {
+		} else if(current == "m") {
 			if(in >> m) i++;
-		}
-		else if(current == "nx") {
+		} else if(current == "nx") {
 			if(in >> nx) i++;
-		}
-		else if(current == "a0") {
+		} else if(current == "a0") {
 			if(in >> a0) i++;
-		}
-		else if(current == "tf") {
+		} else if(current == "tf") {
 			if(in >> tf) i++;
-		}
-		else if(current == "tau") {
+		} else if(current == "tau") {
 			if(in >> tau) i++;
-		}
-		else if(current == "psi") {
+		} else if(current == "psi") {
 			if(in >> psi) i++;
-		}
-		else if(current == "omega") {
+		} else if(current == "omega") {
 			if(in >> omega) i++;
-		}
-		else if(current == "steps") {
+		} else if(current == "steps") {
 			if(in >> steps) i++;
-		}
-		else if(current == "use_gpu") {
+		} else if(current == "use_gpu") {
 			if(in >> use_gpu) i++;
-		}
-		else if(current == "w0_mult") {
+		} else if(current == "w0_mult") {
 			if(in >> w0_mult) i++;
-		}
-		else if(current == "substeps") {
+		} else if(current == "substeps") {
 			if(in >> substeps) i++;
-		}
-		else if(current == "zeta_x_real") {
+		} else if(current == "zeta_x_real") {
 			if(in >> zeta_x_real) i++;
-		}
-		else if(current == "zeta_x_imag") {
+		} else if(current == "zeta_x_imag") {
 			if(in >> zeta_x_imag) i++;
-		}
-		else if(current == "zeta_y_real") {
+		} else if(current == "zeta_y_real") {
 			if(in >> zeta_y_real) i++;
-		}
-		else if(current == "zeta_y_imag") {
+		} else if(current == "zeta_y_imag") {
 			if(in >> zeta_y_imag) i++;
-		}
-		else if(current == "max_dim_mult") {
+		} else if(current == "max_dim_mult") {
 			if(in >> max_dim_mult) i++;
 		}
 	}

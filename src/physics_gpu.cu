@@ -99,45 +99,50 @@ __global__ void compute_eb_field_gpu_kernel(VectorFieldView<T> e_field_view, Vec
 }
 
 template <std::floating_point T>
-void compute_lz_gpu(ScalarField<T> &lz_field, Particles<T> &particles) {
+void compute_lz_gpu(ScalarField<T> &lz_field, Particles<T> &particles) noexcept {
 	std::size_t particle_num = particles.particle_num;
 	dim3 threads(threads_1d_nx);
-	dim3 blocks(particle_num / threads.x);
+	dim3 blocks((particle_num + threads.x - 1) / threads.x);
 	
 	ScalarFieldView<T> lz_view = lz_field.get_gpu_view();
 	ParticlesView<T> particles_view = particles.get_gpu_view();
 	compute_lz_gpu_kernel<<<blocks, threads>>>(lz_view, particles_view);
-	cudaDeviceSynchronize();
 }
 
 template <std::floating_point T>
-void compute_u_field_gpu(ComplexScalarField<T> &u_field, const Laser<T> &laser) {
+void compute_u_field_gpu(ComplexScalarField<T> &u_field, const Laser<T> &laser) noexcept {
 	int nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
 	dim3 threads(threads_3d_nx, threads_3d_nx, threads_3d_nx);
-	dim3 blocks(nx / threads.x, ny / threads.y, nz / threads.z);
+	dim3 blocks(
+		(nx + threads.x - 1) / threads.x,
+		(ny + threads.x - 1) / threads.y,
+		(nz + threads.x - 1) / threads.z
+	);
 	
 	ComplexScalarFieldView<T> u_field_view = u_field.get_gpu_view();
 	compute_u_field_gpu_kernel<<<blocks, threads>>>(u_field_view, laser);
-	cudaDeviceSynchronize();
 }
 
 template <std::floating_point T>
-void compute_eb_field_gpu(VectorField<T> &e_field, VectorField<T> &b_field, ComplexScalarField<T> &u_field, const Laser<T> &laser, T t) {
+void compute_eb_field_gpu(VectorField<T> &e_field, VectorField<T> &b_field, ComplexScalarField<T> &u_field, const Laser<T> &laser, T t) noexcept {
 	int nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
 	dim3 threads(threads_3d_nx, threads_3d_nx, threads_3d_nx);
-	dim3 blocks(nx / threads.x, ny / threads.y, nz / threads.z);
+	dim3 blocks(
+		(nx + threads.x - 1) / threads.x,
+		(ny + threads.x - 1) / threads.y,
+		(nz + threads.x - 1) / threads.z
+	);
 	
 	VectorFieldView<T> e_field_view = e_field.get_gpu_view();
 	VectorFieldView<T> b_field_view = b_field.get_gpu_view();
 	ComplexScalarFieldView<T> u_field_view = u_field.get_gpu_view();
 	compute_eb_field_gpu_kernel<<<blocks, threads>>>(e_field_view, b_field_view, u_field_view, laser, t);
-	cudaDeviceSynchronize();
 }
 
-template void compute_lz_gpu<double>(ScalarField<double> &lz_field, Particles<double> &particles);
-template void compute_u_field_gpu<double>(ComplexScalarField<double> &u_field, const Laser<double> &laser);
-template void compute_eb_field_gpu<double>(VectorField<double> &e_field, VectorField<double> &b_field, ComplexScalarField<double> &u_field, const Laser<double> &laser, double t);
+template void compute_lz_gpu<double>(ScalarField<double> &lz_field, Particles<double> &particles) noexcept;
+template void compute_u_field_gpu<double>(ComplexScalarField<double> &u_field, const Laser<double> &laser) noexcept;
+template void compute_eb_field_gpu<double>(VectorField<double> &e_field, VectorField<double> &b_field, ComplexScalarField<double> &u_field, const Laser<double> &laser, double t) noexcept;
 
-template void compute_lz_gpu<float>(ScalarField<float> &lz_field, Particles<float> &particles);
-template void compute_u_field_gpu<float>(ComplexScalarField<float> &u_field, const Laser<float> &laser);
-template void compute_eb_field_gpu<float>(VectorField<float> &e_field, VectorField<float> &b_field, ComplexScalarField<float> &u_field, const Laser<float> &laser, float t);
+template void compute_lz_gpu<float>(ScalarField<float> &lz_field, Particles<float> &particles) noexcept;
+template void compute_u_field_gpu<float>(ComplexScalarField<float> &u_field, const Laser<float> &laser) noexcept;
+template void compute_eb_field_gpu<float>(VectorField<float> &e_field, VectorField<float> &b_field, ComplexScalarField<float> &u_field, const Laser<float> &laser, float t) noexcept;

@@ -66,7 +66,6 @@ void output_vtk_vector_next(std::ofstream &output_file, const std::string &name)
 
 template <std::floating_point T>
 void output_vtk_scalar_field(std::ofstream &output_file, DataVTK &data_vtk, ScalarField<T> &field, const std::string &name) {
-	if(field.use_gpu) field.transfer_data_gpu_to_cpu();
 	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
 	std::size_t field_size = static_cast<std::size_t>(nx) * ny * nz;
 	uint32_t *vtk_scalar = data_vtk.vtk_scalar.get();
@@ -88,7 +87,6 @@ void output_vtk_scalar_field(std::ofstream &output_file, DataVTK &data_vtk, Scal
 
 template <std::floating_point T>
 void output_vtk_complex_scalar_field(std::ofstream &output_file, DataVTK &data_vtk, ComplexScalarField<T> &field, const std::string &name) {
-	if(field.use_gpu) field.transfer_data_gpu_to_cpu();
 	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
 	uint32_t *vtk_scalar = data_vtk.vtk_scalar.get();
 	std::size_t field_size = static_cast<std::size_t>(nx) * ny * nz;
@@ -110,7 +108,6 @@ void output_vtk_complex_scalar_field(std::ofstream &output_file, DataVTK &data_v
 
 template <std::floating_point T>
 void output_vtk_vector_field(std::ofstream &output_file, DataVTK &data_vtk, VectorField<T> &field, const std::string &name) {
-	if(field.use_gpu) field.transfer_data_gpu_to_cpu();
 	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
 	uint32_t *vtk_vector = data_vtk.vtk_vector.get();
 	std::size_t field_size = static_cast<std::size_t>(nx) * ny * nz;
@@ -134,7 +131,6 @@ void output_vtk_vector_field(std::ofstream &output_file, DataVTK &data_vtk, Vect
 
 template <std::floating_point T>
 void output_vtk_particles(std::ofstream &output_file, DataVTK &data_vtk, Particles<T> &particles) {
-	if(particles.use_gpu) particles.transfer_data_gpu_to_cpu();
 	int nx = particles.num[0], ny = particles.num[1], nz = particles.num[2];
 	uint32_t *vtk_vector = data_vtk.vtk_vector.get();
 	std::size_t field_size = static_cast<std::size_t>(nx) * ny * nz;

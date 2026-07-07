@@ -28,7 +28,7 @@ SOFTWARE. */
 #include "math_functions.hpp"
 
 template <std::floating_point T>
-void compute_lz(ScalarField<T> &lz_field, Particles<T> &particles) {
+void compute_lz(ScalarField<T> &lz_field, Particles<T> &particles) noexcept {
 	int nx = particles.num[0], ny = particles.num[1], nz = particles.num[2];
 	#pragma omp parallel for collapse(3) schedule(static)
 	for(int i = 0; i < nx; i++) {
@@ -49,7 +49,7 @@ void compute_lz(ScalarField<T> &lz_field, Particles<T> &particles) {
 }
 
 template <std::floating_point T>
-void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser) {
+void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser) noexcept {
 	int nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
 	T r_max_x = u_field.r_max[0], r_max_y = u_field.r_max[1], r_max_z = u_field.r_max[2], z_r = laser.z_r, w0 = laser.w0;
 	#pragma omp parallel for collapse(3) schedule(static)
@@ -75,7 +75,7 @@ void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser) {
 }
 
 template <std::floating_point T>
-void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const ComplexScalarField<T> &u_field, const Laser<T> &laser, T t) {
+void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const ComplexScalarField<T> &u_field, const Laser<T> &laser, T t) noexcept {
 	int nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
 	T r_max_x = e_field.r_max[0], r_max_y = e_field.r_max[1], r_max_z = e_field.r_max[2];
 	#pragma omp parallel for collapse(3) schedule(static)
@@ -99,10 +99,10 @@ void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const Co
 	}
 }
 
-template void compute_lz<double>(ScalarField<double> &lz_field, Particles<double> &particles);
-template void compute_u_field<double>(ComplexScalarField<double> &u_field, const Laser<double> &laser);
-template void compute_eb_field<double>(VectorField<double> &e_field, VectorField<double> &b_field, const ComplexScalarField<double> &u_field, const Laser<double> &laser, double t);
+template void compute_lz<double>(ScalarField<double> &lz_field, Particles<double> &particles) noexcept;
+template void compute_u_field<double>(ComplexScalarField<double> &u_field, const Laser<double> &laser) noexcept;
+template void compute_eb_field<double>(VectorField<double> &e_field, VectorField<double> &b_field, const ComplexScalarField<double> &u_field, const Laser<double> &laser, double t) noexcept;
  
-template void compute_lz<float>(ScalarField<float> &lz_field, Particles<float> &particles);
-template void compute_u_field<float>(ComplexScalarField<float> &u_field, const Laser<float> &laser);
-template void compute_eb_field<float>(VectorField<float> &e_field, VectorField<float> &b_field,  const ComplexScalarField<float> &u_field, const Laser<float> &laser, float t);
+template void compute_lz<float>(ScalarField<float> &lz_field, Particles<float> &particles) noexcept;
+template void compute_u_field<float>(ComplexScalarField<float> &u_field, const Laser<float> &laser) noexcept;
+template void compute_eb_field<float>(VectorField<float> &e_field, VectorField<float> &b_field,  const ComplexScalarField<float> &u_field, const Laser<float> &laser, float t) noexcept;

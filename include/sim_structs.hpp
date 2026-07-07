@@ -89,7 +89,7 @@ struct Particles {
 	Particles(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		particle_num = nx * ny * nz;
 		num = { nx, ny, nz };
-		r_max = { r_max_n, r_max_n, r_max_n };
+		r_max = { r_max_n, r_max_n, 4 * r_max_n };
 		h_x = std::make_unique_for_overwrite<T[]>(particle_num);
 		h_y = std::make_unique_for_overwrite<T[]>(particle_num);
 		h_z = std::make_unique_for_overwrite<T[]>(particle_num);

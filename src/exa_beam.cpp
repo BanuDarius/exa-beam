@@ -46,14 +46,22 @@ void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std:
 	ComplexScalarField<T> u_field(parameters, laser);
 	VectorField<T> e_field(parameters, laser), b_field(parameters, laser);
 	
-	if(use_gpu) compute_u_field_gpu(u_field, laser);
-	else compute_u_field(u_field, laser);
+	if(use_gpu) {
+		compute_u_field_gpu(u_field, laser);
+		u_field.transfer_data_gpu_to_cpu();
+	} else compute_u_field(u_field, laser);
 	for(int step = 0; step < steps; step++) {
 		T time = step * dt;
-		#pragma omp parallel for simd schedule(static)
-		for(std::size_t i = 0; i < particles.particle_num; i++)
-			higuera_cary_step(particles, laser, time, dt, i);
+		if(use_gpu) higuera_cary_update_gpu(particles, laser, time, dt);
+		else higuera_cary_update(particles, laser, time, dt);
 		if(step % substeps == 0) {
+			if(use_gpu) {
+				compute_eb_field_gpu(e_field, b_field, u_field, laser, time);
+				e_field.transfer_data_gpu_to_cpu();
+				b_field.transfer_data_gpu_to_cpu();
+				particles.transfer_data_gpu_to_cpu();
+			} else compute_eb_field(e_field, b_field, u_field, laser, time);
+			
 			std::string filename_fields = std::format("{}/out-fields-{:04d}.vtk", output_directory, step / substeps);
 			std::string filename_particles = std::format("{}/out-particles-{:04d}.vtk", output_directory, step / substeps);
 			
@@ -62,9 +70,6 @@ void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std:
 			if(!output_fields || !output_particles) {
 				std::fprintf(stderr, "CANNOT OPEN OUTPUT FILES!\n"); return;
 			}
-			if(use_gpu) compute_eb_field_gpu(e_field, b_field, u_field, laser, time);
-			else compute_eb_field(e_field, b_field, u_field, laser, time);
-			
 			output_vtk_header(output_fields, e_field);
 			output_vtk_vector_field(output_fields, data_vtk, e_field, "E");
 			output_vtk_vector_field(output_fields, data_vtk, b_field, "B");
@@ -74,13 +79,16 @@ void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std:
 			std::printf("Computed step: %d/%d.\n", step, steps);
 		}
 	}
+	if(use_gpu) {
+		compute_lz_gpu(lz_field, particles);
+		lz_field.transfer_data_gpu_to_cpu();
+	} else compute_lz(lz_field, particles);
+	
 	std::string filename_lz = std::format("{}/out-lz.vtk", output_directory);
 	std::ofstream output_lz(filename_lz, std::ios::binary);
 	if(!output_lz) {
 		std::fprintf(stderr, "CANNOT OPEN OUTPUT LZ FILE!\n"); return;
 	}
-	if(use_gpu) compute_lz_gpu(lz_field, particles);
-	else compute_lz(lz_field, particles);
 	
 	output_vtk_header(output_lz, lz_field);
 	output_vtk_scalar_field(output_lz, data_vtk, lz_field, "Lz");

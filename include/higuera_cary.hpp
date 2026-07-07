@@ -23,7 +23,6 @@ SOFTWARE. */
 #ifndef HIGUERA_CARY_H
 #define HIGUERA_CARY_H
 
-#include <array>
 #include <cmath>
 #include <concepts>
 
@@ -101,8 +100,7 @@ __device__ __host__ inline cuda::std::array<T, 3> hc_u_plus(cuda::std::array<T, 
 }
 
 template<std::floating_point T>
-__device__ __host__ void higuera_cary_step(Particles<T> &particles, const Laser<T> &laser, T t, T dt, std::size_t idx) noexcept {
-	ParticlesView particles_view = particles.get_cpu_view();
+inline void higuera_cary_step(ParticlesView<T> &particles_view, const Laser<T> &laser, T t, T dt, std::size_t idx) noexcept {
 	cuda::std::array<T, 3> r_vec = particles_view.get_position(idx);
 	cuda::std::array<T, 3> u_vec = particles_view.get_velocity(idx);
 	T gamma = particles_view.get_gamma(idx);
@@ -133,5 +131,15 @@ __device__ __host__ void higuera_cary_step(Particles<T> &particles, const Laser<
 	particles_view.set_velocity(u_final, idx);
 	particles_view.set_gamma(gamma, idx);
 }
+
+template <std::floating_point T>
+inline void higuera_cary_update(Particles<T> &particles, const Laser<T> &laser, T t, T dt) noexcept {
+	ParticlesView<T> particles_view = particles.get_cpu_view();
+	#pragma omp parallel for simd schedule(static)
+	for(std::size_t i = 0; i < particles.particle_num; i++)
+		higuera_cary_step(particles_view, laser, t, dt, i);
+}
+
+template <std::floating_point T> void higuera_cary_update_gpu(Particles<T> &particles, const Laser<T> &laser, T t, T dt) noexcept;
 
 #endif
