@@ -31,6 +31,23 @@ SOFTWARE. */
 #include "math_functions.hpp"
 
 template <std::floating_point T>
+__global__ void compute_lz_gpu_kernel(ScalarFieldView<T> lz_view, ParticlesView<T> particles_view) {
+	const std::size_t particle_num = particles_view.particle_num;
+	
+	const std::size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+	if(idx < particle_num) {
+		cuda::std::array<T, 3> r_vec = particles_view.get_position(idx);
+		cuda::std::array<T, 3> u_vec = particles_view.get_velocity(idx);
+		T x = r_vec[0], y = r_vec[1];
+		T ux = u_vec[0], uy = u_vec[1];
+		
+		T lz = m_e<T> * (x * uy - y * ux);
+		
+		lz_view.set_field(lz, idx);
+	}
+}
+
+template <std::floating_point T>
 __global__ void compute_u_field_gpu_kernel(ComplexScalarFieldView<T> u_field_view, Laser<T> laser) {
 	const T z_r = laser.z_r, w0 = laser.w0;
 	T r_max_x = u_field_view.r_max[0], r_max_y = u_field_view.r_max[1], r_max_z = u_field_view.r_max[2];
@@ -82,6 +99,18 @@ __global__ void compute_eb_field_gpu_kernel(VectorFieldView<T> e_field_view, Vec
 }
 
 template <std::floating_point T>
+void compute_lz_gpu(ScalarField<T> &lz_field, Particles<T> &particles) {
+	std::size_t particle_num = particles.particle_num;
+	dim3 threads(threads_1d_nx);
+	dim3 blocks(particle_num / threads.x);
+	
+	ScalarFieldView<T> lz_view = lz_field.get_gpu_view();
+	ParticlesView<T> particles_view = particles.get_gpu_view();
+	compute_lz_gpu_kernel<<<blocks, threads>>>(lz_view, particles_view);
+	cudaDeviceSynchronize();
+}
+
+template <std::floating_point T>
 void compute_u_field_gpu(ComplexScalarField<T> &u_field, const Laser<T> &laser) {
 	int nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
 	dim3 threads(threads_3d_nx, threads_3d_nx, threads_3d_nx);
@@ -105,8 +134,10 @@ void compute_eb_field_gpu(VectorField<T> &e_field, VectorField<T> &b_field, Comp
 	cudaDeviceSynchronize();
 }
 
+template void compute_lz_gpu<double>(ScalarField<double> &lz_field, Particles<double> &particles);
 template void compute_u_field_gpu<double>(ComplexScalarField<double> &u_field, const Laser<double> &laser);
 template void compute_eb_field_gpu<double>(VectorField<double> &e_field, VectorField<double> &b_field, ComplexScalarField<double> &u_field, const Laser<double> &laser, double t);
 
+template void compute_lz_gpu<float>(ScalarField<float> &lz_field, Particles<float> &particles);
 template void compute_u_field_gpu<float>(ComplexScalarField<float> &u_field, const Laser<float> &laser);
 template void compute_eb_field_gpu<float>(VectorField<float> &e_field, VectorField<float> &b_field, ComplexScalarField<float> &u_field, const Laser<float> &laser, float t);

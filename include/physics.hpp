@@ -27,7 +27,7 @@ SOFTWARE. */
 
 #include "sim_structs.hpp"
 
-template <std::floating_point T> void compute_lz(Particles<T> &particles, ScalarField<T> &lz_field);
+template <std::floating_point T> void compute_lz(ScalarField<T> &lz_field, Particles<T> &particles);
 template <std::floating_point T> void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser);
 template <std::floating_point T> void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const ComplexScalarField<T> &u_field, const Laser<T> &laser, T t);
 

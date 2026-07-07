@@ -37,6 +37,7 @@ SOFTWARE. */
 #include "math_functions.hpp"
 
 constexpr int threads_3d_nx = 8;
+constexpr int threads_1d_nx = 256;
 constexpr int input_file_count = 17;
 
 template <std::floating_point T> constexpr T m_e = T(1.0);
@@ -409,9 +410,13 @@ struct VectorField {
 	}
 	void transfer_data_cpu_to_gpu() noexcept {
 		cudaMemcpy(d_x.get(), h_x.get(), field_size * sizeof(T), cudaMemcpyHostToDevice);
+		cudaMemcpy(d_y.get(), h_y.get(), field_size * sizeof(T), cudaMemcpyHostToDevice);
+		cudaMemcpy(d_z.get(), h_z.get(), field_size * sizeof(T), cudaMemcpyHostToDevice);
 	}
 	void transfer_data_gpu_to_cpu() noexcept {
 		cudaMemcpy(h_x.get(), d_x.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost);
+		cudaMemcpy(h_y.get(), d_y.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost);
+		cudaMemcpy(h_z.get(), d_z.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost);
 	}
 	VectorFieldView<T> get_cpu_view() const noexcept {
 		return VectorFieldView<T>(h_x.get(), h_y.get(), h_z.get(), num, r_max, field_size);

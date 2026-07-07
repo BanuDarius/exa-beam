@@ -79,7 +79,8 @@ void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std:
 	if(!output_lz) {
 		std::fprintf(stderr, "CANNOT OPEN OUTPUT LZ FILE!\n"); return;
 	}
-	compute_lz(particles, lz_field);
+	if(use_gpu) compute_lz_gpu(lz_field, particles);
+	else compute_lz(lz_field, particles);
 	
 	output_vtk_header(output_lz, lz_field);
 	output_vtk_scalar_field(output_lz, data_vtk, lz_field, "Lz");

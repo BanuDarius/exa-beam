@@ -28,7 +28,7 @@ SOFTWARE. */
 #include "math_functions.hpp"
 
 template <std::floating_point T>
-void compute_lz(Particles<T> &particles, ScalarField<T> &lz_field) {
+void compute_lz(ScalarField<T> &lz_field, Particles<T> &particles) {
 	int nx = particles.num[0], ny = particles.num[1], nz = particles.num[2];
 	#pragma omp parallel for collapse(3) schedule(static)
 	for(int i = 0; i < nx; i++) {
@@ -99,10 +99,10 @@ void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const Co
 	}
 }
 
-template void compute_lz<double>(Particles<double> &particles, ScalarField<double> &lz_field);
+template void compute_lz<double>(ScalarField<double> &lz_field, Particles<double> &particles);
 template void compute_u_field<double>(ComplexScalarField<double> &u_field, const Laser<double> &laser);
 template void compute_eb_field<double>(VectorField<double> &e_field, VectorField<double> &b_field, const ComplexScalarField<double> &u_field, const Laser<double> &laser, double t);
  
-template void compute_lz<float>(Particles<float> &particles, ScalarField<float> &lz_field);
+template void compute_lz<float>(ScalarField<float> &lz_field, Particles<float> &particles);
 template void compute_u_field<float>(ComplexScalarField<float> &u_field, const Laser<float> &laser);
 template void compute_eb_field<float>(VectorField<float> &e_field, VectorField<float> &b_field,  const ComplexScalarField<float> &u_field, const Laser<float> &laser, float t);
