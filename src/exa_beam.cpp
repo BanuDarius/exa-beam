@@ -47,7 +47,6 @@ void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std:
 	VectorField<T> e_field(parameters, laser), b_field(parameters, laser);
 	
 	if(use_gpu) {
-		cudaDeviceSynchronize();
 		compute_u_field_gpu(u_field, laser);
 		u_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
 		cudaDeviceSynchronize();

@@ -120,20 +120,20 @@ struct Particles {
 			}
 		}
 		if(use_gpu) {
-			T *raw_x = nullptr, *raw_y = nullptr, *raw_z = nullptr;
-			T *raw_ux = nullptr, *raw_uy = nullptr, *raw_uz = nullptr, *raw_gamma = nullptr;
+			T *raw_d_x = nullptr, *raw_d_y = nullptr, *raw_d_z = nullptr;
+			T *raw_d_ux = nullptr, *raw_d_uy = nullptr, *raw_d_uz = nullptr, *raw_d_gamma = nullptr;
 			
-			cudaMalloc(&raw_x, particle_num * sizeof(T));
-			cudaMalloc(&raw_y, particle_num * sizeof(T));
-			cudaMalloc(&raw_z, particle_num * sizeof(T));
-			cudaMalloc(&raw_ux, particle_num * sizeof(T));
-			cudaMalloc(&raw_uy, particle_num * sizeof(T));
-			cudaMalloc(&raw_uz, particle_num * sizeof(T));
-			cudaMalloc(&raw_gamma, particle_num * sizeof(T));
+			cudaMalloc(&raw_d_x, particle_num * sizeof(T));
+			cudaMalloc(&raw_d_y, particle_num * sizeof(T));
+			cudaMalloc(&raw_d_z, particle_num * sizeof(T));
+			cudaMalloc(&raw_d_ux, particle_num * sizeof(T));
+			cudaMalloc(&raw_d_uy, particle_num * sizeof(T));
+			cudaMalloc(&raw_d_uz, particle_num * sizeof(T));
+			cudaMalloc(&raw_d_gamma, particle_num * sizeof(T));
 			
-			d_x.reset(raw_x); d_y.reset(raw_y); d_z.reset(raw_z);
-			d_ux.reset(raw_ux); d_uy.reset(raw_uy); d_uz.reset(raw_uz);
-			d_gamma.reset(raw_gamma);
+			d_x.reset(raw_d_x); d_y.reset(raw_d_y); d_z.reset(raw_d_z);
+			d_ux.reset(raw_d_ux); d_uy.reset(raw_d_uy); d_uz.reset(raw_d_uz);
+			d_gamma.reset(raw_d_gamma);
 			
 			cudaHostRegister(h_x.get(), particle_num * sizeof(T), cudaHostRegisterDefault);
 			cudaHostRegister(h_y.get(), particle_num * sizeof(T), cudaHostRegisterDefault);
@@ -194,9 +194,9 @@ struct ScalarField {
 		for(std::size_t i = 0; i < field_size; i++)
 			h_v[i] = T(0.0);
 		if(use_gpu) {
-			T *raw_v = nullptr;
-			cudaMalloc(&raw_v, field_size * sizeof(T));
-			d_v.reset(raw_v);
+			T *raw_d_v = nullptr;
+			cudaMalloc(&raw_d_v, field_size * sizeof(T));
+			d_v.reset(raw_d_v);
 			
 			cudaHostRegister(h_v.get(), field_size * sizeof(T), cudaHostRegisterDefault);
 			transfer_data_cpu_to_gpu(cudaStreamDefault);
@@ -209,9 +209,9 @@ struct ScalarField {
 		for(std::size_t i = 0; i < field_size; i++)
 			h_v[i] = other.h_v[i];
 		if(use_gpu) {
-			T *raw_v = nullptr;
-			cudaMalloc(&raw_v, field_size * sizeof(T));
-			d_v.reset(raw_v);
+			T *raw_d_v = nullptr;
+			cudaMalloc(&raw_d_v, field_size * sizeof(T));
+			d_v.reset(raw_d_v);
 			
 			cudaHostRegister(h_v.get(), field_size * sizeof(T), cudaHostRegisterDefault);
 			cudaMemcpy(d_v.get(), other.d_v.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
@@ -277,9 +277,9 @@ struct ComplexScalarField {
 		for(std::size_t i = 0; i < field_size; i++)
 			h_v[i] = { T(0.0), T(0.0) };
 		if(use_gpu) {
-			cuda::std::complex<T> *raw_v = nullptr;
-			cudaMalloc(&raw_v, field_size * sizeof(cuda::std::complex<T>));
-			d_v.reset(raw_v);
+			cuda::std::complex<T> *raw_d_v = nullptr;
+			cudaMalloc(&raw_d_v, field_size * sizeof(cuda::std::complex<T>));
+			d_v.reset(raw_d_v);
 			
 			cudaHostRegister(h_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaHostRegisterDefault);
 			transfer_data_cpu_to_gpu(cudaStreamDefault);
@@ -292,9 +292,9 @@ struct ComplexScalarField {
 		for(std::size_t i = 0; i < field_size; i++)
 			h_v[i] = other.h_v[i];
 		if(use_gpu) {
-			cuda::std::complex<T> *raw_v = nullptr;
-			cudaMalloc(&raw_v, field_size * sizeof(cuda::std::complex<T>));
-			d_v.reset(raw_v);
+			cuda::std::complex<T> *raw_d_v = nullptr;
+			cudaMalloc(&raw_d_v, field_size * sizeof(cuda::std::complex<T>));
+			d_v.reset(raw_d_v);
 			
 			cudaHostRegister(h_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaHostRegisterDefault);
 			cudaMemcpy(d_v.get(), other.d_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyDeviceToDevice);
@@ -363,11 +363,11 @@ struct VectorField {
 			h_x[i] = T(0.0); h_y[i] = T(0.0); h_z[i] = T(0.0);
 		}
 		if(use_gpu) {
-			T *raw_x = nullptr, *raw_y = nullptr, *raw_z = nullptr;
-			cudaMalloc(&raw_x, field_size * sizeof(T));
-			cudaMalloc(&raw_y, field_size * sizeof(T));
-			cudaMalloc(&raw_z, field_size * sizeof(T));
-			d_x.reset(raw_x); d_y.reset(raw_y); d_z.reset(raw_z);
+			T *raw_d_x = nullptr, *raw_d_y = nullptr, *raw_d_z = nullptr;
+			cudaMalloc(&raw_d_x, field_size * sizeof(T));
+			cudaMalloc(&raw_d_y, field_size * sizeof(T));
+			cudaMalloc(&raw_d_z, field_size * sizeof(T));
+			d_x.reset(raw_d_x); d_y.reset(raw_d_y); d_z.reset(raw_d_z);
 			
 			cudaHostRegister(h_x.get(), field_size * sizeof(T), cudaHostRegisterDefault);
 			cudaHostRegister(h_y.get(), field_size * sizeof(T), cudaHostRegisterDefault);
