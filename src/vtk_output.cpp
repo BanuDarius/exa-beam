@@ -74,7 +74,7 @@ void output_vtk_scalar_field(std::ofstream &output_file, DataVTK &data_vtk, Scal
 		for(int j = 0; j < ny; j++) {
 			for(int i = 0; i < nx; i++) {
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-				std::size_t write_idx = (static_cast<std::size_t>(k) * ny * nx) + (j * nx) + i;
+				std::size_t write_idx = (static_cast<std::size_t>(k) * ny * nx) + (static_cast<std::size_t>(j) * nx) + i;
 				
 				T field_v = field.get_cpu_view().get_field(idx);
 				vtk_scalar[write_idx] = swap_endian(static_cast<float>(field_v));

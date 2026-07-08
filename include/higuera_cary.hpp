@@ -105,10 +105,10 @@ inline void higuera_cary_step(ParticlesView<T> &particles_view, const Laser<T> &
 	cuda::std::array<T, 3> u_vec = particles_view.get_velocity(idx);
 	T gamma = particles_view.get_gamma(idx);
 	
-	T half_dt_gamma = T(0.5) * dt / gamma;
+	T half_dt = T(0.5) * dt, half_dt_gamma = half_dt / gamma;
 	r_vec += u_vec * half_dt_gamma;
 	
-	EBVectors eb_vec = compute_eb(laser, r_vec, t + T(0.5) * dt);
+	EBVectors eb_vec = compute_eb(laser, r_vec, t + half_dt);
 	
 	cuda::std::array<T, 3> beta = hc_beta(eb_vec.b, dt);
 	cuda::std::array<T, 3> epsilon = hc_epsilon(eb_vec.e, dt);

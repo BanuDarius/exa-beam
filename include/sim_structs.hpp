@@ -71,10 +71,19 @@ struct Laser {
 	Laser() = default;
 };
 
-template <typename T>
-struct CUDAMemoryAdmin {
+template <typename T> struct CUDADeviceMemoryAdmin {
 	void operator()(T* ptr) noexcept {
 		if(ptr) cudaFree(ptr);
+	}
+};
+
+template <typename T> struct CUDAHostMemoryAdmin {
+	void operator()(T* ptr) noexcept {
+		if(ptr) { 
+			cudaError_t err = cudaHostUnregister(ptr);
+			if(err == cudaErrorHostMemoryNotRegistered) cudaGetLastError();
+			delete[] ptr;
+		}
 	}
 };
 
@@ -84,24 +93,24 @@ struct Particles {
 	std::size_t particle_num;
 	cuda::std::array<int, 3> num;
 	cuda::std::array<T, 3> r_max;
-	std::unique_ptr<T[]> h_x, h_y, h_z, h_ux, h_uy, h_uz, h_gamma;
-	std::unique_ptr<T[], CUDAMemoryAdmin<T>> d_x, d_y, d_z, d_ux, d_uy, d_uz, d_gamma;
+	std::unique_ptr<T[], CUDAHostMemoryAdmin<T>> h_x, h_y, h_z, h_ux, h_uy, h_uz, h_gamma;
+	std::unique_ptr<T[], CUDADeviceMemoryAdmin<T>> d_x, d_y, d_z, d_ux, d_uy, d_uz, d_gamma;
 	Particles(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		particle_num = nx * ny * nz;
 		num = { nx, ny, nz };
-		r_max = { r_max_n, r_max_n, r_max_n };
-		h_x = std::make_unique_for_overwrite<T[]>(particle_num);
-		h_y = std::make_unique_for_overwrite<T[]>(particle_num);
-		h_z = std::make_unique_for_overwrite<T[]>(particle_num);
-		h_ux = std::make_unique_for_overwrite<T[]>(particle_num);
-		h_uy = std::make_unique_for_overwrite<T[]>(particle_num);
-		h_uz = std::make_unique_for_overwrite<T[]>(particle_num);
-		h_gamma = std::make_unique_for_overwrite<T[]>(particle_num);
+		r_max = { r_max_n, r_max_n, T(4.0) * r_max_n };
+		h_x.reset(new T[particle_num]);
+		h_y.reset(new T[particle_num]);
+		h_z.reset(new T[particle_num]);
+		h_ux.reset(new T[particle_num]);
+		h_uy.reset(new T[particle_num]);
+		h_uz.reset(new T[particle_num]);
+		h_gamma.reset(new T[particle_num]);
 		#pragma omp parallel for simd collapse(3) schedule(static)
 		for(int i = 0; i < nx; i++) {
 			for(int j = 0; j < ny; j++) {
 				for(int k = 0; k < nz; k++) {
-					int idx = grid_idx(i, j, k, nx, ny, nz);
+					std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 					h_x[idx] = interpolate(-r_max[0], r_max[0], static_cast<T>(i), static_cast<T>(nx));
 					h_y[idx] = interpolate(-r_max[1], r_max[1], static_cast<T>(j), static_cast<T>(ny));
 					h_z[idx] = interpolate(-r_max[2], r_max[2], static_cast<T>(k), static_cast<T>(nz));
@@ -126,26 +135,34 @@ struct Particles {
 			d_ux.reset(raw_ux); d_uy.reset(raw_uy); d_uz.reset(raw_uz);
 			d_gamma.reset(raw_gamma);
 			
-			transfer_data_cpu_to_gpu();
+			cudaHostRegister(h_x.get(), particle_num * sizeof(T), cudaHostRegisterDefault);
+			cudaHostRegister(h_y.get(), particle_num * sizeof(T), cudaHostRegisterDefault);
+			cudaHostRegister(h_z.get(), particle_num * sizeof(T), cudaHostRegisterDefault);
+			cudaHostRegister(h_ux.get(), particle_num * sizeof(T), cudaHostRegisterDefault);
+			cudaHostRegister(h_uy.get(), particle_num * sizeof(T), cudaHostRegisterDefault);
+			cudaHostRegister(h_uz.get(), particle_num * sizeof(T), cudaHostRegisterDefault);
+			cudaHostRegister(h_gamma.get(), particle_num * sizeof(T), cudaHostRegisterDefault);
+			
+			transfer_data_cpu_to_gpu(cudaStreamDefault);
 		}
 	}
-	void transfer_data_cpu_to_gpu() noexcept {
-		cudaMemcpy(d_x.get(), h_x.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice);
-		cudaMemcpy(d_y.get(), h_y.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice);
-		cudaMemcpy(d_z.get(), h_z.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice);
-		cudaMemcpy(d_ux.get(), h_ux.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice);
-		cudaMemcpy(d_uy.get(), h_uy.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice);
-		cudaMemcpy(d_uz.get(), h_uz.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice);
-		cudaMemcpy(d_gamma.get(), h_gamma.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice);
+	void transfer_data_cpu_to_gpu(cudaStream_t stream) noexcept {
+		cudaMemcpyAsync(d_x.get(), h_x.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream);
+		cudaMemcpyAsync(d_y.get(), h_y.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream);
+		cudaMemcpyAsync(d_z.get(), h_z.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream);
+		cudaMemcpyAsync(d_ux.get(), h_ux.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream);
+		cudaMemcpyAsync(d_uy.get(), h_uy.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream);
+		cudaMemcpyAsync(d_uz.get(), h_uz.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream);
+		cudaMemcpyAsync(d_gamma.get(), h_gamma.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream);
 	}
-	void transfer_data_gpu_to_cpu() noexcept {
-		cudaMemcpy(h_x.get(), d_x.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
-		cudaMemcpy(h_y.get(), d_y.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
-		cudaMemcpy(h_z.get(), d_z.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
-		cudaMemcpy(h_ux.get(), d_ux.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
-		cudaMemcpy(h_uy.get(), d_uy.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
-		cudaMemcpy(h_uz.get(), d_uz.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
-		cudaMemcpy(h_gamma.get(), d_gamma.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost);
+	void transfer_data_gpu_to_cpu(cudaStream_t stream) noexcept {
+		cudaMemcpyAsync(h_x.get(), d_x.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream);
+		cudaMemcpyAsync(h_y.get(), d_y.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream);
+		cudaMemcpyAsync(h_z.get(), d_z.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream);
+		cudaMemcpyAsync(h_ux.get(), d_ux.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream);
+		cudaMemcpyAsync(h_uy.get(), d_uy.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream);
+		cudaMemcpyAsync(h_uz.get(), d_uz.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream);
+		cudaMemcpyAsync(h_gamma.get(), d_gamma.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream);
 	}
 	ParticlesView<T> get_cpu_view() const noexcept {
 		return ParticlesView<T>(h_x.get(), h_y.get(), h_z.get(), h_ux.get(), h_uy.get(), h_uz.get(), h_gamma.get(), num, r_max, particle_num);
@@ -166,37 +183,37 @@ struct ScalarField {
 	std::size_t field_size;
 	cuda::std::array<int, 3> num;
 	cuda::std::array<T, 3> r_max;
-	std::unique_ptr<T[]> h_v;
-	std::unique_ptr<T[], CUDAMemoryAdmin<T>> d_v;
+	std::unique_ptr<T[], CUDAHostMemoryAdmin<T>> h_v;
+	std::unique_ptr<T[], CUDADeviceMemoryAdmin<T>> d_v;
 	ScalarField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n, r_max_n };
-		h_v = std::make_unique_for_overwrite<T[]>(field_size);
+		h_v.reset(new T[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			h_v[i] = T(0.0);
 		if(use_gpu) {
 			T *raw_v = nullptr;
-			
 			cudaMalloc(&raw_v, field_size * sizeof(T));
-			
 			d_v.reset(raw_v);
-			transfer_data_cpu_to_gpu();
+			
+			cudaHostRegister(h_v.get(), field_size * sizeof(T), cudaHostRegisterDefault);
+			transfer_data_cpu_to_gpu(cudaStreamDefault);
 		}
 	}
 	ScalarField(const ScalarField &other)
 		: field_size(other.field_size), num(other.num), r_max(other.r_max), use_gpu(other.use_gpu) {
-		h_v = std::make_unique_for_overwrite<T[]>(field_size);
+		h_v.reset(new T[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			h_v[i] = other.h_v[i];
 		if(use_gpu) {
 			T *raw_v = nullptr;
-			
 			cudaMalloc(&raw_v, field_size * sizeof(T));
-			
 			d_v.reset(raw_v);
+			
+			cudaHostRegister(h_v.get(), field_size * sizeof(T), cudaHostRegisterDefault);
 			cudaMemcpy(d_v.get(), other.d_v.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
 		}
 	}
@@ -224,11 +241,11 @@ struct ScalarField {
 			h_v[i] -= other.h_v[i];
 		return *this;
 	}
-	void transfer_data_cpu_to_gpu() noexcept {
-		cudaMemcpy(d_v.get(), h_v.get(), field_size * sizeof(T), cudaMemcpyHostToDevice);
+	void transfer_data_cpu_to_gpu(cudaStream_t stream) noexcept {
+		cudaMemcpyAsync(d_v.get(), h_v.get(), field_size * sizeof(T), cudaMemcpyHostToDevice, stream);
 	}
-	void transfer_data_gpu_to_cpu() noexcept {
-		cudaMemcpy(h_v.get(), d_v.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost);
+	void transfer_data_gpu_to_cpu(cudaStream_t stream) noexcept {
+		cudaMemcpyAsync(h_v.get(), d_v.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost, stream);
 	}
 	ScalarFieldView<T> get_cpu_view() const noexcept {
 		return ScalarFieldView<T>(h_v.get(), num, r_max, field_size);
@@ -249,37 +266,37 @@ struct ComplexScalarField {
 	std::size_t field_size;
 	cuda::std::array<int, 3> num;
 	cuda::std::array<T, 3> r_max;
-	std::unique_ptr<cuda::std::complex<T>[]> h_v;
-	std::unique_ptr<cuda::std::complex<T>[], CUDAMemoryAdmin<cuda::std::complex<T>>> d_v;
+	std::unique_ptr<cuda::std::complex<T>[], CUDAHostMemoryAdmin<cuda::std::complex<T>>> h_v;
+	std::unique_ptr<cuda::std::complex<T>[], CUDADeviceMemoryAdmin<cuda::std::complex<T>>> d_v;
 	ComplexScalarField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n, r_max_n };
-		h_v = std::make_unique_for_overwrite<cuda::std::complex<T>[]>(field_size);
+		h_v.reset(new cuda::std::complex<T>[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			h_v[i] = { T(0.0), T(0.0) };
 		if(use_gpu) {
 			cuda::std::complex<T> *raw_v = nullptr;
-			
 			cudaMalloc(&raw_v, field_size * sizeof(cuda::std::complex<T>));
-			
 			d_v.reset(raw_v);
-			transfer_data_cpu_to_gpu();
+			
+			cudaHostRegister(h_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaHostRegisterDefault);
+			transfer_data_cpu_to_gpu(cudaStreamDefault);
 		}
 	}
 	ComplexScalarField(const ComplexScalarField &other)
 		: field_size(other.field_size), num(other.num), r_max(other.r_max), use_gpu(other.use_gpu) {
-		h_v = std::make_unique_for_overwrite<cuda::std::complex<T>[]>(field_size);
+		h_v.reset(new cuda::std::complex<T>[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			h_v[i] = other.h_v[i];
 		if(use_gpu) {
 			cuda::std::complex<T> *raw_v = nullptr;
-			
 			cudaMalloc(&raw_v, field_size * sizeof(cuda::std::complex<T>));
-			
 			d_v.reset(raw_v);
+			
+			cudaHostRegister(h_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaHostRegisterDefault);
 			cudaMemcpy(d_v.get(), other.d_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyDeviceToDevice);
 		}
 	}
@@ -307,11 +324,11 @@ struct ComplexScalarField {
 			h_v[i] -= other.h_v[i];
 		return *this;
 	}
-	void transfer_data_cpu_to_gpu() noexcept {
-		cudaMemcpy(d_v.get(), h_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyHostToDevice);
+	void transfer_data_cpu_to_gpu(cudaStream_t stream) noexcept {
+		cudaMemcpyAsync(d_v.get(), h_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyHostToDevice, stream);
 	}
-	void transfer_data_gpu_to_cpu() noexcept {
-		cudaMemcpy(h_v.get(), d_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyDeviceToHost);
+	void transfer_data_gpu_to_cpu(cudaStream_t stream) noexcept {
+		cudaMemcpyAsync(h_v.get(), d_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyDeviceToHost, stream);
 	}
 	ComplexScalarFieldView<T> get_cpu_view() const noexcept {
 		return ComplexScalarFieldView<T>(h_v.get(), num, r_max, field_size);
@@ -332,47 +349,51 @@ struct VectorField {
 	std::size_t field_size;
 	cuda::std::array<int, 3> num;
 	cuda::std::array<T, 3> r_max;
-	std::unique_ptr<T[]> h_x, h_y, h_z;
-	std::unique_ptr<T[], CUDAMemoryAdmin<T>> d_x, d_y, d_z;
+	std::unique_ptr<T[], CUDAHostMemoryAdmin<T>> h_x, h_y, h_z;
+	std::unique_ptr<T[], CUDADeviceMemoryAdmin<T>> d_x, d_y, d_z;
 	VectorField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n, r_max_n };
-		h_x = std::make_unique_for_overwrite<T[]>(field_size);
-		h_y = std::make_unique_for_overwrite<T[]>(field_size);
-		h_z = std::make_unique_for_overwrite<T[]>(field_size);
+		h_x.reset(new T[field_size]);
+		h_y.reset(new T[field_size]);
+		h_z.reset(new T[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++) {
 			h_x[i] = T(0.0); h_y[i] = T(0.0); h_z[i] = T(0.0);
 		}
 		if(use_gpu) {
 			T *raw_x = nullptr, *raw_y = nullptr, *raw_z = nullptr;
-			
 			cudaMalloc(&raw_x, field_size * sizeof(T));
 			cudaMalloc(&raw_y, field_size * sizeof(T));
 			cudaMalloc(&raw_z, field_size * sizeof(T));
-			
 			d_x.reset(raw_x); d_y.reset(raw_y); d_z.reset(raw_z);
-			transfer_data_cpu_to_gpu();
+			
+			cudaHostRegister(h_x.get(), field_size * sizeof(T), cudaHostRegisterDefault);
+			cudaHostRegister(h_y.get(), field_size * sizeof(T), cudaHostRegisterDefault);
+			cudaHostRegister(h_z.get(), field_size * sizeof(T), cudaHostRegisterDefault);
+			transfer_data_cpu_to_gpu(cudaStreamDefault);
 		}
 	}
 	VectorField(const VectorField &other)
 		: field_size(other.field_size), num(other.num), r_max(other.r_max), use_gpu(other.use_gpu) {
-		h_x = std::make_unique_for_overwrite<T[]>(field_size);
-		h_y = std::make_unique_for_overwrite<T[]>(field_size);
-		h_z = std::make_unique_for_overwrite<T[]>(field_size);
+		h_x.reset(new T[field_size]);
+		h_y.reset(new T[field_size]);
+		h_z.reset(new T[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++) {
 			h_x[i] = other.h_x[i]; h_y[i] = other.h_y[i]; h_z[i] = other.h_z[i];
 		}
 		if(use_gpu) {
 			T *raw_x = nullptr, *raw_y = nullptr, *raw_z = nullptr;
-			
 			cudaMalloc(&raw_x, field_size * sizeof(T));
 			cudaMalloc(&raw_y, field_size * sizeof(T));
 			cudaMalloc(&raw_z, field_size * sizeof(T));
-			
 			d_x.reset(raw_x); d_y.reset(raw_y); d_z.reset(raw_z);
+			
+			cudaHostRegister(h_x.get(), field_size * sizeof(T), cudaHostRegisterDefault);
+			cudaHostRegister(h_y.get(), field_size * sizeof(T), cudaHostRegisterDefault);
+			cudaHostRegister(h_z.get(), field_size * sizeof(T), cudaHostRegisterDefault);
 			cudaMemcpy(d_x.get(), other.d_x.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
 			cudaMemcpy(d_y.get(), other.d_y.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
 			cudaMemcpy(d_z.get(), other.d_z.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
@@ -408,15 +429,15 @@ struct VectorField {
 		}
 		return *this;
 	}
-	void transfer_data_cpu_to_gpu() noexcept {
-		cudaMemcpy(d_x.get(), h_x.get(), field_size * sizeof(T), cudaMemcpyHostToDevice);
-		cudaMemcpy(d_y.get(), h_y.get(), field_size * sizeof(T), cudaMemcpyHostToDevice);
-		cudaMemcpy(d_z.get(), h_z.get(), field_size * sizeof(T), cudaMemcpyHostToDevice);
+	void transfer_data_cpu_to_gpu(cudaStream_t stream) noexcept {
+		cudaMemcpyAsync(d_x.get(), h_x.get(), field_size * sizeof(T), cudaMemcpyHostToDevice, stream);
+		cudaMemcpyAsync(d_y.get(), h_y.get(), field_size * sizeof(T), cudaMemcpyHostToDevice, stream);
+		cudaMemcpyAsync(d_z.get(), h_z.get(), field_size * sizeof(T), cudaMemcpyHostToDevice, stream);
 	}
-	void transfer_data_gpu_to_cpu() noexcept {
-		cudaMemcpy(h_x.get(), d_x.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost);
-		cudaMemcpy(h_y.get(), d_y.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost);
-		cudaMemcpy(h_z.get(), d_z.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost);
+	void transfer_data_gpu_to_cpu(cudaStream_t stream) noexcept {
+		cudaMemcpyAsync(h_x.get(), d_x.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost, stream);
+		cudaMemcpyAsync(h_y.get(), d_y.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost, stream);
+		cudaMemcpyAsync(h_z.get(), d_z.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost, stream);
 	}
 	VectorFieldView<T> get_cpu_view() const noexcept {
 		return VectorFieldView<T>(h_x.get(), h_y.get(), h_z.get(), num, r_max, field_size);
