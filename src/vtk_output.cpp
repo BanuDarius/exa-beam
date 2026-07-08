@@ -28,7 +28,7 @@ SOFTWARE. */
 #include <cuda/std/complex>
 
 template <std::floating_point T>
-void output_vtk_header(std::ofstream &output_file, ScalarField<T> &field) {
+void output_vtk_header(std::ofstream &output_file, const ScalarField<T> &field) {
 	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
 	T r_max_x = field.r_max[0], r_max_y = field.r_max[1], r_max_z = field.r_max[2];
 	output_file << "# vtk DataFile Version 3.0\n";
@@ -42,7 +42,7 @@ void output_vtk_header(std::ofstream &output_file, ScalarField<T> &field) {
 }
 
 template <std::floating_point T>
-void output_vtk_header(std::ofstream &output_file, VectorField<T> &field) {
+void output_vtk_header(std::ofstream &output_file, const VectorField<T> &field) {
 	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
 	T r_max_x = field.r_max[0], r_max_y = field.r_max[1], r_max_z = field.r_max[2];
 	output_file << "# vtk DataFile Version 3.0\n";
@@ -65,10 +65,11 @@ void output_vtk_vector_next(std::ofstream &output_file, const std::string &name)
 }
 
 template <std::floating_point T>
-void output_vtk_scalar_field(std::ofstream &output_file, DataVTK &data_vtk, ScalarField<T> &field, const std::string &name) {
-	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
-	std::size_t field_size = static_cast<std::size_t>(nx) * ny * nz;
+void output_vtk_scalar_field(std::ofstream &output_file, const DataVTK &data_vtk, const ScalarField<T> &field, const std::string &name) {
+	const int nx = field.num[0], ny = field.num[1], nz = field.num[2];
 	uint32_t *vtk_scalar = data_vtk.vtk_scalar.get();
+	const std::size_t field_size = field.field_size;
+	ScalarFieldView field_view = field.get_cpu_view();
 	#pragma omp parallel for collapse(3) schedule(static)
 	for(int k = 0; k < nz; k++) {
 		for(int j = 0; j < ny; j++) {
@@ -76,7 +77,7 @@ void output_vtk_scalar_field(std::ofstream &output_file, DataVTK &data_vtk, Scal
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				std::size_t write_idx = (static_cast<std::size_t>(k) * ny * nx) + (static_cast<std::size_t>(j) * nx) + i;
 				
-				T field_v = field.get_cpu_view().get_field(idx);
+				T field_v = field_view.get_field(idx);
 				vtk_scalar[write_idx] = swap_endian(static_cast<float>(field_v));
 			}
 		}
@@ -86,10 +87,11 @@ void output_vtk_scalar_field(std::ofstream &output_file, DataVTK &data_vtk, Scal
 }
 
 template <std::floating_point T>
-void output_vtk_complex_scalar_field(std::ofstream &output_file, DataVTK &data_vtk, ComplexScalarField<T> &field, const std::string &name) {
-	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
+void output_vtk_complex_scalar_field(std::ofstream &output_file, const DataVTK &data_vtk, const ComplexScalarField<T> &field, const std::string &name) {
+	const int nx = field.num[0], ny = field.num[1], nz = field.num[2];
 	uint32_t *vtk_scalar = data_vtk.vtk_scalar.get();
-	std::size_t field_size = static_cast<std::size_t>(nx) * ny * nz;
+	const std::size_t field_size = field.field_size;
+	ComplexScalarFieldView field_view = field.get_cpu_view();
 	#pragma omp parallel for collapse(3) schedule(static)
 	for(int k = 0; k < nz; k++) {
 		for(int j = 0; j < ny; j++) {
@@ -97,7 +99,7 @@ void output_vtk_complex_scalar_field(std::ofstream &output_file, DataVTK &data_v
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				std::size_t write_idx = (static_cast<std::size_t>(k) * ny * nx) + (static_cast<std::size_t>(j) * nx) + i;
 				
-				cuda::std::complex<T> field_v = field.get_cpu_view().get_field(idx);
+				cuda::std::complex<T> field_v = field_view.get_field(idx);
 				vtk_scalar[write_idx] = swap_endian(static_cast<float>(cuda::std::real(field_v)));
 			}
 		}
@@ -107,10 +109,11 @@ void output_vtk_complex_scalar_field(std::ofstream &output_file, DataVTK &data_v
 }
 
 template <std::floating_point T>
-void output_vtk_vector_field(std::ofstream &output_file, DataVTK &data_vtk, VectorField<T> &field, const std::string &name) {
-	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
+void output_vtk_vector_field(std::ofstream &output_file, const DataVTK &data_vtk, const VectorField<T> &field, const std::string &name) {
+	const int nx = field.num[0], ny = field.num[1], nz = field.num[2];
 	uint32_t *vtk_vector = data_vtk.vtk_vector.get();
-	std::size_t field_size = static_cast<std::size_t>(nx) * ny * nz;
+	const std::size_t field_size = field.field_size;
+	VectorFieldView field_view = field.get_cpu_view();
 	#pragma omp parallel for collapse(3) schedule(static)
 	for(int k = 0; k < nz; k++) {
 		for(int j = 0; j < ny; j++) {
@@ -118,7 +121,7 @@ void output_vtk_vector_field(std::ofstream &output_file, DataVTK &data_vtk, Vect
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				std::size_t write_idx = (static_cast<std::size_t>(k) * ny * nx) + (static_cast<std::size_t>(j) * nx) + i;
 				
-				cuda::std::array<T, 3> vec = field.get_cpu_view().get_field(idx);
+				cuda::std::array<T, 3> vec = field_view.get_field(idx);
 				vtk_vector[3 * write_idx] = swap_endian(static_cast<float>(vec[0]));
 				vtk_vector[3 * write_idx + 1] = swap_endian(static_cast<float>(vec[1]));
 				vtk_vector[3 * write_idx + 2] = swap_endian(static_cast<float>(vec[2]));
@@ -130,10 +133,11 @@ void output_vtk_vector_field(std::ofstream &output_file, DataVTK &data_vtk, Vect
 }
 
 template <std::floating_point T>
-void output_vtk_particles(std::ofstream &output_file, DataVTK &data_vtk, Particles<T> &particles) {
-	int nx = particles.num[0], ny = particles.num[1], nz = particles.num[2];
+void output_vtk_particles(std::ofstream &output_file, const DataVTK &data_vtk, const Particles<T> &particles) {
+	const int nx = particles.num[0], ny = particles.num[1], nz = particles.num[2];
 	uint32_t *vtk_vector = data_vtk.vtk_vector.get();
-	std::size_t field_size = static_cast<std::size_t>(nx) * ny * nz;
+	const std::size_t field_size = data_vtk.field_size;
+	ParticlesView particles_view = particles.get_cpu_view();
 	#pragma omp parallel for collapse(3) schedule(static)
 	for(int k = 0; k < nz; k++) {
 		for(int j = 0; j < ny; j++) {
@@ -141,7 +145,7 @@ void output_vtk_particles(std::ofstream &output_file, DataVTK &data_vtk, Particl
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				std::size_t write_idx = (static_cast<std::size_t>(k) * ny * nx) + (static_cast<std::size_t>(j) * nx) + i;
 				
-				cuda::std::array<T, 3> r_vec = particles.get_cpu_view().get_position(idx);
+				cuda::std::array<T, 3> r_vec = particles_view.get_position(idx);
 				vtk_vector[3 * write_idx] = swap_endian(static_cast<float>(r_vec[0]));
 				vtk_vector[3 * write_idx + 1] = swap_endian(static_cast<float>(r_vec[1]));
 				vtk_vector[3 * write_idx + 2] = swap_endian(static_cast<float>(r_vec[2]));
@@ -161,7 +165,7 @@ void output_vtk_particles(std::ofstream &output_file, DataVTK &data_vtk, Particl
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				std::size_t write_idx = (static_cast<std::size_t>(k) * ny * nx) + (static_cast<std::size_t>(j) * nx) + i;
 				
-				cuda::std::array<T, 3> u_vec = particles.get_cpu_view().get_velocity(idx);
+				cuda::std::array<T, 3> u_vec = particles_view.get_velocity(idx);
 				vtk_vector[3 * write_idx] = swap_endian(static_cast<float>(u_vec[0]));
 				vtk_vector[3 * write_idx + 1] = swap_endian(static_cast<float>(u_vec[1]));
 				vtk_vector[3 * write_idx + 2] = swap_endian(static_cast<float>(u_vec[2]));
@@ -173,16 +177,16 @@ void output_vtk_particles(std::ofstream &output_file, DataVTK &data_vtk, Particl
 	output_file.write(reinterpret_cast<const char*>(vtk_vector), 3 * field_size * sizeof(uint32_t));
 }
 
-template void output_vtk_header<double>(std::ofstream &output_file, ScalarField<double> &field);
-template void output_vtk_header<double>(std::ofstream &output_file, VectorField<double> &field);
-template void output_vtk_scalar_field<double>(std::ofstream &output_file, DataVTK &data_vtk, ScalarField<double> &field, const std::string &name);
-template void output_vtk_complex_scalar_field<double>(std::ofstream &output_file, DataVTK &data_vtk, ComplexScalarField<double> &field, const std::string &name);
-template void output_vtk_vector_field<double>(std::ofstream &output_file, DataVTK &data_vtk, VectorField<double> &field, const std::string &name);
-template void output_vtk_particles<double>(std::ofstream &output_file, DataVTK &data_vtk, Particles<double> &particles);
+template void output_vtk_header<double>(std::ofstream &output_file, const ScalarField<double> &field);
+template void output_vtk_header<double>(std::ofstream &output_file, const VectorField<double> &field);
+template void output_vtk_scalar_field<double>(std::ofstream &output_file, const DataVTK &data_vtk, const ScalarField<double> &field, const std::string &name);
+template void output_vtk_complex_scalar_field<double>(std::ofstream &output_file, const DataVTK &data_vtk, const ComplexScalarField<double> &field, const std::string &name);
+template void output_vtk_vector_field<double>(std::ofstream &output_file, const DataVTK &data_vtk, const VectorField<double> &field, const std::string &name);
+template void output_vtk_particles<double>(std::ofstream &output_file, const DataVTK &data_vtk, const Particles<double> &particles);
 
-template void output_vtk_header<float>(std::ofstream &output_file, ScalarField<float> &field);
-template void output_vtk_header<float>(std::ofstream &output_file, VectorField<float> &field);
-template void output_vtk_scalar_field<float>(std::ofstream &output_file, DataVTK &data_vtk, ScalarField<float> &field, const std::string &name);
-template void output_vtk_complex_scalar_field<float>(std::ofstream &output_file, DataVTK &data_vtk, ComplexScalarField<float> &field, const std::string &name);
-template void output_vtk_vector_field<float>(std::ofstream &output_file, DataVTK &data_vtk, VectorField<float> &field, const std::string &name);
-template void output_vtk_particles<float>(std::ofstream &output_file, DataVTK &data_vtk, Particles<float> &particles);
+template void output_vtk_header<float>(std::ofstream &output_file, const ScalarField<float> &field);
+template void output_vtk_header<float>(std::ofstream &output_file, const VectorField<float> &field);
+template void output_vtk_scalar_field<float>(std::ofstream &output_file, const DataVTK &data_vtk, const ScalarField<float> &field, const std::string &name);
+template void output_vtk_complex_scalar_field<float>(std::ofstream &output_file, const DataVTK &data_vtk, const ComplexScalarField<float> &field, const std::string &name);
+template void output_vtk_vector_field<float>(std::ofstream &output_file, const DataVTK &data_vtk, const VectorField<float> &field, const std::string &name);
+template void output_vtk_particles<float>(std::ofstream &output_file, const DataVTK &data_vtk, const Particles<float> &particles);

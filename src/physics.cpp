@@ -29,20 +29,21 @@ SOFTWARE. */
 
 template <std::floating_point T>
 void compute_lz(ScalarField<T> &lz_field, Particles<T> &particles) noexcept {
-	int nx = particles.num[0], ny = particles.num[1], nz = particles.num[2];
+	const int nx = particles.num[0], ny = particles.num[1], nz = particles.num[2];
+	ScalarFieldView lz_field_view = lz_field.get_cpu_view();
 	#pragma omp parallel for collapse(3) schedule(static)
 	for(int i = 0; i < nx; i++) {
 		for(int j = 0; j < ny; j++) {
 			for(int k = 0; k < nz; k++) {
-				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-				cuda::std::array<T, 3> r_vec = particles.get_cpu_view().get_position(idx);
-				cuda::std::array<T, 3> u_vec = particles.get_cpu_view().get_velocity(idx);
-				T x = r_vec[0], y = r_vec[1];
-				T ux = u_vec[0], uy = u_vec[1];
+				const std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
+				const cuda::std::array<T, 3> r_vec = particles.get_cpu_view().get_position(idx);
+				const cuda::std::array<T, 3> u_vec = particles.get_cpu_view().get_velocity(idx);
+				const T x = r_vec[0], y = r_vec[1];
+				const T ux = u_vec[0], uy = u_vec[1];
 				
-				T lz = m_e<T> * (x * uy - y * ux);
+				const T lz = m_e<T> * (x * uy - y * ux);
 				
-				lz_field.get_cpu_view().set_field(lz, idx);
+				lz_field_view.set_field(lz, idx);
 			}
 		}
 	}
@@ -50,25 +51,26 @@ void compute_lz(ScalarField<T> &lz_field, Particles<T> &particles) noexcept {
 
 template <std::floating_point T>
 void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser) noexcept {
-	int nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
-	T r_max_x = u_field.r_max[0], r_max_y = u_field.r_max[1], r_max_z = u_field.r_max[2], z_r = laser.z_r, w0 = laser.w0;
+	const int nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
+	const T r_max_x = u_field.r_max[0], r_max_y = u_field.r_max[1], r_max_z = u_field.r_max[2], z_r = laser.z_r, w0 = laser.w0;
+	ComplexScalarFieldView u_field_view = u_field.get_cpu_view();
 	#pragma omp parallel for collapse(3) schedule(static)
 	for(int i = 0; i < nx; i++) {
 		for(int j = 0; j < ny; j++) {
 			for(int k = 0; k < nz; k++) {
-				cuda::std::array<T, 3> r_vec = {
+				const cuda::std::array<T, 3> r_vec = {
 					interpolate(-r_max_x, r_max_x, static_cast<T>(i), static_cast<T>(nx)),
 					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
 					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
 				};
-				T z = r_vec[2];
-				T r_z = compute_r_z(z, z_r);
-				T w_z = compute_w_z(w0, z, z_r);
+				const T z = r_vec[2];
+				const T r_z = compute_r_z(z, z_r);
+				const T w_z = compute_w_z(w0, z, z_r);
 				
-				cuda::std::complex<T> u_i = compute_u(laser, r_vec, r_z, w_z);
-				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
+				const cuda::std::complex<T> u_i = compute_u(laser, r_vec, r_z, w_z);
+				const std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				
-				u_field.get_cpu_view().set_field(u_i, idx);
+				u_field_view.set_field(u_i, idx);
 			}
 		}
 	}
@@ -76,8 +78,9 @@ void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser) noex
 
 template <std::floating_point T>
 void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const ComplexScalarField<T> &u_field, const Laser<T> &laser, T t) noexcept {
-	int nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
-	T r_max_x = e_field.r_max[0], r_max_y = e_field.r_max[1], r_max_z = e_field.r_max[2];
+	const int nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
+	const T r_max_x = e_field.r_max[0], r_max_y = e_field.r_max[1], r_max_z = e_field.r_max[2];
+	VectorFieldView e_field_view = e_field.get_cpu_view(), b_field_view = b_field.get_cpu_view();
 	#pragma omp parallel for collapse(3) schedule(static)
 	for(int i = 0; i < nx; i++) {
 		for(int j = 0; j < ny; j++) {
@@ -87,13 +90,13 @@ void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const Co
 					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
 					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
 				};
-				int idx = grid_idx(i, j, k, nx, ny, nz);
+				const int idx = grid_idx(i, j, k, nx, ny, nz);
 				
 				ComplexScalarFieldView<T> u_field_view = u_field.get_cpu_view();
 				EBVectors<T> eb_vec = compute_eb(u_field_view, laser, r_vec, t, idx);
 				
-				e_field.get_cpu_view().set_field(eb_vec.e, idx);
-				b_field.get_cpu_view().set_field(eb_vec.b, idx);
+				e_field_view.set_field(eb_vec.e, idx);
+				b_field_view.set_field(eb_vec.b, idx);
 			}
 		}
 	}
