@@ -90,7 +90,7 @@ void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const Co
 					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
 					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
 				};
-				const int idx = grid_idx(i, j, k, nx, ny, nz);
+				const std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				
 				ComplexScalarFieldView<T> u_field_view = u_field.get_cpu_view();
 				EBVectors<T> eb_vec = compute_eb(u_field_view, laser, r_vec, t, idx);
