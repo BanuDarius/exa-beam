@@ -33,6 +33,7 @@ SOFTWARE. */
 #include <cuda/std/array>
 #include <cuda/std/complex>
 
+#include "cuda_extra.hpp"
 #include "structs_view.hpp"
 #include "math_functions.hpp"
 
@@ -71,22 +72,6 @@ struct Laser {
 	Laser() = default;
 };
 
-template <typename T> struct CUDADeviceMemoryAdmin {
-	void operator()(T* ptr) noexcept {
-		if(ptr) cudaFree(ptr);
-	}
-};
-
-template <typename T> struct CUDAHostMemoryAdmin {
-	void operator()(T* ptr) noexcept {
-		if(ptr) { 
-			cudaError_t err = cudaHostUnregister(ptr);
-			if(err == cudaErrorHostMemoryNotRegistered) cudaGetLastError();
-			delete[] ptr;
-		}
-	}
-};
-
 template <std::floating_point T>
 struct Particles {
 	bool use_gpu;
@@ -123,46 +108,46 @@ struct Particles {
 			T *raw_d_x = nullptr, *raw_d_y = nullptr, *raw_d_z = nullptr;
 			T *raw_d_ux = nullptr, *raw_d_uy = nullptr, *raw_d_uz = nullptr, *raw_d_gamma = nullptr;
 			
-			cudaMalloc(&raw_d_x, particle_num * sizeof(T));
-			cudaMalloc(&raw_d_y, particle_num * sizeof(T));
-			cudaMalloc(&raw_d_z, particle_num * sizeof(T));
-			cudaMalloc(&raw_d_ux, particle_num * sizeof(T));
-			cudaMalloc(&raw_d_uy, particle_num * sizeof(T));
-			cudaMalloc(&raw_d_uz, particle_num * sizeof(T));
-			cudaMalloc(&raw_d_gamma, particle_num * sizeof(T));
+			CUDA_CHECK(cudaMalloc(&raw_d_x, particle_num * sizeof(T)));
+			CUDA_CHECK(cudaMalloc(&raw_d_y, particle_num * sizeof(T)));
+			CUDA_CHECK(cudaMalloc(&raw_d_z, particle_num * sizeof(T)));
+			CUDA_CHECK(cudaMalloc(&raw_d_ux, particle_num * sizeof(T)));
+			CUDA_CHECK(cudaMalloc(&raw_d_uy, particle_num * sizeof(T)));
+			CUDA_CHECK(cudaMalloc(&raw_d_uz, particle_num * sizeof(T)));
+			CUDA_CHECK(cudaMalloc(&raw_d_gamma, particle_num * sizeof(T)));
 			
 			d_x.reset(raw_d_x); d_y.reset(raw_d_y); d_z.reset(raw_d_z);
 			d_ux.reset(raw_d_ux); d_uy.reset(raw_d_uy); d_uz.reset(raw_d_uz);
 			d_gamma.reset(raw_d_gamma);
 			
-			cudaHostRegister(h_x.get(), particle_num * sizeof(T), cudaHostRegisterDefault);
-			cudaHostRegister(h_y.get(), particle_num * sizeof(T), cudaHostRegisterDefault);
-			cudaHostRegister(h_z.get(), particle_num * sizeof(T), cudaHostRegisterDefault);
-			cudaHostRegister(h_ux.get(), particle_num * sizeof(T), cudaHostRegisterDefault);
-			cudaHostRegister(h_uy.get(), particle_num * sizeof(T), cudaHostRegisterDefault);
-			cudaHostRegister(h_uz.get(), particle_num * sizeof(T), cudaHostRegisterDefault);
-			cudaHostRegister(h_gamma.get(), particle_num * sizeof(T), cudaHostRegisterDefault);
+			CUDA_CHECK(cudaHostRegister(h_x.get(), particle_num * sizeof(T), cudaHostRegisterDefault));
+			CUDA_CHECK(cudaHostRegister(h_y.get(), particle_num * sizeof(T), cudaHostRegisterDefault));
+			CUDA_CHECK(cudaHostRegister(h_z.get(), particle_num * sizeof(T), cudaHostRegisterDefault));
+			CUDA_CHECK(cudaHostRegister(h_ux.get(), particle_num * sizeof(T), cudaHostRegisterDefault));
+			CUDA_CHECK(cudaHostRegister(h_uy.get(), particle_num * sizeof(T), cudaHostRegisterDefault));
+			CUDA_CHECK(cudaHostRegister(h_uz.get(), particle_num * sizeof(T), cudaHostRegisterDefault));
+			CUDA_CHECK(cudaHostRegister(h_gamma.get(), particle_num * sizeof(T), cudaHostRegisterDefault));
 			
 			transfer_data_cpu_to_gpu(cudaStreamDefault);
 		}
 	}
 	void transfer_data_cpu_to_gpu(cudaStream_t stream) noexcept {
-		cudaMemcpyAsync(d_x.get(), h_x.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream);
-		cudaMemcpyAsync(d_y.get(), h_y.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream);
-		cudaMemcpyAsync(d_z.get(), h_z.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream);
-		cudaMemcpyAsync(d_ux.get(), h_ux.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream);
-		cudaMemcpyAsync(d_uy.get(), h_uy.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream);
-		cudaMemcpyAsync(d_uz.get(), h_uz.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream);
-		cudaMemcpyAsync(d_gamma.get(), h_gamma.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream);
+		CUDA_CHECK(cudaMemcpyAsync(d_x.get(), h_x.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream));
+		CUDA_CHECK(cudaMemcpyAsync(d_y.get(), h_y.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream));
+		CUDA_CHECK(cudaMemcpyAsync(d_z.get(), h_z.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream));
+		CUDA_CHECK(cudaMemcpyAsync(d_ux.get(), h_ux.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream));
+		CUDA_CHECK(cudaMemcpyAsync(d_uy.get(), h_uy.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream));
+		CUDA_CHECK(cudaMemcpyAsync(d_uz.get(), h_uz.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream));
+		CUDA_CHECK(cudaMemcpyAsync(d_gamma.get(), h_gamma.get(), particle_num * sizeof(T), cudaMemcpyHostToDevice, stream));
 	}
 	void transfer_data_gpu_to_cpu(cudaStream_t stream) noexcept {
-		cudaMemcpyAsync(h_x.get(), d_x.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream);
-		cudaMemcpyAsync(h_y.get(), d_y.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream);
-		cudaMemcpyAsync(h_z.get(), d_z.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream);
-		cudaMemcpyAsync(h_ux.get(), d_ux.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream);
-		cudaMemcpyAsync(h_uy.get(), d_uy.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream);
-		cudaMemcpyAsync(h_uz.get(), d_uz.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream);
-		cudaMemcpyAsync(h_gamma.get(), d_gamma.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream);
+		CUDA_CHECK(cudaMemcpyAsync(h_x.get(), d_x.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream));
+		CUDA_CHECK(cudaMemcpyAsync(h_y.get(), d_y.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream));
+		CUDA_CHECK(cudaMemcpyAsync(h_z.get(), d_z.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream));
+		CUDA_CHECK(cudaMemcpyAsync(h_ux.get(), d_ux.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream));
+		CUDA_CHECK(cudaMemcpyAsync(h_uy.get(), d_uy.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream));
+		CUDA_CHECK(cudaMemcpyAsync(h_uz.get(), d_uz.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream));
+		CUDA_CHECK(cudaMemcpyAsync(h_gamma.get(), d_gamma.get(), particle_num * sizeof(T), cudaMemcpyDeviceToHost, stream));
 	}
 	ParticlesView<T> get_cpu_view() const noexcept {
 		return ParticlesView<T>(h_x.get(), h_y.get(), h_z.get(), h_ux.get(), h_uy.get(), h_uz.get(), h_gamma.get(), num, r_max, particle_num);
@@ -195,10 +180,10 @@ struct ScalarField {
 			h_v[i] = T(0.0);
 		if(use_gpu) {
 			T *raw_d_v = nullptr;
-			cudaMalloc(&raw_d_v, field_size * sizeof(T));
+			CUDA_CHECK(cudaMalloc(&raw_d_v, field_size * sizeof(T)));
 			d_v.reset(raw_d_v);
 			
-			cudaHostRegister(h_v.get(), field_size * sizeof(T), cudaHostRegisterDefault);
+			CUDA_CHECK(cudaHostRegister(h_v.get(), field_size * sizeof(T), cudaHostRegisterDefault));
 			transfer_data_cpu_to_gpu(cudaStreamDefault);
 		}
 	}
@@ -210,11 +195,11 @@ struct ScalarField {
 			h_v[i] = other.h_v[i];
 		if(use_gpu) {
 			T *raw_d_v = nullptr;
-			cudaMalloc(&raw_d_v, field_size * sizeof(T));
+			CUDA_CHECK(cudaMalloc(&raw_d_v, field_size * sizeof(T)));
 			d_v.reset(raw_d_v);
 			
-			cudaHostRegister(h_v.get(), field_size * sizeof(T), cudaHostRegisterDefault);
-			cudaMemcpy(d_v.get(), other.d_v.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
+			CUDA_CHECK(cudaHostRegister(h_v.get(), field_size * sizeof(T), cudaHostRegisterDefault));
+			CUDA_CHECK(cudaMemcpy(d_v.get(), other.d_v.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice));
 		}
 	}
 	ScalarField &operator=(const ScalarField &other) {
@@ -224,7 +209,7 @@ struct ScalarField {
 		for(std::size_t i = 0; i < other.field_size; i++)
 			h_v[i] = other.h_v[i];
 		if(use_gpu)
-			cudaMemcpy(d_v.get(), other.d_v.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
+			CUDA_CHECK(cudaMemcpy(d_v.get(), other.d_v.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice));
 		return *this;
 	}
 	ScalarField &operator+=(const ScalarField &other) {
@@ -242,10 +227,10 @@ struct ScalarField {
 		return *this;
 	}
 	void transfer_data_cpu_to_gpu(cudaStream_t stream) noexcept {
-		cudaMemcpyAsync(d_v.get(), h_v.get(), field_size * sizeof(T), cudaMemcpyHostToDevice, stream);
+		CUDA_CHECK(cudaMemcpyAsync(d_v.get(), h_v.get(), field_size * sizeof(T), cudaMemcpyHostToDevice, stream));
 	}
 	void transfer_data_gpu_to_cpu(cudaStream_t stream) noexcept {
-		cudaMemcpyAsync(h_v.get(), d_v.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost, stream);
+		CUDA_CHECK(cudaMemcpyAsync(h_v.get(), d_v.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost, stream));
 	}
 	ScalarFieldView<T> get_cpu_view() const noexcept {
 		return ScalarFieldView<T>(h_v.get(), num, r_max, field_size);
@@ -278,10 +263,10 @@ struct ComplexScalarField {
 			h_v[i] = { T(0.0), T(0.0) };
 		if(use_gpu) {
 			cuda::std::complex<T> *raw_d_v = nullptr;
-			cudaMalloc(&raw_d_v, field_size * sizeof(cuda::std::complex<T>));
+			CUDA_CHECK(cudaMalloc(&raw_d_v, field_size * sizeof(cuda::std::complex<T>)));
 			d_v.reset(raw_d_v);
 			
-			cudaHostRegister(h_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaHostRegisterDefault);
+			CUDA_CHECK(cudaHostRegister(h_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaHostRegisterDefault));
 			transfer_data_cpu_to_gpu(cudaStreamDefault);
 		}
 	}
@@ -293,11 +278,11 @@ struct ComplexScalarField {
 			h_v[i] = other.h_v[i];
 		if(use_gpu) {
 			cuda::std::complex<T> *raw_d_v = nullptr;
-			cudaMalloc(&raw_d_v, field_size * sizeof(cuda::std::complex<T>));
+			CUDA_CHECK(cudaMalloc(&raw_d_v, field_size * sizeof(cuda::std::complex<T>)));
 			d_v.reset(raw_d_v);
 			
-			cudaHostRegister(h_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaHostRegisterDefault);
-			cudaMemcpy(d_v.get(), other.d_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyDeviceToDevice);
+			CUDA_CHECK(cudaHostRegister(h_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaHostRegisterDefault));
+			CUDA_CHECK(cudaMemcpy(d_v.get(), other.d_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyDeviceToDevice));
 		}
 	}
 	ComplexScalarField &operator=(const ComplexScalarField &other) {
@@ -307,7 +292,7 @@ struct ComplexScalarField {
 		for(std::size_t i = 0; i < other.field_size; i++)
 			h_v[i] = other.h_v[i];
 		if(use_gpu)
-			cudaMemcpy(d_v.get(), other.d_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyDeviceToDevice);
+			CUDA_CHECK(cudaMemcpy(d_v.get(), other.d_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyDeviceToDevice));
 		return *this;
 	}
 	ComplexScalarField &operator+=(const ComplexScalarField &other) {
@@ -325,10 +310,10 @@ struct ComplexScalarField {
 		return *this;
 	}
 	void transfer_data_cpu_to_gpu(cudaStream_t stream) noexcept {
-		cudaMemcpyAsync(d_v.get(), h_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyHostToDevice, stream);
+		CUDA_CHECK(cudaMemcpyAsync(d_v.get(), h_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyHostToDevice, stream));
 	}
 	void transfer_data_gpu_to_cpu(cudaStream_t stream) noexcept {
-		cudaMemcpyAsync(h_v.get(), d_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyDeviceToHost, stream);
+		CUDA_CHECK(cudaMemcpyAsync(h_v.get(), d_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyDeviceToHost, stream));
 	}
 	ComplexScalarFieldView<T> get_cpu_view() const noexcept {
 		return ComplexScalarFieldView<T>(h_v.get(), num, r_max, field_size);
@@ -364,14 +349,14 @@ struct VectorField {
 		}
 		if(use_gpu) {
 			T *raw_d_x = nullptr, *raw_d_y = nullptr, *raw_d_z = nullptr;
-			cudaMalloc(&raw_d_x, field_size * sizeof(T));
-			cudaMalloc(&raw_d_y, field_size * sizeof(T));
-			cudaMalloc(&raw_d_z, field_size * sizeof(T));
+			CUDA_CHECK(cudaMalloc(&raw_d_x, field_size * sizeof(T)));
+			CUDA_CHECK(cudaMalloc(&raw_d_y, field_size * sizeof(T)));
+			CUDA_CHECK(cudaMalloc(&raw_d_z, field_size * sizeof(T)));
 			d_x.reset(raw_d_x); d_y.reset(raw_d_y); d_z.reset(raw_d_z);
 			
-			cudaHostRegister(h_x.get(), field_size * sizeof(T), cudaHostRegisterDefault);
-			cudaHostRegister(h_y.get(), field_size * sizeof(T), cudaHostRegisterDefault);
-			cudaHostRegister(h_z.get(), field_size * sizeof(T), cudaHostRegisterDefault);
+			CUDA_CHECK(cudaHostRegister(h_x.get(), field_size * sizeof(T), cudaHostRegisterDefault));
+			CUDA_CHECK(cudaHostRegister(h_y.get(), field_size * sizeof(T), cudaHostRegisterDefault));
+			CUDA_CHECK(cudaHostRegister(h_z.get(), field_size * sizeof(T), cudaHostRegisterDefault));
 			transfer_data_cpu_to_gpu(cudaStreamDefault);
 		}
 	}
@@ -386,17 +371,17 @@ struct VectorField {
 		}
 		if(use_gpu) {
 			T *raw_x = nullptr, *raw_y = nullptr, *raw_z = nullptr;
-			cudaMalloc(&raw_x, field_size * sizeof(T));
-			cudaMalloc(&raw_y, field_size * sizeof(T));
-			cudaMalloc(&raw_z, field_size * sizeof(T));
+			CUDA_CHECK(cudaMalloc(&raw_x, field_size * sizeof(T)));
+			CUDA_CHECK(cudaMalloc(&raw_y, field_size * sizeof(T)));
+			CUDA_CHECK(cudaMalloc(&raw_z, field_size * sizeof(T)));
 			d_x.reset(raw_x); d_y.reset(raw_y); d_z.reset(raw_z);
 			
-			cudaHostRegister(h_x.get(), field_size * sizeof(T), cudaHostRegisterDefault);
-			cudaHostRegister(h_y.get(), field_size * sizeof(T), cudaHostRegisterDefault);
-			cudaHostRegister(h_z.get(), field_size * sizeof(T), cudaHostRegisterDefault);
-			cudaMemcpy(d_x.get(), other.d_x.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
-			cudaMemcpy(d_y.get(), other.d_y.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
-			cudaMemcpy(d_z.get(), other.d_z.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
+			CUDA_CHECK(cudaHostRegister(h_x.get(), field_size * sizeof(T), cudaHostRegisterDefault));
+			CUDA_CHECK(cudaHostRegister(h_y.get(), field_size * sizeof(T), cudaHostRegisterDefault));
+			CUDA_CHECK(cudaHostRegister(h_z.get(), field_size * sizeof(T), cudaHostRegisterDefault));
+			CUDA_CHECK(cudaMemcpy(d_x.get(), other.d_x.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice));
+			CUDA_CHECK(cudaMemcpy(d_y.get(), other.d_y.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice));
+			CUDA_CHECK(cudaMemcpy(d_z.get(), other.d_z.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice));
 		}
 	}
 	VectorField &operator=(const VectorField &other) {
@@ -407,9 +392,9 @@ struct VectorField {
 			h_x[i] = other.h_x[i]; h_y[i] = other.h_y[i]; h_z[i] = other.h_z[i];
 		}
 		if(use_gpu) {
-			cudaMemcpy(d_x.get(), other.d_x.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
-			cudaMemcpy(d_y.get(), other.d_y.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
-			cudaMemcpy(d_z.get(), other.d_z.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice);
+			CUDA_CHECK(cudaMemcpy(d_x.get(), other.d_x.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice));
+			CUDA_CHECK(cudaMemcpy(d_y.get(), other.d_y.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice));
+			CUDA_CHECK(cudaMemcpy(d_z.get(), other.d_z.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice));
 		}
 		return *this;
 	}
@@ -430,14 +415,14 @@ struct VectorField {
 		return *this;
 	}
 	void transfer_data_cpu_to_gpu(cudaStream_t stream) noexcept {
-		cudaMemcpyAsync(d_x.get(), h_x.get(), field_size * sizeof(T), cudaMemcpyHostToDevice, stream);
-		cudaMemcpyAsync(d_y.get(), h_y.get(), field_size * sizeof(T), cudaMemcpyHostToDevice, stream);
-		cudaMemcpyAsync(d_z.get(), h_z.get(), field_size * sizeof(T), cudaMemcpyHostToDevice, stream);
+		CUDA_CHECK(cudaMemcpyAsync(d_x.get(), h_x.get(), field_size * sizeof(T), cudaMemcpyHostToDevice, stream));
+		CUDA_CHECK(cudaMemcpyAsync(d_y.get(), h_y.get(), field_size * sizeof(T), cudaMemcpyHostToDevice, stream));
+		CUDA_CHECK(cudaMemcpyAsync(d_z.get(), h_z.get(), field_size * sizeof(T), cudaMemcpyHostToDevice, stream));
 	}
 	void transfer_data_gpu_to_cpu(cudaStream_t stream) noexcept {
-		cudaMemcpyAsync(h_x.get(), d_x.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost, stream);
-		cudaMemcpyAsync(h_y.get(), d_y.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost, stream);
-		cudaMemcpyAsync(h_z.get(), d_z.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost, stream);
+		CUDA_CHECK(cudaMemcpyAsync(h_x.get(), d_x.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost, stream));
+		CUDA_CHECK(cudaMemcpyAsync(h_y.get(), d_y.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost, stream));
+		CUDA_CHECK(cudaMemcpyAsync(h_z.get(), d_z.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost, stream));
 	}
 	VectorFieldView<T> get_cpu_view() const noexcept {
 		return VectorFieldView<T>(h_x.get(), h_y.get(), h_z.get(), num, r_max, field_size);

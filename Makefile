@@ -1,7 +1,8 @@
 CC = nvcc
 OPT_FLAG = -O3
+OPT_FLAG_CUDA =
 WARNINGS = -Wall -Wextra -Wshadow
-CFLAGS = -std=c++20 -arch=native -dlto -Iinclude -Xcompiler "$(OPT_FLAG) -march=native -fopenmp $(WARNINGS)" -MMD -MP -g
+CFLAGS = -std=c++20 -arch=native $(OPT_FLAG_CUDA) -dlto -Iinclude -Xcompiler "$(OPT_FLAG) -march=native -fopenmp $(WARNINGS)" -MMD -MP -g
 LDLIBS = -lm -lgomp
 
 SRC_DIR = src
@@ -24,6 +25,7 @@ OBJS = $(OBJS_CPP) $(OBJS_CU)
 all: output-dirs $(TARGET)
 
 fast: OPT_FLAG = -Ofast
+fast: OPT_FLAG_CUDA = -use_fast_math
 fast: all
 
 $(TARGET): $(OBJS) | $(BIN_DIR)
