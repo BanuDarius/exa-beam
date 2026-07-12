@@ -23,7 +23,36 @@ SOFTWARE. */
 #ifndef CUDA_EXTRA_H
 #define CUDA_EXTRA_H
 
+#include <new>
+#include <cstdint>
+
 #include <cuda_runtime.h>
+
+constexpr int mem_align = 32;
+
+template <typename T> struct CUDADeviceMemoryAdmin {
+	void operator()(T *ptr) noexcept {
+		if(ptr) cudaFree(ptr);
+	}
+};
+
+template <typename T> struct CUDAHostMemoryAdmin {
+	void operator()(T *ptr) noexcept {
+		if(ptr) { 
+			cudaError_t err = cudaHostUnregister(ptr);
+			if(err == cudaErrorHostMemoryNotRegistered) cudaGetLastError();
+			::operator delete[](ptr, static_cast<std::align_val_t>(mem_align));
+		}
+	}
+};
+
+struct MemoryAdmin {
+	void operator()(uint32_t *ptr) noexcept {
+		if(ptr) {
+			::operator delete[](ptr, static_cast<std::align_val_t>(mem_align));
+		}
+	}
+};
 
 #define CUDA_CHECK(function) \
 	do { \
@@ -33,21 +62,5 @@ SOFTWARE. */
 			std::exit(1);\
 		} \
 	} while(false)
-
-template <typename T> struct CUDADeviceMemoryAdmin {
-	void operator()(T* ptr) noexcept {
-		if(ptr) cudaFree(ptr);
-	}
-};
-
-template <typename T> struct CUDAHostMemoryAdmin {
-	void operator()(T* ptr) noexcept {
-		if(ptr) { 
-			cudaError_t err = cudaHostUnregister(ptr);
-			if(err == cudaErrorHostMemoryNotRegistered) cudaGetLastError();
-			delete[] ptr;
-		}
-	}
-};
 
 #endif
