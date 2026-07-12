@@ -102,24 +102,20 @@ __device__ __host__ inline cuda::std::array<T, 3> hc_u_plus(cuda::std::array<T, 
 template <std::floating_point T>
 inline void higuera_cary_update(Particles<T> &particles, const Laser<T> &laser, T t, T dt) noexcept {
 	ParticlesView<T> particles_view = particles.get_cpu_view();
-	T *ptr_x = std::assume_aligned<mem_align>(particles_view.x);
-	T *ptr_y = std::assume_aligned<mem_align>(particles_view.y);
-	T *ptr_z = std::assume_aligned<mem_align>(particles_view.z);
-	T *ptr_ux = std::assume_aligned<mem_align>(particles_view.ux);
-	T *ptr_uy = std::assume_aligned<mem_align>(particles_view.uy);
-	T *ptr_uz = std::assume_aligned<mem_align>(particles_view.uz);
-	T *ptr_gamma = std::assume_aligned<mem_align>(particles_view.gamma);
-	
-	particles_view.x = ptr_x; particles_view.y = ptr_y; particles_view.z = ptr_z;
-	particles_view.ux = ptr_ux; particles_view.uy = ptr_uy; particles_view.uz = ptr_uz;
-	particles_view.gamma = ptr_gamma;
+	T *__restrict__ ptr_x = std::assume_aligned<mem_align>(particles_view.x);
+	T *__restrict__ ptr_y = std::assume_aligned<mem_align>(particles_view.y);
+	T *__restrict__ ptr_z = std::assume_aligned<mem_align>(particles_view.z);
+	T *__restrict__ ptr_ux = std::assume_aligned<mem_align>(particles_view.ux);
+	T *__restrict__ ptr_uy = std::assume_aligned<mem_align>(particles_view.uy);
+	T *__restrict__ ptr_uz = std::assume_aligned<mem_align>(particles_view.uz);
+	T *__restrict__ ptr_gamma = std::assume_aligned<mem_align>(particles_view.gamma);
 	
 	#pragma omp parallel for simd schedule(static) \
 		aligned(ptr_x, ptr_y, ptr_z, ptr_ux, ptr_uy, ptr_uz, ptr_gamma : mem_align)
 	for(std::size_t idx = 0; idx < particles.particle_num; idx++) {
-		cuda::std::array<T, 3> r_vec = particles_view.get_position(idx);
-		cuda::std::array<T, 3> u_vec = particles_view.get_velocity(idx);
-		T gamma = particles_view.get_gamma(idx);
+		cuda::std::array<T, 3> r_vec = { ptr_x[idx], ptr_y[idx], ptr_z[idx] };
+		cuda::std::array<T, 3> u_vec = { ptr_ux[idx], ptr_uy[idx], ptr_uz[idx] };
+		T gamma = ptr_gamma[idx];
 		
 		T half_dt = T(0.5) * dt, half_dt_gamma = half_dt / gamma;
 		r_vec += u_vec * half_dt_gamma;
@@ -142,10 +138,10 @@ inline void higuera_cary_update(Particles<T> &particles, const Laser<T> &laser, 
 		gamma = comp_gamma(u_final);
 		half_dt_gamma = T(0.5) * dt / gamma;
 		r_vec += u_final * half_dt_gamma;
-
-		particles_view.set_position(r_vec, idx);
-		particles_view.set_velocity(u_final, idx);
-		particles_view.set_gamma(gamma, idx);
+		
+		ptr_x[idx] = r_vec[0]; ptr_y[idx] = r_vec[1]; ptr_z[idx] = r_vec[2];
+		ptr_ux[idx] = u_final[0]; ptr_uy[idx] = u_final[1]; ptr_uz[idx] = u_final[2];
+		ptr_gamma[idx] = gamma;
 	}
 }
 
