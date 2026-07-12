@@ -41,11 +41,11 @@ steps = 5000
 substeps = 100
 max_dim_mult = 3.0
 
-nx = 64
+nx = 128
 a0 = 0.5
 p = 0
 m = 0
-tau = 10.0
+tau = 4.0
 omega = 0.057
 w0_mult = 2.0
 psi = -0.5 * c * tau

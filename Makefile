@@ -1,8 +1,15 @@
-CC = nvcc
+CXX = g++
+NVCC = nvcc
+
+CUDA_PATH = /usr/local/cuda
 OPT_FLAG = -O3
-OPT_FLAG_CUDA =
+OPT_FLAG_CUDA = 
 WARNINGS = -Wall -Wextra -Wshadow
-CFLAGS = -std=c++20 -arch=native $(OPT_FLAG_CUDA) -dlto -Iinclude -Xcompiler "$(OPT_FLAG) -march=native -fopenmp $(WARNINGS)" -MMD -MP -g
+
+CXXFLAGS = -std=c++20 $(OPT_FLAG) -march=native -fopenmp -flto $(WARNINGS) -Iinclude -I$(CUDA_PATH)/include/cccl -I$(CUDA_PATH)/include -MMD -MP -g
+NVCCFLAGS = -std=c++20 -arch=native $(OPT_FLAG_CUDA) -Iinclude -MMD -MP -g
+
+LDFLAGS = -Xcompiler "$(OPT_FLAG) -march=native -fopenmp -flto"
 LDLIBS = -lm -lgomp
 
 SRC_DIR = src
@@ -15,11 +22,10 @@ OUTPUT_IMAGE = output-image
 TARGET = $(BIN_DIR)/exa_beam
 
 SRCS_CPP = $(wildcard $(SRC_DIR)/*.cpp)
-SRCS_CU  = $(wildcard $(SRC_DIR)/*.cu)
+SRCS_CU = $(wildcard $(SRC_DIR)/*.cu)
 
 OBJS_CPP = $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SRCS_CPP))
-OBJS_CU  = $(patsubst $(SRC_DIR)/%.cu, $(BUILD_DIR)/%.o, $(SRCS_CU))
-
+OBJS_CU = $(patsubst $(SRC_DIR)/%.cu, $(BUILD_DIR)/%.o, $(SRCS_CU))
 OBJS = $(OBJS_CPP) $(OBJS_CU)
 
 all: output-dirs $(TARGET)
@@ -29,16 +35,16 @@ fast: OPT_FLAG_CUDA = -use_fast_math
 fast: all
 
 $(TARGET): $(OBJS) | $(BIN_DIR)
-	@$(CC) $(CFLAGS) -o $@ $^ $(LDLIBS)
+	@$(NVCC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 	$(info Linked $@.)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
-	@$(CC) $(CFLAGS) -c $< -o $@
-	$(info Compiled CPU object $@.)
+	@$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(info Compiled CPU $@.)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cu | $(BUILD_DIR)
-	@$(CC) $(CFLAGS) -c $< -o $@
-	$(info Compiled CUDA object $@.)
+	@$(NVCC) $(NVCCFLAGS) -c $< -o $@
+	$(info Compiled GPU $@.)
 
 $(BIN_DIR) $(BUILD_DIR):
 	@mkdir -p $@
