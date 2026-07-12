@@ -34,7 +34,7 @@ SOFTWARE. */
 #include "laguerre_gauss.hpp"
 
 template <std::floating_point T>
-__device__ __host__ inline T comp_gamma(cuda::std::array<T, 3> u_vec) {
+__device__ __host__ inline T comp_gamma(cuda::std::array<T, 3> u_vec) noexcept {
 	using std::sqrt;
 	T u2 = dot(u_vec, u_vec);
 	T gamma = sqrt(T(1.0) + u2 / (c<T> * c<T>));
@@ -135,7 +135,20 @@ inline void higuera_cary_step(ParticlesView<T> &particles_view, const Laser<T> &
 template <std::floating_point T>
 inline void higuera_cary_update(Particles<T> &particles, const Laser<T> &laser, T t, T dt) noexcept {
 	ParticlesView<T> particles_view = particles.get_cpu_view();
-	#pragma omp parallel for simd schedule(static)
+	T *ptr_x = std::assume_aligned<mem_align>(particles_view.x);
+	T *ptr_y = std::assume_aligned<mem_align>(particles_view.y);
+	T *ptr_z = std::assume_aligned<mem_align>(particles_view.z);
+	T *ptr_ux = std::assume_aligned<mem_align>(particles_view.ux);
+	T *ptr_uy = std::assume_aligned<mem_align>(particles_view.uy);
+	T *ptr_uz = std::assume_aligned<mem_align>(particles_view.uz);
+	T *ptr_gamma = std::assume_aligned<mem_align>(particles_view.gamma);
+	
+	particles_view.x = ptr_x; particles_view.y = ptr_y; particles_view.z = ptr_z;
+	particles_view.ux = ptr_ux; particles_view.uy = ptr_uy; particles_view.uz = ptr_uz;
+	particles_view.gamma = ptr_gamma;
+	
+	#pragma omp parallel for simd schedule(static) \
+		aligned(ptr_x, ptr_y, ptr_z, ptr_ux, ptr_uy, ptr_uz, ptr_gamma : mem_align)
 	for(std::size_t i = 0; i < particles.particle_num; i++)
 		higuera_cary_step(particles_view, laser, t, dt, i);
 }

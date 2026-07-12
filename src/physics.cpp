@@ -29,19 +29,32 @@ SOFTWARE. */
 
 template <std::floating_point T>
 void compute_lz(ScalarField<T> &lz_field, Particles<T> &particles) noexcept {
-	const int nx = particles.num[0], ny = particles.num[1], nz = particles.num[2];
+	int nx = particles.num[0], ny = particles.num[1], nz = particles.num[2];
 	ScalarFieldView lz_field_view = lz_field.get_cpu_view();
-	#pragma omp parallel for collapse(3) schedule(static)
+	ParticlesView particles_view = particles.get_cpu_view();
+	T *ptr_v = std::assume_aligned<mem_align>(lz_field_view.v);
+	T *ptr_x = std::assume_aligned<mem_align>(particles_view.x);
+	T *ptr_y = std::assume_aligned<mem_align>(particles_view.y);
+	T *ptr_z = std::assume_aligned<mem_align>(particles_view.z);
+	T *ptr_ux = std::assume_aligned<mem_align>(particles_view.ux);
+	T *ptr_uy = std::assume_aligned<mem_align>(particles_view.uy);
+	T *ptr_uz = std::assume_aligned<mem_align>(particles_view.uz);
+	particles_view.x = ptr_x; particles_view.y = ptr_y; particles_view.z = ptr_z;
+	particles_view.ux = ptr_ux; particles_view.uy = ptr_uy; particles_view.uz = ptr_uz;
+	lz_field_view.v = ptr_v;
+	
+	#pragma omp parallel for simd collapse(3) schedule(static) \
+		aligned(ptr_v, ptr_x, ptr_y, ptr_z, ptr_ux, ptr_uy, ptr_uz : mem_align)
 	for(int i = 0; i < nx; i++) {
 		for(int j = 0; j < ny; j++) {
 			for(int k = 0; k < nz; k++) {
-				const std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-				const cuda::std::array<T, 3> r_vec = particles.get_cpu_view().get_position(idx);
-				const cuda::std::array<T, 3> u_vec = particles.get_cpu_view().get_velocity(idx);
-				const T x = r_vec[0], y = r_vec[1];
-				const T ux = u_vec[0], uy = u_vec[1];
+				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
+				cuda::std::array<T, 3> r_vec = particles_view.get_position(idx);
+				cuda::std::array<T, 3> u_vec = particles_view.get_velocity(idx);
+				T x = r_vec[0], y = r_vec[1];
+				T ux = u_vec[0], uy = u_vec[1];
 				
-				const T lz = m_e<T> * (x * uy - y * ux);
+				T lz = m_e<T> * (x * uy - y * ux);
 				
 				lz_field_view.set_field(lz, idx);
 			}
@@ -51,24 +64,28 @@ void compute_lz(ScalarField<T> &lz_field, Particles<T> &particles) noexcept {
 
 template <std::floating_point T>
 void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser) noexcept {
-	const int nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
-	const T r_max_x = u_field.r_max[0], r_max_y = u_field.r_max[1], r_max_z = u_field.r_max[2], z_r = laser.z_r, w0 = laser.w0;
+	int nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
+	T r_max_x = u_field.r_max[0], r_max_y = u_field.r_max[1], r_max_z = u_field.r_max[2], z_r = laser.z_r, w0 = laser.w0;
 	ComplexScalarFieldView u_field_view = u_field.get_cpu_view();
-	#pragma omp parallel for collapse(3) schedule(static)
+	cuda::std::complex<T> *ptr_v = std::assume_aligned<mem_align>(u_field_view.v);
+	u_field_view.v = ptr_v;
+	
+	#pragma omp parallel for simd collapse(3) schedule(static) \
+		aligned(ptr_v : mem_align)
 	for(int i = 0; i < nx; i++) {
 		for(int j = 0; j < ny; j++) {
 			for(int k = 0; k < nz; k++) {
-				const cuda::std::array<T, 3> r_vec = {
+				cuda::std::array<T, 3> r_vec = {
 					interpolate(-r_max_x, r_max_x, static_cast<T>(i), static_cast<T>(nx)),
 					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
 					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
 				};
-				const T z = r_vec[2];
-				const T r_z = compute_r_z(z, z_r);
-				const T w_z = compute_w_z(w0, z, z_r);
+				T z = r_vec[2];
+				T r_z = compute_r_z(z, z_r);
+				T w_z = compute_w_z(w0, z, z_r);
 				
-				const cuda::std::complex<T> u_i = compute_u(laser, r_vec, r_z, w_z);
-				const std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
+				cuda::std::complex<T> u_i = compute_u(laser, r_vec, r_z, w_z);
+				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				
 				u_field_view.set_field(u_i, idx);
 			}
@@ -78,10 +95,23 @@ void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser) noex
 
 template <std::floating_point T>
 void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const ComplexScalarField<T> &u_field, const Laser<T> &laser, T t) noexcept {
-	const int nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
-	const T r_max_x = e_field.r_max[0], r_max_y = e_field.r_max[1], r_max_z = e_field.r_max[2];
+	int nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
+	T r_max_x = e_field.r_max[0], r_max_y = e_field.r_max[1], r_max_z = e_field.r_max[2];
+	ComplexScalarFieldView u_field_view = u_field.get_cpu_view();
 	VectorFieldView e_field_view = e_field.get_cpu_view(), b_field_view = b_field.get_cpu_view();
-	#pragma omp parallel for collapse(3) schedule(static)
+	T *ptr_x_e = std::assume_aligned<mem_align>(e_field_view.x);
+	T *ptr_y_e = std::assume_aligned<mem_align>(e_field_view.y);
+	T *ptr_z_e = std::assume_aligned<mem_align>(e_field_view.z);
+	T *ptr_x_b = std::assume_aligned<mem_align>(b_field_view.x);
+	T *ptr_y_b = std::assume_aligned<mem_align>(b_field_view.y);
+	T *ptr_z_b = std::assume_aligned<mem_align>(b_field_view.z);
+	cuda::std::complex<T> *ptr_v = std::assume_aligned<mem_align>(u_field_view.v);
+	e_field_view.x = ptr_x_e; e_field_view.y = ptr_y_e; e_field_view.z = ptr_z_e;
+	b_field_view.x = ptr_x_b; b_field_view.y = ptr_y_b; b_field_view.z = ptr_z_b;
+	u_field_view.v = ptr_v;
+	
+	#pragma omp parallel for simd collapse(3) schedule(static) \
+		aligned(ptr_x_e, ptr_y_e, ptr_z_e, ptr_x_b, ptr_y_b, ptr_z_b, ptr_v : mem_align)
 	for(int i = 0; i < nx; i++) {
 		for(int j = 0; j < ny; j++) {
 			for(int k = 0; k < nz; k++) {
@@ -90,9 +120,8 @@ void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const Co
 					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
 					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
 				};
-				const std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
+				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				
-				ComplexScalarFieldView<T> u_field_view = u_field.get_cpu_view();
 				EBVectors<T> eb_vec = compute_eb(u_field_view, laser, r_vec, t, idx);
 				
 				e_field_view.set_field(eb_vec.e, idx);

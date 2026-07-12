@@ -29,8 +29,8 @@ c = 137.036
 
 # ---------------------------------------------------------- #
 
-use_gpu = False
-use_floats = False
+use_gpu = True
+use_floats = True
 
 zeta_x_real = 0.707
 zeta_x_imag = 0.000
@@ -41,8 +41,8 @@ steps = 5000
 substeps = 100
 max_dim_mult = 3.0
 
-nx = 32
-a0 = 1.0
+nx = 128
+a0 = 0.5
 p = 0
 m = 0
 tau = 10.0

@@ -32,16 +32,16 @@ SOFTWARE. */
 
 template <std::floating_point T>
 __global__ void compute_lz_gpu_kernel(ScalarFieldView<T> lz_view, ParticlesView<T> particles_view) {
-	const std::size_t particle_num = particles_view.particle_num;
+	std::size_t particle_num = particles_view.particle_num;
 	
-	const std::size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+	std::size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
 	if(idx < particle_num) {
-		const cuda::std::array<T, 3> r_vec = particles_view.get_position(idx);
-		const cuda::std::array<T, 3> u_vec = particles_view.get_velocity(idx);
-		const T x = r_vec[0], y = r_vec[1];
-		const T ux = u_vec[0], uy = u_vec[1];
+		cuda::std::array<T, 3> r_vec = particles_view.get_position(idx);
+		cuda::std::array<T, 3> u_vec = particles_view.get_velocity(idx);
+		T x = r_vec[0], y = r_vec[1];
+		T ux = u_vec[0], uy = u_vec[1];
 		
-		const T lz = m_e<T> * (x * uy - y * ux);
+		T lz = m_e<T> * (x * uy - y * ux);
 		
 		lz_view.set_field(lz, idx);
 	}
@@ -49,26 +49,26 @@ __global__ void compute_lz_gpu_kernel(ScalarFieldView<T> lz_view, ParticlesView<
 
 template <std::floating_point T>
 __global__ void compute_u_field_gpu_kernel(ComplexScalarFieldView<T> u_field_view, Laser<T> laser) {
-	const T z_r = laser.z_r, w0 = laser.w0;
-	const T r_max_x = u_field_view.r_max[0], r_max_y = u_field_view.r_max[1], r_max_z = u_field_view.r_max[2];
-	const int nx = u_field_view.num[0], ny = u_field_view.num[1], nz = u_field_view.num[2];
-	const std::size_t field_size = u_field_view.field_size;
+	T z_r = laser.z_r, w0 = laser.w0;
+	T r_max_x = u_field_view.r_max[0], r_max_y = u_field_view.r_max[1], r_max_z = u_field_view.r_max[2];
+	int nx = u_field_view.num[0], ny = u_field_view.num[1], nz = u_field_view.num[2];
+	std::size_t field_size = u_field_view.field_size;
 	
-	const int i = blockIdx.x * blockDim.x + threadIdx.x;
-	const int j = blockIdx.y * blockDim.y + threadIdx.y;
-	const int k = blockIdx.z * blockDim.z + threadIdx.z;
+	int i = blockIdx.z * blockDim.z + threadIdx.z;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	int k = blockIdx.x * blockDim.x + threadIdx.x;
 	if(i < nx && j < ny && k < nz) {
-		const std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-		const cuda::std::array<T, 3> r_vec = {
+		std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
+		cuda::std::array<T, 3> r_vec = {
 			interpolate(-r_max_x, r_max_x, static_cast<T>(i), static_cast<T>(nx)),
 			interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
 			interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
 		};
-		const T z = r_vec[2];
-		const T r_z = compute_r_z(z, z_r);
-		const T w_z = compute_w_z(w0, z, z_r);
+		T z = r_vec[2];
+		T r_z = compute_r_z(z, z_r);
+		T w_z = compute_w_z(w0, z, z_r);
 		
-		const cuda::std::complex<T> u_i = compute_u(laser, r_vec, r_z, w_z);
+		cuda::std::complex<T> u_i = compute_u(laser, r_vec, r_z, w_z);
 		
 		u_field_view.set_field(u_i, idx);
 	}
@@ -76,17 +76,17 @@ __global__ void compute_u_field_gpu_kernel(ComplexScalarFieldView<T> u_field_vie
 
 template <std::floating_point T>
 __global__ void compute_eb_field_gpu_kernel(VectorFieldView<T> e_field_view, VectorFieldView<T> b_field_view, ComplexScalarFieldView<T> u_field_view, Laser<T> laser, T t) {
-	const T z_r = laser.z_r, w0 = laser.w0;
-	const T r_max_x = e_field_view.r_max[0], r_max_y = e_field_view.r_max[1], r_max_z = e_field_view.r_max[2];
-	const int nx = e_field_view.num[0], ny = e_field_view.num[1], nz = e_field_view.num[2];
-	const std::size_t field_size = e_field_view.field_size;
+	T z_r = laser.z_r, w0 = laser.w0;
+	T r_max_x = e_field_view.r_max[0], r_max_y = e_field_view.r_max[1], r_max_z = e_field_view.r_max[2];
+	int nx = e_field_view.num[0], ny = e_field_view.num[1], nz = e_field_view.num[2];
+	std::size_t field_size = e_field_view.field_size;
 	
-	const int i = blockIdx.x * blockDim.x + threadIdx.x;
-	const int j = blockIdx.y * blockDim.y + threadIdx.y;
-	const int k = blockIdx.z * blockDim.z + threadIdx.z;
+	int i = blockIdx.z * blockDim.z + threadIdx.z;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	int k = blockIdx.x * blockDim.x + threadIdx.x;
 	if(i < nx && j < ny && k < nz) {
-		const std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-		const cuda::std::array<T, 3> r_vec = {
+		std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
+		cuda::std::array<T, 3> r_vec = {
 			interpolate(-r_max_x, r_max_x, static_cast<T>(i), static_cast<T>(nx)),
 			interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
 			interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
@@ -112,11 +112,11 @@ void compute_lz_gpu(ScalarField<T> &lz_field, Particles<T> &particles) noexcept 
 template <std::floating_point T>
 void compute_u_field_gpu(ComplexScalarField<T> &u_field, const Laser<T> &laser) noexcept {
 	int nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
-	dim3 threads(threads_3d_nx, threads_3d_nx, threads_3d_nx);
+	dim3 threads(threads_3d_nx, threads_3d_ny, threads_3d_nz);
 	dim3 blocks(
-		(nx + threads.x - 1) / threads.x,
-		(ny + threads.x - 1) / threads.y,
-		(nz + threads.x - 1) / threads.z
+		(nz + threads.x - 1) / threads.x,
+		(ny + threads.y - 1) / threads.y,
+		(nx + threads.z - 1) / threads.z
 	);
 	
 	ComplexScalarFieldView<T> u_field_view = u_field.get_gpu_view();
@@ -126,11 +126,11 @@ void compute_u_field_gpu(ComplexScalarField<T> &u_field, const Laser<T> &laser) 
 template <std::floating_point T>
 void compute_eb_field_gpu(VectorField<T> &e_field, VectorField<T> &b_field, ComplexScalarField<T> &u_field, const Laser<T> &laser, T t) noexcept {
 	int nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
-	dim3 threads(threads_3d_nx, threads_3d_nx, threads_3d_nx);
+	dim3 threads(threads_3d_nx, threads_3d_ny, threads_3d_nz);
 	dim3 blocks(
-		(nx + threads.x - 1) / threads.x,
-		(ny + threads.x - 1) / threads.y,
-		(nz + threads.x - 1) / threads.z
+		(nz + threads.x - 1) / threads.x,
+		(ny + threads.y - 1) / threads.y,
+		(nx + threads.z - 1) / threads.z
 	);
 	
 	VectorFieldView<T> e_field_view = e_field.get_gpu_view();

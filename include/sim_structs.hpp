@@ -38,8 +38,6 @@ SOFTWARE. */
 #include "structs_view.hpp"
 #include "math_functions.hpp"
 
-constexpr int threads_3d_nx = 8;
-constexpr int threads_1d_nx = 256;
 constexpr int input_file_count = 17;
 
 template <std::floating_point T> constexpr T m_e = T(1.0);
