@@ -75,7 +75,7 @@ __global__ void compute_u_field_gpu_kernel(ComplexScalarFieldView<T> u_field_vie
 }
 
 template <std::floating_point T>
-__global__ void compute_eb_field_gpu_kernel(VectorFieldView<T> e_field_view, VectorFieldView<T> b_field_view, cuda::std::complex<T> *__restrict__ ptr_v, Laser<T> laser, T t) {
+__global__ void compute_eb_field_gpu_kernel(VectorFieldView<T> e_field_view, VectorFieldView<T> b_field_view, ComplexScalarFieldView<T> u_field_view, Laser<T> laser, T t) {
 	T z_r = laser.z_r, w0 = laser.w0;
 	T r_max_x = e_field_view.r_max[0], r_max_y = e_field_view.r_max[1], r_max_z = e_field_view.r_max[2];
 	int nx = e_field_view.num[0], ny = e_field_view.num[1], nz = e_field_view.num[2];
@@ -91,7 +91,7 @@ __global__ void compute_eb_field_gpu_kernel(VectorFieldView<T> e_field_view, Vec
 			interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
 			interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
 		};
-		EBVectors<T> eb_vec = compute_eb(ptr_v, laser, r_vec, t, idx);
+		EBVectors<T> eb_vec = compute_eb(u_field_view, laser, r_vec, t, idx);
 		
 		e_field_view.set_field(eb_vec.e, idx);
 		b_field_view.set_field(eb_vec.b, idx);
@@ -135,8 +135,8 @@ void compute_eb_field_gpu(VectorField<T> &e_field, VectorField<T> &b_field, Comp
 	
 	VectorFieldView<T> e_field_view = e_field.get_gpu_view();
 	VectorFieldView<T> b_field_view = b_field.get_gpu_view();
-	cuda::std::complex<T> *__restrict__ ptr_v = u_field.get_gpu_view().v;
-	compute_eb_field_gpu_kernel<<<blocks, threads>>>(e_field_view, b_field_view, ptr_v, laser, t);
+	ComplexScalarFieldView<T> u_field_view = u_field.get_gpu_view();
+	compute_eb_field_gpu_kernel<<<blocks, threads>>>(e_field_view, b_field_view, u_field_view, laser, t);
 }
 
 template void compute_lz_gpu<double>(ScalarField<double> &lz_field, Particles<double> &particles) noexcept;

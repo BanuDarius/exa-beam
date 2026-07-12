@@ -113,7 +113,7 @@ __device__ __host__ inline EBVectors<T> compute_eb(const Laser<T> &laser, cuda::
 }
 
 template <std::floating_point T>
-__device__ __host__ inline EBVectors<T> compute_eb(cuda::std::complex<T> *__restrict__ ptr_v, const Laser<T> &laser, cuda::std::array<T, 3> r_vec, T t, std::size_t idx) noexcept {
+__device__ __host__ inline EBVectors<T> compute_eb(ComplexScalarFieldView<T> &u_field_view, const Laser<T> &laser, cuda::std::array<T, 3> r_vec, T t, std::size_t idx) noexcept {
 	using std::cos; using std::sin;
 	T w0 = laser.w0, k = laser.k, z_r = laser.z_r, E0 = laser.E0, tau = laser.tau, psi = laser.psi;
 	cuda::std::complex<T> zeta_x = laser.zeta_x, zeta_y = laser.zeta_y;
@@ -123,7 +123,7 @@ __device__ __host__ inline EBVectors<T> compute_eb(cuda::std::complex<T> *__rest
 	T w_z = compute_w_z(w0, z, z_r);
 	
 	T chi = laser.omega * t - k * z + psi;
-	cuda::std::complex<T> u_pm = ptr_v[idx];
+	cuda::std::complex<T> u_pm = u_field_view.get_field(idx);
 	cuda::std::complex<T> phase(cos(chi), sin(chi));
 	u_pm *= E0 * phase * env(chi, tau);
 	
