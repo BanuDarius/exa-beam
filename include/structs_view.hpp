@@ -23,6 +23,7 @@ SOFTWARE. */
 #ifndef STRUCTS_VIEW_H
 #define STRUCTS_VIEW_H
 
+#include <memory>
 #include <concepts>
 
 #include <cuda_runtime.h>

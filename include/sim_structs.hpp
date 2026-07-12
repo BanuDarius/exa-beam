@@ -172,7 +172,7 @@ struct ScalarField {
 	ScalarField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
-		r_max = { r_max_n, r_max_n, r_max_n };
+		r_max = { r_max_n, r_max_n, T(4.0) * r_max_n };
 		h_v.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
@@ -255,7 +255,7 @@ struct ComplexScalarField {
 	ComplexScalarField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
-		r_max = { r_max_n, r_max_n, r_max_n };
+		r_max = { r_max_n, r_max_n, T(4.0) * r_max_n };
 		h_v.reset(new (static_cast<std::align_val_t>(mem_align)) cuda::std::complex<T>[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
@@ -338,7 +338,7 @@ struct VectorField {
 	VectorField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
-		r_max = { r_max_n, r_max_n, r_max_n };
+		r_max = { r_max_n, r_max_n, T(4.0) * r_max_n };
 		h_x.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
 		h_y.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
 		h_z.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);

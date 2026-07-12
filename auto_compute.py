@@ -42,7 +42,7 @@ substeps = 100
 max_dim_mult = 3.0
 
 nx = 128
-a0 = 0.5
+a0 = 1.0
 p = 0
 m = 0
 tau = 4.0
