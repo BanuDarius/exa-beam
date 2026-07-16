@@ -28,11 +28,11 @@ SOFTWARE. */
 
 #include <cuda_runtime.h>
 
+constexpr int mem_align = 32;
 constexpr int threads_3d_nx = 32;
 constexpr int threads_3d_ny = 8;
 constexpr int threads_3d_nz = 2;
 constexpr int threads_1d_nx = 256;
-constexpr std::size_t mem_align = 32;
 
 template <typename T> struct CUDADeviceMemoryAdmin {
 	void operator()(T *ptr) noexcept {

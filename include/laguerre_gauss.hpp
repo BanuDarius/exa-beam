@@ -62,15 +62,31 @@ __device__ __host__ inline T compute_guoy(T z, T z_r) noexcept {
 }
 
 template <std::floating_point T>
+__device__ __host__ inline T compute_phi(T x, T y) noexcept {
+	using std::atan2;
+	T phi = atan2(y, x);
+	return phi;
+}
+
+template <std::floating_point T>
 __device__ __host__ inline cuda::std::complex<T> compute_u(const Laser<T> &laser, cuda::std::array<T, 3> r_vec, T r_z, T w_z) noexcept {
 	using std::exp; using std::cos; using std::sin;
-	T w0 = laser.w0, k = laser.k, z_r = laser.z_r, z = r_vec[2];
-	T rho2 = r_vec[0] * r_vec[0] + r_vec[1] * r_vec[1];
+	T w0 = laser.w0, k = laser.k, z_r = laser.z_r;
+	T x = r_vec[0], y = r_vec[1], z = r_vec[2];
+	T rho = sqrt(x * x + y * y);
+	T w_z2 = w_z * w_z, rho2 = rho * rho;
 	
 	T psi_g = compute_guoy(z, z_r);
+	T amplitude, phase;
 	
-	T amplitude = w0 / w_z * exp(-rho2 / (w_z * w_z));
-	T phase = -k * rho2 / (T(2.0) * r_z) + psi_g;
+	if(laser.m == 0) {
+		amplitude = w0 / w_z * exp(-rho2 / w_z2);
+		phase = - k * rho2 / (T(2.0) * r_z) + psi_g;
+	} else if(laser.m == 1) {
+		T phi = compute_phi(x, y);
+		amplitude = sqrt(T(2.0)) * w0 * rho / w_z2 * exp(- rho2 / w_z2);
+		phase = - phi - k * rho2 / (T(2.0) * r_z) + T(2.0) * psi_g;
+	}
 	
 	T real = amplitude * cos(phase);
 	T imag = amplitude * sin(phase);
@@ -87,26 +103,38 @@ __device__ __host__ inline EBVectors<T> compute_eb(const Laser<T> &laser, cuda::
 	
 	T r_z = compute_r_z(z, z_r);
 	T w_z = compute_w_z(w0, z, z_r);
-	
 	T chi = laser.omega * t - k * z + psi;
+	
 	cuda::std::complex<T> u_pm = compute_u(laser, r_vec, r_z, w_z);
 	cuda::std::complex<T> phase(cos(chi), sin(chi));
 	u_pm *= E0 * phase * env(chi, tau);
 	
 	cuda::std::complex<T> field_term(T(1.0) / r_z, -T(2.0) / (k * w_z * w_z));
 	
-	cuda::std::complex<T> e_z = field_term * u_pm * (zeta_x * x + zeta_y * y);
-	cuda::std::complex<T> b_z = field_term * u_pm * (zeta_x * y - zeta_y * x);
+	cuda::std::complex<T> e_z = field_term * (zeta_x * x + zeta_y * y);
+	cuda::std::complex<T> b_z = field_term * (zeta_x * y - zeta_y * x);
+	
+	if(laser.m == 1) {
+		T rho2 = x * x + y * y;
+		T ampl = T(1.0) / (k * rho2);
+		cuda::std::complex<T> I(T(0.0), T(1.0));
+		
+		cuda::std::complex<T> e_term = ampl * ((x * zeta_y - y * zeta_x) + I * (x * zeta_x + y * zeta_y));
+		cuda::std::complex<T> b_term = ampl * ((x * zeta_x + y * zeta_y) + I * (y * zeta_x * x * zeta_y));
+		
+		e_z += e_term;
+		b_z += b_term;
+	}
 	
 	cuda::std::array<T, 3> e_vec = {
 		cuda::std::real(u_pm * zeta_x),
 		cuda::std::real(u_pm * zeta_y),
-		cuda::std::real(e_z)
+		cuda::std::real(u_pm * e_z)
 	};
 	cuda::std::array<T, 3> b_vec = {
 		-cuda::std::real(u_pm * zeta_y) / c<T>,
 		cuda::std::real(u_pm * zeta_x) / c<T>,
-		cuda::std::real(b_z) / c<T>
+		cuda::std::real(u_pm * b_z) / c<T>
 	};
 	EBVectors eb_vec(e_vec, b_vec);
 	return eb_vec;
@@ -129,18 +157,32 @@ __device__ __host__ inline EBVectors<T> compute_eb(ComplexScalarFieldView<T> &u_
 	
 	cuda::std::complex<T> field_term(T(1.0) / r_z, -T(2.0) / (k * w_z * w_z));
 	
-	cuda::std::complex<T> e_z = field_term * u_pm * (zeta_x * x + zeta_y * y);
-	cuda::std::complex<T> b_z = field_term * u_pm * (zeta_x * y - zeta_y * x);
+	cuda::std::complex<T> e_z = field_term * (zeta_x * x + zeta_y * y);
+	cuda::std::complex<T> b_z = field_term * (zeta_x * y - zeta_y * x);
+	
+	if(laser.m == 1) {
+		T rho2 = x * x + y * y;
+		T ampl = T(1.0) / (k * rho2);
+		T real = x * cuda::std::real(zeta_y) - y * cuda::std::real(zeta_x);
+		T imag = x * cuda::std::imag(zeta_x) + y * cuda::std::imag(zeta_y);
+		cuda::std::complex<T> m_term(ampl * real, ampl * imag);
+		e_z += m_term;
+		
+		real = x * cuda::std::real(zeta_x) + y * cuda::std::real(zeta_y);
+		imag = y * cuda::std::imag(zeta_x) - x * cuda::std::imag(zeta_y);
+		m_term = { ampl * real, ampl * imag };
+		b_z += m_term;
+	}
 	
 	cuda::std::array<T, 3> e_vec = {
 		cuda::std::real(u_pm * zeta_x),
 		cuda::std::real(u_pm * zeta_y),
-		cuda::std::real(e_z)
+		cuda::std::real(u_pm * e_z)
 	};
 	cuda::std::array<T, 3> b_vec = {
 		-cuda::std::real(u_pm * zeta_y) / c<T>,
 		cuda::std::real(u_pm * zeta_x) / c<T>,
-		cuda::std::real(b_z) / c<T>
+		cuda::std::real(u_pm * b_z) / c<T>
 	};
 	EBVectors eb_vec(e_vec, b_vec);
 	return eb_vec;
