@@ -70,22 +70,23 @@ __device__ __host__ inline T compute_phi(T x, T y) noexcept {
 
 template <std::floating_point T>
 __device__ __host__ inline cuda::std::complex<T> compute_u(const Laser<T> &laser, cuda::std::array<T, 3> r_vec, T r_z, T w_z) noexcept {
-	using std::exp; using std::cos; using std::sin;
+	using std::exp; using std::cos; using std::sin; using std::abs;
 	T w0 = laser.w0, k = laser.k, z_r = laser.z_r;
 	T x = r_vec[0], y = r_vec[1], z = r_vec[2];
 	T rho = sqrt(x * x + y * y);
 	T w_z2 = w_z * w_z, rho2 = rho * rho;
+	int m = laser.m;
 	
 	T psi_g = compute_guoy(z, z_r);
-	T amplitude, phase;
+	T amplitude, phase, phi;
 	
-	if(laser.m == 0) {
+	if(m == 0) {
 		amplitude = w0 / w_z * exp(-rho2 / w_z2);
 		phase = - k * rho2 / (T(2.0) * r_z) + psi_g;
-	} else if(laser.m == 1) {
-		T phi = compute_phi(x, y);
+	} else if(abs(m) == 1) {
+		phi = compute_phi(x, y);
 		amplitude = sqrt(T(2.0)) * w0 * rho / w_z2 * exp(- rho2 / w_z2);
-		phase = - phi - k * rho2 / (T(2.0) * r_z) + T(2.0) * psi_g;
+		phase = -m * phi - k * rho2 / (T(2.0) * r_z) + T(2.0) * psi_g;
 	}
 	
 	T real = amplitude * cos(phase);
@@ -96,10 +97,11 @@ __device__ __host__ inline cuda::std::complex<T> compute_u(const Laser<T> &laser
 
 template <std::floating_point T>
 __device__ __host__ inline EBVectors<T> compute_eb(const Laser<T> &laser, cuda::std::array<T, 3> r_vec, T t) noexcept {
-	using std::cos; using std::sin;
+	using std::cos; using std::sin; using std::abs;
 	T w0 = laser.w0, k = laser.k, z_r = laser.z_r, E0 = laser.E0, tau = laser.tau, psi = laser.psi;
 	cuda::std::complex<T> zeta_x = laser.zeta_x, zeta_y = laser.zeta_y;
 	T x = r_vec[0], y = r_vec[1], z = r_vec[2];
+	int m = laser.m;
 	
 	T r_z = compute_r_z(z, z_r);
 	T w_z = compute_w_z(w0, z, z_r);
@@ -114,13 +116,14 @@ __device__ __host__ inline EBVectors<T> compute_eb(const Laser<T> &laser, cuda::
 	cuda::std::complex<T> e_z = field_term * (zeta_x * x + zeta_y * y);
 	cuda::std::complex<T> b_z = field_term * (zeta_x * y - zeta_y * x);
 	
-	if(laser.m == 1) {
+	if(abs(m) == 1) {
 		T rho2 = x * x + y * y;
 		T ampl = T(1.0) / (k * rho2);
 		cuda::std::complex<T> I(T(0.0), T(1.0));
 		
-		cuda::std::complex<T> e_term = ampl * ((x * zeta_y - y * zeta_x) + I * (x * zeta_x + y * zeta_y));
-		cuda::std::complex<T> b_term = ampl * ((x * zeta_x + y * zeta_y) + I * (y * zeta_x * x * zeta_y));
+		T m_t = static_cast<T>(m);
+		cuda::std::complex<T> e_term = ampl * (m_t * (x * zeta_y - y * zeta_x) + I * (x * zeta_x + y * zeta_y));
+		cuda::std::complex<T> b_term = ampl * (m_t * (x * zeta_x + y * zeta_y) + I * (y * zeta_x - x * zeta_y));
 		
 		e_z += e_term;
 		b_z += b_term;
