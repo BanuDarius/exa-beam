@@ -145,15 +145,16 @@ __device__ __host__ inline EBVectors<T> compute_eb(const Laser<T> &laser, cuda::
 
 template <std::floating_point T>
 __device__ __host__ inline EBVectors<T> compute_eb(ComplexScalarFieldView<T> &u_field_view, const Laser<T> &laser, cuda::std::array<T, 3> r_vec, T t, std::size_t idx) noexcept {
-	using std::cos; using std::sin;
+	using std::cos; using std::sin; using std::abs;
 	T w0 = laser.w0, k = laser.k, z_r = laser.z_r, E0 = laser.E0, tau = laser.tau, psi = laser.psi;
 	cuda::std::complex<T> zeta_x = laser.zeta_x, zeta_y = laser.zeta_y;
 	T x = r_vec[0], y = r_vec[1], z = r_vec[2];
+	int m = laser.m;
 	
 	T r_z = compute_r_z(z, z_r);
 	T w_z = compute_w_z(w0, z, z_r);
-	
 	T chi = laser.omega * t - k * z + psi;
+	
 	cuda::std::complex<T> u_pm = u_field_view.get_field(idx);
 	cuda::std::complex<T> phase(cos(chi), sin(chi));
 	u_pm *= E0 * phase * env(chi, tau);
@@ -163,18 +164,17 @@ __device__ __host__ inline EBVectors<T> compute_eb(ComplexScalarFieldView<T> &u_
 	cuda::std::complex<T> e_z = field_term * (zeta_x * x + zeta_y * y);
 	cuda::std::complex<T> b_z = field_term * (zeta_x * y - zeta_y * x);
 	
-	if(laser.m == 1) {
+	if(abs(m) == 1) {
 		T rho2 = x * x + y * y;
 		T ampl = T(1.0) / (k * rho2);
-		T real = x * cuda::std::real(zeta_y) - y * cuda::std::real(zeta_x);
-		T imag = x * cuda::std::imag(zeta_x) + y * cuda::std::imag(zeta_y);
-		cuda::std::complex<T> m_term(ampl * real, ampl * imag);
-		e_z += m_term;
+		cuda::std::complex<T> I(T(0.0), T(1.0));
 		
-		real = x * cuda::std::real(zeta_x) + y * cuda::std::real(zeta_y);
-		imag = y * cuda::std::imag(zeta_x) - x * cuda::std::imag(zeta_y);
-		m_term = { ampl * real, ampl * imag };
-		b_z += m_term;
+		T m_t = static_cast<T>(m);
+		cuda::std::complex<T> e_term = ampl * (m_t * (x * zeta_y - y * zeta_x) + I * (x * zeta_x + y * zeta_y));
+		cuda::std::complex<T> b_term = ampl * (m_t * (x * zeta_x + y * zeta_y) + I * (y * zeta_x - x * zeta_y));
+		
+		e_z += e_term;
+		b_z += b_term;
 	}
 	
 	cuda::std::array<T, 3> e_vec = {
