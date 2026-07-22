@@ -64,13 +64,13 @@ __device__ __host__ inline cuda::std::array<T, 3> cross(cuda::std::array<T, 3> a
 }
 
 template <std::floating_point T>
-__device__ __host__ inline cuda::std::array<T, 3> operator+(cuda::std::array<T, 3> a, const cuda::std::array<T, 3> b) noexcept {
+__device__ __host__ inline cuda::std::array<T, 3> operator+(cuda::std::array<T, 3> a, cuda::std::array<T, 3> b) noexcept {
 	cuda::std::array<T, 3> x = { a[0] + b[0], a[1] + b[1], a[2] + b[2] };
 	return x;
 }
 
 template <std::floating_point T>
-__device__ __host__ inline cuda::std::array<T, 3> operator-(cuda::std::array<T, 3> a, const cuda::std::array<T, 3> b) noexcept {
+__device__ __host__ inline cuda::std::array<T, 3> operator-(cuda::std::array<T, 3> a, cuda::std::array<T, 3> b) noexcept {
 	cuda::std::array<T, 3> x = { a[0] - b[0], a[1] - b[1], a[2] - b[2] };
 	return x;
 }
