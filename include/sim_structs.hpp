@@ -23,7 +23,6 @@ SOFTWARE. */
 #ifndef SIM_STRUCTS_H
 #define SIM_STRUCTS_H
 
-#include <new>
 #include <memory>
 #include <cstdint>
 #include <cassert>
@@ -83,13 +82,13 @@ struct Particles {
 		particle_num = nx * ny * nz;
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n, T(4.0) * r_max_n };
-		h_x.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
-		h_y.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
-		h_z.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
-		h_ux.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
-		h_uy.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
-		h_uz.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
-		h_gamma.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
+		h_x.reset(new T[particle_num]);
+		h_y.reset(new T[particle_num]);
+		h_z.reset(new T[particle_num]);
+		h_ux.reset(new T[particle_num]);
+		h_uy.reset(new T[particle_num]);
+		h_uz.reset(new T[particle_num]);
+		h_gamma.reset(new T[particle_num]);
 		#pragma omp parallel for simd collapse(3) schedule(static)
 		for(int i = 0; i < nx; i++) {
 			for(int j = 0; j < ny; j++) {
@@ -173,7 +172,7 @@ struct ScalarField {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n, T(4.0) * r_max_n };
-		h_v.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
+		h_v.reset(new T[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			h_v[i] = T(0.0);
@@ -188,7 +187,7 @@ struct ScalarField {
 	}
 	ScalarField(const ScalarField &other)
 		: field_size(other.field_size), num(other.num), r_max(other.r_max), use_gpu(other.use_gpu) {
-		h_v.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
+		h_v.reset(new T[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			h_v[i] = other.h_v[i];
@@ -204,25 +203,34 @@ struct ScalarField {
 	ScalarField &operator=(const ScalarField &other) {
 		if(this == &other) return *this;
 		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
-		#pragma omp parallel for simd schedule(static)
-		for(std::size_t i = 0; i < other.field_size; i++)
-			h_v[i] = other.h_v[i];
-		if(use_gpu)
+		if(!use_gpu) {
+			#pragma omp parallel for simd schedule(static)
+			for(std::size_t i = 0; i < other.field_size; i++)
+				h_v[i] = other.h_v[i];
+		} else
 			CUDA_CHECK(cudaMemcpy(d_v.get(), other.d_v.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice));
 		return *this;
 	}
 	ScalarField &operator+=(const ScalarField &other) {
 		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
-		#pragma omp parallel for simd schedule(static)
-		for(std::size_t i = 0; i < other.field_size; i++)
-			h_v[i] += other.h_v[i];
+		if(!use_gpu) {
+			#pragma omp parallel for simd schedule(static)
+			for(std::size_t i = 0; i < other.field_size; i++)
+				h_v[i] += other.h_v[i];
+		} else {
+			std::fprintf(stderr, "Struct operation not implemented yet\n"); std::exit(1);
+		}
 		return *this;
 	}
 	ScalarField &operator-=(const ScalarField &other) {
 		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
-		#pragma omp parallel for simd schedule(static)
-		for(std::size_t i = 0; i < other.field_size; i++)
-			h_v[i] -= other.h_v[i];
+		if(!use_gpu) {
+			#pragma omp parallel for simd schedule(static)
+			for(std::size_t i = 0; i < other.field_size; i++)
+				h_v[i] -= other.h_v[i];
+		} else {
+			std::fprintf(stderr, "Struct operation not implemented yet\n"); std::exit(1);
+		}
 		return *this;
 	}
 	void transfer_data_cpu_to_gpu(cudaStream_t stream) noexcept {
@@ -256,7 +264,7 @@ struct ComplexScalarField {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n, T(4.0) * r_max_n };
-		h_v.reset(new (static_cast<std::align_val_t>(mem_align)) cuda::std::complex<T>[field_size]);
+		h_v.reset(new cuda::std::complex<T>[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			h_v[i] = { T(0.0), T(0.0) };
@@ -271,7 +279,7 @@ struct ComplexScalarField {
 	}
 	ComplexScalarField(const ComplexScalarField &other)
 		: field_size(other.field_size), num(other.num), r_max(other.r_max), use_gpu(other.use_gpu) {
-		h_v.reset(new (static_cast<std::align_val_t>(mem_align)) cuda::std::complex<T>[field_size]);
+		h_v.reset(new cuda::std::complex<T>[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			h_v[i] = other.h_v[i];
@@ -287,25 +295,34 @@ struct ComplexScalarField {
 	ComplexScalarField &operator=(const ComplexScalarField &other) {
 		if(this == &other) return *this;
 		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
-		#pragma omp parallel for simd schedule(static)
-		for(std::size_t i = 0; i < other.field_size; i++)
-			h_v[i] = other.h_v[i];
-		if(use_gpu)
+		if(!use_gpu) {
+			#pragma omp parallel for simd schedule(static)
+			for(std::size_t i = 0; i < other.field_size; i++)
+				h_v[i] = other.h_v[i];
+		} else
 			CUDA_CHECK(cudaMemcpy(d_v.get(), other.d_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyDeviceToDevice));
 		return *this;
 	}
 	ComplexScalarField &operator+=(const ComplexScalarField &other) {
 		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
-		#pragma omp parallel for simd schedule(static)
-		for(std::size_t i = 0; i < other.field_size; i++)
-			h_v[i] += other.h_v[i];
+		if(!use_gpu) {
+			#pragma omp parallel for simd schedule(static)
+			for(std::size_t i = 0; i < other.field_size; i++)
+				h_v[i] += other.h_v[i];
+		} else {
+			std::fprintf(stderr, "Struct operation not implemented yet\n"); std::exit(1);
+		}
 		return *this;
 	}
 	ComplexScalarField &operator-=(const ComplexScalarField &other) {
 		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
-		#pragma omp parallel for simd schedule(static)
-		for(std::size_t i = 0; i < other.field_size; i++)
-			h_v[i] -= other.h_v[i];
+		if(!use_gpu) {
+			#pragma omp parallel for simd schedule(static)
+			for(std::size_t i = 0; i < other.field_size; i++)
+				h_v[i] -= other.h_v[i];
+		} else {
+			std::fprintf(stderr, "Struct operation not implemented yet\n"); std::exit(1);
+		}
 		return *this;
 	}
 	void transfer_data_cpu_to_gpu(cudaStream_t stream) noexcept {
@@ -339,9 +356,9 @@ struct VectorField {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
 		r_max = { r_max_n, r_max_n, T(4.0) * r_max_n };
-		h_x.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
-		h_y.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
-		h_z.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
+		h_x.reset(new T[field_size]);
+		h_y.reset(new T[field_size]);
+		h_z.reset(new T[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++) {
 			h_x[i] = T(0.0); h_y[i] = T(0.0); h_z[i] = T(0.0);
@@ -361,9 +378,9 @@ struct VectorField {
 	}
 	VectorField(const VectorField &other)
 		: field_size(other.field_size), num(other.num), r_max(other.r_max), use_gpu(other.use_gpu) {
-		h_x.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
-		h_y.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
-		h_z.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
+		h_x.reset(new T[field_size]);
+		h_y.reset(new T[field_size]);
+		h_z.reset(new T[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++) {
 			h_x[i] = other.h_x[i]; h_y[i] = other.h_y[i]; h_z[i] = other.h_z[i];
@@ -386,11 +403,12 @@ struct VectorField {
 	VectorField &operator=(const VectorField &other) {
 		if(this == &other) return *this;
 		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
-		#pragma omp parallel for simd schedule(static)
-		for(std::size_t i = 0; i < other.field_size; i++) {
-			h_x[i] = other.h_x[i]; h_y[i] = other.h_y[i]; h_z[i] = other.h_z[i];
-		}
-		if(use_gpu) {
+		if(!use_gpu) {
+			#pragma omp parallel for simd schedule(static)
+			for(std::size_t i = 0; i < other.field_size; i++) {
+				h_x[i] = other.h_x[i]; h_y[i] = other.h_y[i]; h_z[i] = other.h_z[i];
+			}
+		} else {
 			CUDA_CHECK(cudaMemcpy(d_x.get(), other.d_x.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice));
 			CUDA_CHECK(cudaMemcpy(d_y.get(), other.d_y.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice));
 			CUDA_CHECK(cudaMemcpy(d_z.get(), other.d_z.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice));
@@ -399,17 +417,25 @@ struct VectorField {
 	}
 	VectorField &operator+=(const VectorField &other) {
 		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
-		#pragma omp parallel for simd schedule(static)
-		for(std::size_t i = 0; i < other.field_size; i++) {
-			h_x[i] += other.h_x[i]; h_y[i] += other.h_y[i]; h_z[i] += other.h_z[i];
+		if(!use_gpu) {
+			#pragma omp parallel for simd schedule(static)
+			for(std::size_t i = 0; i < other.field_size; i++) {
+				h_x[i] += other.h_x[i]; h_y[i] += other.h_y[i]; h_z[i] += other.h_z[i];
+			}
+		} else {
+			std::fprintf(stderr, "Struct operation not implemented yet\n"); std::exit(1);
 		}
 		return *this;
 	}
 	VectorField &operator-=(const VectorField &other) {
 		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
-		#pragma omp parallel for simd schedule(static)
-		for(std::size_t i = 0; i < other.field_size; i++) {
-			h_x[i] -= other.h_x[i]; h_y[i] -= other.h_y[i]; h_z[i] -= other.h_z[i];
+		if(!use_gpu) {
+			#pragma omp parallel for simd schedule(static)
+			for(std::size_t i = 0; i < other.field_size; i++) {
+				h_x[i] -= other.h_x[i]; h_y[i] -= other.h_y[i]; h_z[i] -= other.h_z[i];
+			}
+		} else {
+			std::fprintf(stderr, "Struct operation not implemented yet\n"); std::exit(1);
 		}
 		return *this;
 	}
@@ -439,11 +465,11 @@ struct VectorField {
 struct DataVTK {
 	bool use_gpu;
 	std::size_t field_size;
-	std::unique_ptr<uint32_t[], MemoryAdmin> vtk_scalar, vtk_vector;
+	std::unique_ptr<uint32_t[]> vtk_scalar, vtk_vector;
 	DataVTK(int nx, int ny, int nz, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		field_size = nx * ny * nz;
-		vtk_scalar.reset(new (static_cast<std::align_val_t>(mem_align)) uint32_t[field_size]);
-		vtk_vector.reset(new (static_cast<std::align_val_t>(mem_align)) uint32_t[3 * field_size]);
+		vtk_scalar = std::make_unique_for_overwrite<uint32_t[]>(field_size);
+		vtk_vector = std::make_unique_for_overwrite<uint32_t[]>(3 * field_size);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			vtk_scalar[i] = 0u;
