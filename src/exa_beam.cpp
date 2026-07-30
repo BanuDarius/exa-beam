@@ -29,10 +29,9 @@ SOFTWARE. */
 #include "init.hpp"
 #include "physics.hpp"
 #include "vtk_output.hpp"
+#include "physics_gpu.hpp"
 #include "sim_structs.hpp"
 #include "higuera_cary.hpp"
-
-#include "physics_gpu.hpp"
 
 template <std::floating_point T>
 void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std::string &output_directory) {

@@ -30,8 +30,8 @@ c = 137.036
 
 # ---------------------------------------------------------- #
 
-use_gpu = True
-use_floats = True
+use_gpu = False
+use_floats = False
 
 zeta_x_real = 0.707
 zeta_x_imag = 0.000
