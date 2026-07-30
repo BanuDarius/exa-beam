@@ -51,10 +51,13 @@ w0_mult = 2.0
 psi = -0.5 * c * tau
 tf = 25.0 * c * tau
 
+phi = 0.0
+theta = 0.0
+
 # ---------------------------------------------------------- #
 
 if __name__ == "__main__":
-    sim_parameters = sim_init.SimParameters(zeta_x_real, zeta_x_imag, zeta_y_real, zeta_y_imag, tf, steps, substeps, nx, a0, p, m, w0_mult, omega, tau, psi, max_dim_mult, use_gpu, use_floats)
+    sim_parameters = sim_init.SimParameters(zeta_x_real, zeta_x_imag, zeta_y_real, zeta_y_imag, phi, theta, tf, steps, substeps, nx, a0, p, m, w0_mult, omega, tau, psi, max_dim_mult, use_gpu, use_floats)
     
     programs.run_simulation(sim_parameters)
     

@@ -32,7 +32,8 @@ SOFTWARE. */
 
 template <std::floating_point T>
 void read_input_file(const std::string &input_filename, Parameters<T> &parameters, Laser<T> &laser) {
-	double a0, tf, tau, psi, omega, w0_mult, max_dim_mult, zeta_x_real, zeta_x_imag, zeta_y_real, zeta_y_imag;
+	cuda::std::array<T, 3> r_0;
+	T a0, tf, tau, psi, omega, w0_mult, max_dim_mult, phi, theta, zeta_x_real, zeta_x_imag, zeta_y_real, zeta_y_imag;
 	int i = 0, p, m, nx, steps, substeps, use_gpu;
 	
 	std::string current;
@@ -75,15 +76,25 @@ void read_input_file(const std::string &input_filename, Parameters<T> &parameter
 			if(in >> zeta_y_imag) i++;
 		} else if(current == "max_dim_mult") {
 			if(in >> max_dim_mult) i++;
+		} else if(current == "theta") {
+			if(in >> theta) i++;
+		} else if(current == "phi") {
+			if(in >> phi) i++;
+		} else if(current == "r0_x") {
+			if(in >> r_0[0]) i++;
+		} else if(current == "r0_y") {
+			if(in >> r_0[1]) i++;
+		} else if(current == "r0_z") {
+			if(in >> r_0[2]) i++;
 		}
 	}
 	if(i != input_file_count) {
 		std::fprintf(stderr, "INVALID INPUT FILE!\n"); std::exit(1);
 	}
-	cuda::std::complex<T> zeta_x = { T(zeta_x_real), T(zeta_x_imag) };
-	cuda::std::complex<T> zeta_y = { T(zeta_y_real), T(zeta_y_imag) };
-	parameters = Parameters(nx, steps, substeps, T(tf), T(max_dim_mult), static_cast<bool>(use_gpu));
-	laser = Laser(p, m, T(a0), T(omega), T(w0_mult), T(tau), T(psi), zeta_x, zeta_y);
+	cuda::std::complex<T> zeta_x = { zeta_x_real, zeta_x_imag };
+	cuda::std::complex<T> zeta_y = { zeta_y_real, zeta_y_imag };
+	parameters = Parameters(nx, steps, substeps, tf, max_dim_mult, static_cast<bool>(use_gpu));
+	laser = Laser(p, m, a0, omega, w0_mult, tau, psi, zeta_x, zeta_y, phi, theta, r_0);
 }
 
 template void read_input_file<double>(const std::string &input_filename, Parameters<double> &parameters, Laser<double> &laser);

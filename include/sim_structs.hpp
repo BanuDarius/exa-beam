@@ -37,7 +37,7 @@ SOFTWARE. */
 #include "structs_view.hpp"
 #include "math_functions.hpp"
 
-constexpr int input_file_count = 17;
+constexpr int input_file_count = 22;
 
 template <std::floating_point T> constexpr T m_e = T(1.0);
 template <std::floating_point T> constexpr T e_0 = T(-1.0);
@@ -59,13 +59,38 @@ struct Laser {
 	int p, m;
 	T a0, omega, w0, k, lambda, z_r, tau, E0, psi;
 	cuda::std::complex<T> zeta_x, zeta_y;
-	Laser(int p_n, int m_n, T a0_n, T omega_n, T w0_multiplier, T tau_n, T psi_n, cuda::std::complex<T> zeta_x_n, cuda::std::complex<T> zeta_y_n)
-		: p(p_n), m(m_n), a0(a0_n), omega(omega_n), tau(tau_n), psi(psi_n), zeta_x(zeta_x_n), zeta_y(zeta_y_n) {
+	cuda::std::array<T, 3> ex_prime, ey_prime, ez_prime, r_0;
+	Laser(int p_n, int m_n, T a0_n, T omega_n, T w0_multiplier, T tau_n, T psi_n, cuda::std::complex<T> zeta_x_n, cuda::std::complex<T> zeta_y_n, T phi, T theta, cuda::std::array<T, 3> r_0_n)
+		: p(p_n), m(m_n), a0(a0_n), omega(omega_n), tau(tau_n), psi(psi_n), zeta_x(zeta_x_n), zeta_y(zeta_y_n), r_0(r_0_n) {
 		k = omega / c<T>;
 		lambda = (T(2.0) * pi<T> * c<T>) / omega;
 		w0 = lambda * w0_multiplier;
 		z_r = pi<T> * w0 * w0 / lambda;
 		E0 = omega * m_e<T> * c<T> * a0 / std::abs(e_0<T>);
+		ex_prime = {
+			std::cos(theta) * std::cos(phi),
+			std::cos(theta) * std::sin(phi),
+			- std::sin(theta)
+		};
+		ey_prime = {
+			- std::sin(phi),
+			std::cos(phi),
+			T(0.0)
+		};
+		ez_prime = {
+			std::sin(theta) * std::cos(phi),
+			std::sin(theta) * std::sin(phi),
+			std::cos(theta)
+		};
+	}
+	__device__ __host__ cuda::std::array<T, 3> pos_global_to_local(cuda::std::array<T, 3> r_vec) const noexcept {
+		r_vec -= r_0;
+		cuda::std::array<T, 3> r_vec_local = {
+			dot(ex_prime, r_vec),
+			dot(ey_prime, r_vec),
+			dot(ez_prime, r_vec)
+		};
+		return r_vec_local;
 	}
 	Laser() = default;
 };
@@ -81,14 +106,14 @@ struct Particles {
 	Particles(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		particle_num = nx * ny * nz;
 		num = { nx, ny, nz };
-		r_max = { r_max_n, r_max_n, T(4.0) * r_max_n };
-		h_x.reset(new T[particle_num]);
-		h_y.reset(new T[particle_num]);
-		h_z.reset(new T[particle_num]);
-		h_ux.reset(new T[particle_num]);
-		h_uy.reset(new T[particle_num]);
-		h_uz.reset(new T[particle_num]);
-		h_gamma.reset(new T[particle_num]);
+		r_max = { r_max_n, r_max_n, r_max_n };
+		h_x.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
+		h_y.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
+		h_z.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
+		h_ux.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
+		h_uy.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
+		h_uz.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
+		h_gamma.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
 		#pragma omp parallel for simd collapse(3) schedule(static)
 		for(int i = 0; i < nx; i++) {
 			for(int j = 0; j < ny; j++) {
@@ -171,8 +196,8 @@ struct ScalarField {
 	ScalarField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
-		r_max = { r_max_n, r_max_n, T(4.0) * r_max_n };
-		h_v.reset(new T[field_size]);
+		r_max = { r_max_n, r_max_n, r_max_n };
+		h_v.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			h_v[i] = T(0.0);
@@ -187,7 +212,7 @@ struct ScalarField {
 	}
 	ScalarField(const ScalarField &other)
 		: field_size(other.field_size), num(other.num), r_max(other.r_max), use_gpu(other.use_gpu) {
-		h_v.reset(new T[field_size]);
+		h_v.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			h_v[i] = other.h_v[i];
@@ -263,8 +288,8 @@ struct ComplexScalarField {
 	ComplexScalarField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
-		r_max = { r_max_n, r_max_n, T(4.0) * r_max_n };
-		h_v.reset(new cuda::std::complex<T>[field_size]);
+		r_max = { r_max_n, r_max_n, r_max_n };
+		h_v.reset(new (static_cast<std::align_val_t>(mem_align)) cuda::std::complex<T>[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			h_v[i] = { T(0.0), T(0.0) };
@@ -279,7 +304,7 @@ struct ComplexScalarField {
 	}
 	ComplexScalarField(const ComplexScalarField &other)
 		: field_size(other.field_size), num(other.num), r_max(other.r_max), use_gpu(other.use_gpu) {
-		h_v.reset(new cuda::std::complex<T>[field_size]);
+		h_v.reset(new (static_cast<std::align_val_t>(mem_align)) cuda::std::complex<T>[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			h_v[i] = other.h_v[i];
@@ -355,10 +380,10 @@ struct VectorField {
 	VectorField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
-		r_max = { r_max_n, r_max_n, T(4.0) * r_max_n };
-		h_x.reset(new T[field_size]);
-		h_y.reset(new T[field_size]);
-		h_z.reset(new T[field_size]);
+		r_max = { r_max_n, r_max_n, r_max_n };
+		h_x.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
+		h_y.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
+		h_z.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++) {
 			h_x[i] = T(0.0); h_y[i] = T(0.0); h_z[i] = T(0.0);
@@ -378,9 +403,9 @@ struct VectorField {
 	}
 	VectorField(const VectorField &other)
 		: field_size(other.field_size), num(other.num), r_max(other.r_max), use_gpu(other.use_gpu) {
-		h_x.reset(new T[field_size]);
-		h_y.reset(new T[field_size]);
-		h_z.reset(new T[field_size]);
+		h_x.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
+		h_y.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
+		h_z.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++) {
 			h_x[i] = other.h_x[i]; h_y[i] = other.h_y[i]; h_z[i] = other.h_z[i];

@@ -38,6 +38,9 @@ def output_init_file(sim_parameters):
     input_file = sim_parameters.input_file
     
     with open(input_file, "w") as file:
+        file.write(f"r0_x 0.0\n")
+        file.write(f"r0_y 0.0\n")
+        file.write(f"r0_z 0.0\n")
         file.write(f"p {sim_parameters.p}\n")
         file.write(f"m {sim_parameters.m}\n")
         file.write(f"a0 {sim_parameters.a0}\n")
@@ -45,6 +48,8 @@ def output_init_file(sim_parameters):
         file.write(f"nx {sim_parameters.nx}\n")
         file.write(f"tau {sim_parameters.tau}\n")
         file.write(f"psi {sim_parameters.psi}\n")
+        file.write(f"phi {sim_parameters.phi}\n")
+        file.write(f"theta {sim_parameters.theta}\n")
         file.write(f"steps {sim_parameters.steps}\n")
         file.write(f"omega {sim_parameters.omega}\n")
         file.write(f"w0_mult {sim_parameters.w0_mult}\n")

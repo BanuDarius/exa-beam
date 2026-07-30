@@ -82,6 +82,12 @@ __device__ __host__ inline cuda::std::array<T, 3> &operator+=(cuda::std::array<T
 }
 
 template <std::floating_point T>
+__device__ __host__ inline cuda::std::array<T, 3> &operator-=(cuda::std::array<T, 3> &a, const cuda::std::array<T, 3> &b) noexcept {
+	a[0] -= b[0]; a[1] -= b[1]; a[2] -= b[2];
+	return a;
+}
+
+template <std::floating_point T>
 __device__ __host__ inline cuda::std::array<T, 3> operator*(cuda::std::array<T, 3> a, T b) noexcept {
 	cuda::std::array<T, 3> x = { a[0] * b, a[1] * b, a[2] * b };
 	return x;

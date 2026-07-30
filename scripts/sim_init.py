@@ -30,7 +30,7 @@ OUTPUT_DIR = PROJECT_ROOT / "output"
 # ---------------------------------------------------------- #
 
 class SimParameters():
-    def __init__(self, zeta_x_real, zeta_x_imag, zeta_y_real, zeta_y_imag, tf, steps, substeps, nx, a0, p, m, w0_mult, omega, tau, psi, max_dim_mult, use_gpu, use_floats):
+    def __init__(self, zeta_x_real, zeta_x_imag, zeta_y_real, zeta_y_imag, phi, theta, tf, steps, substeps, nx, a0, p, m, w0_mult, omega, tau, psi, max_dim_mult, use_gpu, use_floats):
         self.p = p
         self.m = m
         self.a0 = a0
@@ -38,6 +38,8 @@ class SimParameters():
         self.nx = nx
         self.tau = tau
         self.psi = psi
+        self.phi = phi
+        self.theta = theta
         self.steps = steps
         self.omega = omega
         self.use_gpu = use_gpu
