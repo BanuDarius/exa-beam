@@ -69,6 +69,7 @@ void higuera_cary_update_gpu(Particles<T> &particles, const Laser<T> &laser, T t
 	
 	ParticlesView<T> particles_view = particles.get_gpu_view();
 	higuera_cary_step_kernel<<<blocks, threads>>>(particles_view, laser, t, dt);
+	CUDA_CHECK(cudaGetLastError());
 }
 
 template void higuera_cary_update_gpu<double>(Particles<double> &particles, const Laser<double> &laser, double t, double dt) noexcept;
