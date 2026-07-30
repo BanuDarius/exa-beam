@@ -41,8 +41,8 @@ steps = 5000
 substeps = 100
 max_dim_mult = 3.0
 
-nx = 64
-a0 = 1.0
+nx = 128
+a0 = 0.75
 p = 0
 m = 1
 tau = 4.0
