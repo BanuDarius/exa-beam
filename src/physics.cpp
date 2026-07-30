@@ -61,16 +61,18 @@ void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser) noex
 	for(int i = 0; i < nx; i++) {
 		for(int j = 0; j < ny; j++) {
 			for(int k = 0; k < nz; k++) {
-				cuda::std::array<T, 3> r_vec = {
+				cuda::std::array<T, 3> r_vec_global = {
 					interpolate(-r_max_x, r_max_x, static_cast<T>(i), static_cast<T>(nx)),
 					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
 					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
 				};
-				T z = r_vec[2];
+				cuda::std::array<T, 3> r_vec_local = laser.pos_global_to_local(r_vec_global);
+				
+				T z = r_vec_local[2];
 				T r_z = compute_r_z(z, z_r);
 				T w_z = compute_w_z(w0, z, z_r);
 				
-				cuda::std::complex<T> u_i = compute_u(laser, r_vec, r_z, w_z);
+				cuda::std::complex<T> u_i = compute_u(laser, r_vec_local, r_z, w_z);
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				
 				u_field_view.set_field(u_i, idx);
@@ -90,17 +92,22 @@ void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const Co
 	for(int i = 0; i < nx; i++) {
 		for(int j = 0; j < ny; j++) {
 			for(int k = 0; k < nz; k++) {
-				cuda::std::array<T, 3> r_vec = {
+				cuda::std::array<T, 3> r_vec_global = {
 					interpolate(-r_max_x, r_max_x, static_cast<T>(i), static_cast<T>(nx)),
 					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
 					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
 				};
+				cuda::std::array<T, 3> r_vec_local = laser.pos_global_to_local(r_vec_global);
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				
-				EBVectors<T> eb_vec = compute_eb(u_field_view, laser, r_vec, t, idx);
+				EBVectors<T> eb_vec_local = compute_eb(u_field_view, laser, r_vec_local, t, idx);
+				EBVectors<T> eb_vec_global(
+					laser.vec_local_to_global(eb_vec_local.e),
+					laser.vec_local_to_global(eb_vec_local.b)
+				);
 				
-				e_field_view.set_field(eb_vec.e, idx);
-				b_field_view.set_field(eb_vec.b, idx);
+				e_field_view.set_field(eb_vec_global.e, idx);
+				b_field_view.set_field(eb_vec_global.b, idx);
 			}
 		}
 	}

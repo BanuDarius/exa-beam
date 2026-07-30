@@ -92,6 +92,13 @@ struct Laser {
 		};
 		return r_vec_local;
 	}
+	__device__ __host__ cuda::std::array<T, 3> vec_local_to_global(cuda::std::array<T, 3> vec) const noexcept {
+		cuda::std::array<T, 3> ex_prime_vec = ex_prime * vec[0];
+		cuda::std::array<T, 3> ey_prime_vec = ey_prime * vec[1];
+		cuda::std::array<T, 3> ez_prime_vec = ez_prime * vec[2];
+		cuda::std::array<T, 3> vec_global = ex_prime_vec + ey_prime_vec + ez_prime_vec;
+		return vec_global;
+	}
 	Laser() = default;
 };
 

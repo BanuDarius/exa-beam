@@ -22,6 +22,7 @@ SOFTWARE.'''
 
 # ---------------------------------------------------------- #
 
+import numpy as np
 import scripts.sim_init as sim_init
 import scripts.programs as programs
 
@@ -41,7 +42,7 @@ steps = 5000
 substeps = 100
 max_dim_mult = 3.0
 
-nx = 128
+nx = 64
 a0 = 0.75
 p = 0
 m = 1
@@ -51,8 +52,8 @@ w0_mult = 2.0
 psi = -0.5 * c * tau
 tf = 25.0 * c * tau
 
-phi = 0.0
-theta = 0.0
+phi = np.radians(0.0)
+theta = np.radians(0.0)
 
 # ---------------------------------------------------------- #
 

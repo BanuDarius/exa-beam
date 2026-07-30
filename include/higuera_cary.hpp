@@ -102,21 +102,23 @@ __device__ __host__ inline cuda::std::array<T, 3> hc_u_plus(cuda::std::array<T, 
 template <std::floating_point T>
 inline void higuera_cary_update(Particles<T> &particles, const Laser<T> &laser, T t, T dt) noexcept {
 	ParticlesView<T> particles_view = particles.get_cpu_view();
-	
 	#pragma omp parallel for simd schedule(static)
 	for(std::size_t idx = 0; idx < particles.particle_num; idx++) {
-		cuda::std::array<T, 3> r_vec = particles_view.get_position(idx);
-		cuda::std::array<T, 3> u_vec = particles_view.get_velocity(idx);
 		T gamma = particles_view.get_gamma(idx);
+		cuda::std::array<T, 3> r_vec_global = particles_view.get_position(idx);
+		cuda::std::array<T, 3> u_vec_global = particles_view.get_velocity(idx);
 		
 		T half_dt = T(0.5) * dt, half_dt_gamma = half_dt / gamma;
-		r_vec += u_vec * half_dt_gamma;
+		cuda::std::array<T, 3> r_half_global = r_vec_global + u_vec_global * half_dt_gamma;
+		cuda::std::array<T, 3> r_half_local = laser.pos_global_to_local(r_half_global);
 		
-		EBVectors eb_vec = compute_eb(laser, r_vec, t + half_dt);
+		EBVectors eb_vec = compute_eb(laser, r_half_local, t + half_dt);
+		eb_vec.e = laser.vec_local_to_global(eb_vec.e);
+		eb_vec.b = laser.vec_local_to_global(eb_vec.b);
 		
 		cuda::std::array<T, 3> beta = hc_beta(eb_vec.b, dt);
 		cuda::std::array<T, 3> epsilon = hc_epsilon(eb_vec.e, dt);
-		cuda::std::array<T, 3> u_minus = hc_u_minus(u_vec, epsilon);
+		cuda::std::array<T, 3> u_minus = hc_u_minus(u_vec_global, epsilon);
 		
 		T gamma_minus = comp_gamma(u_minus);
 		T gamma_new = hc_gamma_new(u_minus, beta, gamma_minus);
@@ -126,14 +128,14 @@ inline void higuera_cary_update(Particles<T> &particles, const Laser<T> &laser, 
 		cuda::std::array<T, 3> u_prime = hc_u_prime(u_minus, t_rot);
 		cuda::std::array<T, 3> u_plus = hc_u_plus(u_minus, u_prime, t_rot, s_factor);
 		
-		cuda::std::array<T, 3> u_final = u_plus + epsilon;
-		gamma = comp_gamma(u_final);
+		cuda::std::array<T, 3> u_final_global = u_plus + epsilon;
+		gamma = comp_gamma(u_final_global);
 		half_dt_gamma = T(0.5) * dt / gamma;
-		r_vec += u_final * half_dt_gamma;
+		r_vec_global = r_half_global + u_final_global * half_dt_gamma;
 		
-		particles_view.set_position(r_vec, idx);
-		particles_view.set_velocity(u_final, idx);
 		particles_view.set_gamma(gamma, idx);
+		particles_view.set_position(r_vec_global, idx);
+		particles_view.set_velocity(u_final_global, idx);
 	}
 }
 
