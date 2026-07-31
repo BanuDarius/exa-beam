@@ -37,7 +37,8 @@ SOFTWARE. */
 #include "structs_view.hpp"
 #include "math_functions.hpp"
 
-constexpr int input_file_count = 22;
+constexpr int input_file_count = 7;
+constexpr int input_laser_count = 16;
 
 template <std::floating_point T> constexpr T m_e = T(1.0);
 template <std::floating_point T> constexpr T e_0 = T(-1.0);
@@ -48,9 +49,9 @@ template <std::floating_point T>
 struct Parameters {
 	int nx, steps, substeps;
 	T tf, max_dim_mult;
-	bool use_gpu;
-	Parameters(int nx_n, int steps_n, int substeps_n, T tf_n, T max_dim_mult_n, bool use_gpu_n)
-		: nx(nx_n), steps(steps_n), substeps(substeps_n), tf(tf_n), max_dim_mult(max_dim_mult_n), use_gpu(use_gpu_n) {}
+	bool use_gpu, output_laser_fields;
+	Parameters(int nx_n, int steps_n, int substeps_n, T tf_n, T max_dim_mult_n, bool use_gpu_n, bool output_laser_fields_n)
+		: nx(nx_n), steps(steps_n), substeps(substeps_n), tf(tf_n), max_dim_mult(max_dim_mult_n), use_gpu(use_gpu_n), output_laser_fields(output_laser_fields_n) {}
 	Parameters() = default;
 };
 

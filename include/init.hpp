@@ -28,6 +28,6 @@ SOFTWARE. */
 
 #include "sim_structs.hpp"
 
-template <std::floating_point T> void read_input_file(const std::string &input_filename, Parameters<T> &parameters, Laser<T> &laser);
+template <std::floating_point T> void read_input_file(const std::string &parameters_filename, const std::string &laser_filename, Parameters<T> &parameters, Laser<T> &laser);
 
 #endif

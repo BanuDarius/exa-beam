@@ -30,28 +30,35 @@ OUTPUT_DIR = PROJECT_ROOT / "output"
 # ---------------------------------------------------------- #
 
 class SimParameters():
-    def __init__(self, zeta_x_real, zeta_x_imag, zeta_y_real, zeta_y_imag, phi, theta, tf, steps, substeps, nx, a0, p, m, w0_mult, omega, tau, psi, max_dim_mult, use_gpu, use_floats):
+    def __init__(self, tf, steps, substeps, nx, max_dim_mult, use_gpu, use_floats, output_laser_fields):
+        self.tf = tf
+        self.nx = nx
+        self.steps = steps
+        self.use_gpu = use_gpu
+        self.substeps = substeps
+        self.use_floats = use_floats
+        self.max_dim_mult = max_dim_mult
+        self.output_directory = OUTPUT_DIR
+        self.input_file = INPUT_DIR / "input.txt"
+        self.input_laser = INPUT_DIR / "laser.txt"
+        self.output_laser_fields = output_laser_fields
+        
+# ---------------------------------------------------------- #
+
+class Laser():
+    def __init__(self, zeta_x_real, zeta_x_imag, zeta_y_real, zeta_y_imag, phi, theta, a0, p, m, w0_mult, omega, tau, psi):
         self.p = p
         self.m = m
         self.a0 = a0
-        self.tf = tf
-        self.nx = nx
         self.tau = tau
         self.psi = psi
         self.phi = phi
         self.theta = theta
-        self.steps = steps
         self.omega = omega
-        self.use_gpu = use_gpu
         self.w0_mult = w0_mult
-        self.substeps = substeps
-        self.use_floats = use_floats
         self.zeta_x_real = zeta_x_real
         self.zeta_x_imag = zeta_x_imag
         self.zeta_y_real = zeta_y_real
         self.zeta_y_imag = zeta_y_imag
-        self.max_dim_mult = max_dim_mult
-        self.input_file = INPUT_DIR / "input.txt"
-        self.output_directory = OUTPUT_DIR
         
 # ---------------------------------------------------------- #

@@ -35,9 +35,9 @@ SOFTWARE. */
 
 template <std::floating_point T>
 void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std::string &output_directory) {
+	bool use_gpu = parameters.use_gpu, output_laser_fields = parameters.output_laser_fields;
 	int steps = parameters.steps, substeps = parameters.substeps;
 	T dt = parameters.tf / steps;
-	bool use_gpu = parameters.use_gpu;
 	
 	DataVTK data_vtk(parameters);
 	Particles<T> particles(parameters, laser);
@@ -55,27 +55,36 @@ void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std:
 		if(use_gpu) higuera_cary_update_gpu(particles, laser, time, dt);
 		else higuera_cary_update(particles, laser, time, dt);
 		if(step % substeps == 0) {
-			if(use_gpu) {
-				compute_eb_field_gpu(e_field, b_field, u_field, laser, time);
-				e_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
-				b_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
-				particles.transfer_data_gpu_to_cpu(cudaStreamDefault);
+			if(output_laser_fields) {
+				if(use_gpu) {
+					compute_eb_field_gpu(e_field, b_field, u_field, laser, time);
+					e_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
+					b_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
+				} else compute_eb_field(e_field, b_field, u_field, laser, time);
+				
+				std::string filename_fields = std::format("{}/fields-{:04d}.vtk", output_directory, step / substeps);
+				std::ofstream output_fields(filename_fields, std::ios::binary);
+				
+				if(!output_fields) {
+					std::fprintf(stderr, "CANNOT OPEN OUTPUT FIELD FILE!\n"); return;
+				}
+				
 				cudaDeviceSynchronize();
-			} else compute_eb_field(e_field, b_field, u_field, laser, time);
-			
-			std::string filename_fields = std::format("{}/fields-{:04d}.vtk", output_directory, step / substeps);
-			std::string filename_particles = std::format("{}/particles-{:04d}.vtk", output_directory, step / substeps);
-			
-			std::ofstream output_fields(filename_fields, std::ios::binary);
-			std::ofstream output_particles(filename_particles, std::ios::binary);
-			if(!output_fields || !output_particles) {
-				std::fprintf(stderr, "CANNOT OPEN OUTPUT FILES!\n"); return;
+				output_vtk_header(output_fields, e_field);
+				output_vtk_vector_field(output_fields, data_vtk, e_field, "E");
+				output_vtk_vector_field(output_fields, data_vtk, b_field, "B");
+				output_vtk_complex_scalar_field(output_fields, data_vtk, u_field, "u00");
 			}
-			output_vtk_header(output_fields, e_field);
-			output_vtk_vector_field(output_fields, data_vtk, e_field, "E");
-			output_vtk_vector_field(output_fields, data_vtk, b_field, "B");
-			output_vtk_complex_scalar_field(output_fields, data_vtk, u_field, "u00");
 			
+			particles.transfer_data_gpu_to_cpu(cudaStreamDefault);
+			std::string filename_particles = std::format("{}/particles-{:04d}.vtk", output_directory, step / substeps);
+			std::ofstream output_particles(filename_particles, std::ios::binary);
+			
+			if(!output_particles) {
+				std::fprintf(stderr, "CANNOT OPEN OUTPUT PARTICLES FILE!\n"); return;
+			}
+			
+			cudaDeviceSynchronize();
 			output_vtk_particles(output_particles, data_vtk, particles);
 			std::printf("Computed step: %d/%d.\n", step, steps);
 		}
@@ -97,15 +106,15 @@ void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std:
 }
 
 template <std::floating_point T>
-void start_simulation(const std::string &input_file, const std::string &output_directory) {
+void start_simulation(const std::string &input_file, const std::string &input_laser, const std::string &output_directory) {
 	Laser<T> laser;
 	Parameters<T> parameters;
-	read_input_file(input_file, parameters, laser);
+	read_input_file(input_file, input_laser, parameters, laser);
 	simulate(parameters, laser, output_directory);
 }
 
 int main(int argc, char **argv) {
-	if(argc > 4) {
+	if(argc > 5) {
 		std::fprintf(stderr, "%s BAD ARGUMENTS!\n", argv[0]);
 		return 1;
 	}
@@ -113,9 +122,9 @@ int main(int argc, char **argv) {
 	std::printf("Simulation started.\n");
 	
 	if(!strcmp(argv[1], "--float"))
-		start_simulation<float>(argv[2], argv[3]);
+		start_simulation<float>(argv[2], argv[3], argv[4]);
 	else
-		start_simulation<double>(argv[1], argv[2]);
+		start_simulation<double>(argv[1], argv[2], argv[3]);
 	
 	std::printf("Simulation ended.\n");
 	std::printf("Time taken: %0.3lfs.\n", omp_get_wtime() - start_time);
