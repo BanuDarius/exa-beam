@@ -13,7 +13,7 @@ OPT_FLAG_CUDA = -rdc=true -dlto
 WARNINGS = -Wall -Wextra -Wshadow
 
 CXXFLAGS = -std=c++20 $(OPT_FLAG) -fopenmp $(WARNINGS) -Iinclude -I$(CUDA_PATH)/include/cccl -I$(CUDA_PATH)/include -MMD -MP -g
-NVCCFLAGS = -std=c++20 -arch=native $(OPT_FLAG_CUDA) -Iinclude -MMD -MP -g -Xcompiler "-O3 -march=native -fopenmp"
+NVCCFLAGS = -std=c++20 -lineinfo -arch=native $(OPT_FLAG_CUDA) -Iinclude -MMD -MP -g -Xcompiler "-O3 -march=native -fopenmp"
 
 LD = $(NVCC)
 LDFLAGS = -arch=native $(OPT_FLAG_CUDA) -Xcompiler "$(OPT_FLAG) -fopenmp"
