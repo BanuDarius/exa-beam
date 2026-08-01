@@ -84,7 +84,7 @@ void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const Co
 					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
 				};
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-				EBVectors<T> eb_vec_global{};
+				EBVectors<T> eb_vec_global;
 				for(int q = 0; q < laser_count; q++) {
 					cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
 					EBVectors<T> eb_vec_local = compute_eb(u_field_view, lasers[q], r_vec_local, t, idx);

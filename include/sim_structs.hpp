@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <cassert>
 #include <numbers>
+#include <cstddef>
 
 #include <cuda_runtime.h>
 #include <cuda/std/array>
@@ -88,21 +89,24 @@ struct Laser {
 		cuda::std::array<T, 3> vec_global = ex_prime_vec + ey_prime_vec + ez_prime_vec;
 		return vec_global;
 	}
-	static void transfer_lasers_cpu_to_gpu(std::span<const Laser<T>> h_lasers);
 	Laser() noexcept = default;
 };
 
 template <std::floating_point T>
-alignas(Laser<T>) inline __constant__ unsigned char d_lasers_raw[max_lasers * sizeof(Laser<T>)];
+alignas(Laser<T>) __constant__ std::byte d_lasers_bytes[max_lasers * sizeof(Laser<T>)];
 
 template <std::floating_point T>
-inline void Laser<T>::transfer_lasers_cpu_to_gpu(std::span<const Laser<T>> h_lasers) {
-	CUDA_CHECK(cudaMemcpyToSymbol(d_lasers_raw<T>, h_lasers.data(), h_lasers.size() * sizeof(Laser<T>), 0, cudaMemcpyHostToDevice));
-}
+struct LaserArrayGPU {
+	__device__ const Laser<T> &operator[](int idx) const noexcept {
+		return reinterpret_cast<const Laser<T>*>(d_lasers_bytes<T>)[idx];
+	}
+};
+
+template <std::floating_point T> __device__ LaserArrayGPU<T> d_lasers;
 
 template <std::floating_point T>
-__device__ inline const Laser<T> &get_d_lasers(int idx) {
-	return reinterpret_cast<const Laser<T>*>(d_lasers_raw<T>)[idx];
+inline void transfer_lasers_cpu_to_gpu(std::span<const Laser<T>> h_lasers) {
+	CUDA_CHECK(cudaMemcpyToSymbol(d_lasers_bytes<T>, h_lasers.data(), h_lasers.size() * sizeof(Laser<T>), 0, cudaMemcpyHostToDevice));
 }
 
 template <std::floating_point T>

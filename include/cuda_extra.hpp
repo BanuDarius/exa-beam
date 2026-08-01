@@ -48,20 +48,6 @@ template <typename T> struct CUDAHostMemoryAdminGeneric {
 	}
 };
 
-template <std::floating_point T>
-struct ComplexPOD {
-	T re, im;
-	
-	constexpr ComplexPOD() noexcept = default;
-	__host__ __device__ constexpr ComplexPOD(T r, T i) noexcept : re(r), im(i) {}
-	__host__ __device__ constexpr ComplexPOD(cuda::std::complex<T> c_val) noexcept 
-		: re(c_val.real()), im(c_val.imag()) {}
-
-	__host__ __device__ constexpr operator cuda::std::complex<T>() const noexcept {
-		return cuda::std::complex<T>(re, im);
-	}
-};
-
 #define CUDA_CHECK(function) \
 	do { \
 		cudaError_t err = (function); \

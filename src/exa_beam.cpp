@@ -98,7 +98,7 @@ void start_simulation(const std::string &input_file, const std::string &input_la
 	std::vector<Laser<T>> lasers;
 	lasers.reserve(parameters.laser_count);
 	read_lasers_file(input_laser, lasers, parameters);
-	if(parameters.use_gpu) Laser<T>::transfer_lasers_cpu_to_gpu(lasers);
+	if(parameters.use_gpu) transfer_lasers_cpu_to_gpu<T>(lasers);
 	
 	simulate<T>(parameters, lasers, output_directory);
 }

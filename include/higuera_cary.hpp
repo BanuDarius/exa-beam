@@ -92,7 +92,7 @@ inline void higuera_cary_update(Particles<T> &particles, std::span<const Laser<T
 		T half_dt = T(0.5) * dt, half_dt_gamma = half_dt / gamma;
 		cuda::std::array<T, 3> r_half_global = r_vec_global + u_vec_global * half_dt_gamma;
 		
-		EBVectors<T> eb_vec{};
+		EBVectors<T> eb_vec;
 		for(int i = 0; i < laser_count; i++) {
 			cuda::std::array<T, 3> r_half_local = lasers[i].pos_global_to_local(r_half_global);
 			EBVectors eb_vec_local = compute_eb(lasers[i], r_half_local, t + half_dt);
