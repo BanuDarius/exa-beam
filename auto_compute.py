@@ -24,7 +24,7 @@ steps = 5000
 substeps = 100
 max_dim_mult = 4.0
 
-nx = 128
+nx = 64
 a0 = 0.75
 p = 0
 m = 1

@@ -94,7 +94,7 @@ void read_lasers_file(const std::string &lasers_filename, std::vector<Laser<T>> 
 			i = 0; j++;
 			cuda::std::complex<T> zeta_x(zeta_x_real, zeta_x_imag);
 			cuda::std::complex<T> zeta_y(zeta_y_real, zeta_y_imag);
-			lasers.push_back(Laser(laser_count, p, m, a0, omega, w0_mult, tau, psi, zeta_x, zeta_y, r_0, phi, theta));
+			lasers.push_back(Laser(p, m, a0, omega, w0_mult, tau, psi, zeta_x, zeta_y, r_0, phi, theta));
 		}
 	}
 	if(j != laser_count) {

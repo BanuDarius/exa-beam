@@ -28,9 +28,9 @@ __global__ void compute_lz_gpu_kernel(ScalarFieldView<T> lz_view, ParticlesView<
 }
 
 template <std::floating_point T>
-__global__ void compute_u_field_gpu_kernel(ComplexScalarFieldView<T> u_field_view) {
+__global__ void compute_u_field_gpu_kernel(ComplexScalarFieldView<T> u_field_view, __grid_constant__ const GPULasers<T> lasers) {
 	T r_max_x = u_field_view.r_max[0], r_max_y = u_field_view.r_max[1], r_max_z = u_field_view.r_max[2];
-	int laser_count = d_lasers<T>[0].laser_count, nx = u_field_view.num[0], ny = u_field_view.num[1], nz = u_field_view.num[2];
+	int laser_count = lasers.laser_count, nx = u_field_view.num[0], ny = u_field_view.num[1], nz = u_field_view.num[2];
 	std::size_t field_size = u_field_view.field_size;
 	
 	int i = blockIdx.z * blockDim.z + threadIdx.z;
@@ -45,12 +45,12 @@ __global__ void compute_u_field_gpu_kernel(ComplexScalarFieldView<T> u_field_vie
 		};
 		cuda::std::complex<T> u_i{};
 		for(int q = 0; q < laser_count; q++) {
-			cuda::std::array<T, 3> r_vec_local = d_lasers<T>[q].pos_global_to_local(r_vec_global);
+			cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
 			T z = r_vec_local[2];
-			T z_r = d_lasers<T>[q].z_r, w0 = d_lasers<T>[q].w0;
+			T z_r = lasers[q].z_r, w0 = lasers[q].w0;
 			T r_z = compute_r_z(z, z_r);
 			T w_z = compute_w_z(w0, z, z_r);
-			u_i += compute_u(d_lasers<T>[q], r_vec_local, r_z, w_z);
+			u_i += compute_u(lasers[q], r_vec_local, r_z, w_z);
 		}
 		
 		u_field_view.set_field(u_i, idx);
@@ -58,9 +58,9 @@ __global__ void compute_u_field_gpu_kernel(ComplexScalarFieldView<T> u_field_vie
 }
 
 template <std::floating_point T>
-__global__ void compute_eb_field_gpu_kernel(VectorFieldView<T> e_field_view, VectorFieldView<T> b_field_view, T t) {
+__global__ void compute_eb_field_gpu_kernel(VectorFieldView<T> e_field_view, VectorFieldView<T> b_field_view, __grid_constant__ const GPULasers<T> lasers, T t) {
 	T r_max_x = e_field_view.r_max[0], r_max_y = e_field_view.r_max[1], r_max_z = e_field_view.r_max[2];
-	int laser_count = d_lasers<T>[0].laser_count, nx = e_field_view.num[0], ny = e_field_view.num[1], nz = e_field_view.num[2];
+	int laser_count = lasers.laser_count, nx = e_field_view.num[0], ny = e_field_view.num[1], nz = e_field_view.num[2];
 	std::size_t field_size = e_field_view.field_size;
 	
 	int i = blockIdx.z * blockDim.z + threadIdx.z;
@@ -75,11 +75,11 @@ __global__ void compute_eb_field_gpu_kernel(VectorFieldView<T> e_field_view, Vec
 		};
 		EBVectors<T> eb_vec_global;
 		for(int q = 0; q < laser_count; q++) {
-			cuda::std::array<T, 3> r_vec_local = d_lasers<T>[q].pos_global_to_local(r_vec_global);
-			EBVectors<T> eb_vec_local = compute_eb( d_lasers<T>[q], r_vec_local, t);
+			cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+			EBVectors<T> eb_vec_local = compute_eb(lasers[q], r_vec_local, t);
 			eb_vec_global = EBVectors(
-				eb_vec_global.e + d_lasers<T>[q].vec_local_to_global(eb_vec_local.e),
-				eb_vec_global.b + d_lasers<T>[q].vec_local_to_global(eb_vec_local.b)
+				eb_vec_global.e + lasers[q].vec_local_to_global(eb_vec_local.e),
+				eb_vec_global.b + lasers[q].vec_local_to_global(eb_vec_local.b)
 			);
 		}
 		
@@ -101,7 +101,7 @@ void compute_lz_gpu(ScalarField<T> &lz_field, Particles<T> &particles) noexcept 
 }
 
 template <std::floating_point T>
-void compute_u_field_gpu(ComplexScalarField<T> &u_field) noexcept {
+void compute_u_field_gpu(ComplexScalarField<T> &u_field, const GPULasers<T> &lasers) noexcept {
 	int nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
 	dim3 threads(threads_3d_nx, threads_3d_ny, threads_3d_nz);
 	dim3 blocks(
@@ -111,12 +111,12 @@ void compute_u_field_gpu(ComplexScalarField<T> &u_field) noexcept {
 	);
 	
 	ComplexScalarFieldView<T> u_field_view = u_field.get_gpu_view();
-	compute_u_field_gpu_kernel<<<blocks, threads>>>(u_field_view);
+	compute_u_field_gpu_kernel<<<blocks, threads>>>(u_field_view, lasers);
 	CUDA_CHECK(cudaGetLastError());
 }
 
 template <std::floating_point T>
-void compute_eb_field_gpu(VectorField<T> &e_field, VectorField<T> &b_field, T t) noexcept {
+void compute_eb_field_gpu(VectorField<T> &e_field, VectorField<T> &b_field, const GPULasers<T> &lasers, T t) noexcept {
 	int nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
 	dim3 threads(threads_3d_nx, threads_3d_ny, threads_3d_nz);
 	dim3 blocks(
@@ -127,14 +127,19 @@ void compute_eb_field_gpu(VectorField<T> &e_field, VectorField<T> &b_field, T t)
 	
 	VectorFieldView<T> e_field_view = e_field.get_gpu_view();
 	VectorFieldView<T> b_field_view = b_field.get_gpu_view();
-	compute_eb_field_gpu_kernel<<<blocks, threads>>>(e_field_view, b_field_view, t);
+	compute_eb_field_gpu_kernel<<<blocks, threads>>>(e_field_view, b_field_view, lasers, t);
 	CUDA_CHECK(cudaGetLastError());
 }
-
+template __global__ void compute_lz_gpu_kernel<double>(ScalarFieldView<double> lz_view, ParticlesView<double> particles_view);
+template __global__ void compute_u_field_gpu_kernel<double>(ComplexScalarFieldView<double> u_field_view, __grid_constant__ const GPULasers<double> lasers);
+template __global__ void compute_eb_field_gpu_kernel<double>(VectorFieldView<double> e_field_view, VectorFieldView<double> b_field_view, __grid_constant__ const GPULasers<double> lasers, double t);
 template void compute_lz_gpu<double>(ScalarField<double> &lz_field, Particles<double> &particles) noexcept;
-template void compute_u_field_gpu<double>(ComplexScalarField<double> &u_field) noexcept;
-template void compute_eb_field_gpu<double>(VectorField<double> &e_field, VectorField<double> &b_field, double t) noexcept;
+template void compute_u_field_gpu<double>(ComplexScalarField<double> &u_field, const GPULasers<double> &lasers) noexcept;
+template void compute_eb_field_gpu<double>(VectorField<double> &e_field, VectorField<double> &b_field, const GPULasers<double> &lasers, double t) noexcept;
 
+template __global__ void compute_lz_gpu_kernel<float>(ScalarFieldView<float> lz_view, ParticlesView<float> particles_view);
+template __global__ void compute_u_field_gpu_kernel<float>(ComplexScalarFieldView<float> u_field_view, __grid_constant__ const GPULasers<float> lasers);
+template __global__ void compute_eb_field_gpu_kernel<float>(VectorFieldView<float> e_field_view, VectorFieldView<float> b_field_view, __grid_constant__ const GPULasers<float> lasers, float t);
 template void compute_lz_gpu<float>(ScalarField<float> &lz_field, Particles<float> &particles) noexcept;
-template void compute_u_field_gpu<float>(ComplexScalarField<float> &u_field) noexcept;
-template void compute_eb_field_gpu<float>(VectorField<float> &e_field, VectorField<float> &b_field, float t) noexcept;
+template void compute_u_field_gpu<float>(ComplexScalarField<float> &u_field, const GPULasers<float> &lasers) noexcept;
+template void compute_eb_field_gpu<float>(VectorField<float> &e_field, VectorField<float> &b_field, const GPULasers<float> &lasers, float t) noexcept;

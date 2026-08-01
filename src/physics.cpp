@@ -36,7 +36,7 @@ void compute_lz(ScalarField<T> &lz_field, Particles<T> &particles) noexcept {
 
 template <std::floating_point T>
 void compute_u_field(ComplexScalarField<T> &u_field, std::span<const Laser<T>> lasers) noexcept {
-	int laser_count = lasers.front().laser_count, nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
+	int laser_count = lasers.size(), nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
 	T r_max_x = u_field.r_max[0], r_max_y = u_field.r_max[1], r_max_z = u_field.r_max[2];
 	ComplexScalarFieldView u_field_view = u_field.get_cpu_view();
 	
@@ -69,7 +69,7 @@ void compute_u_field(ComplexScalarField<T> &u_field, std::span<const Laser<T>> l
 
 template <std::floating_point T>
 void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, std::span<const Laser<T>> lasers, T t) noexcept {
-	int laser_count = lasers.front().laser_count, nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
+	int laser_count = lasers.size(), nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
 	T r_max_x = e_field.r_max[0], r_max_y = e_field.r_max[1], r_max_z = e_field.r_max[2];
 	VectorFieldView e_field_view = e_field.get_cpu_view(), b_field_view = b_field.get_cpu_view();
 	
