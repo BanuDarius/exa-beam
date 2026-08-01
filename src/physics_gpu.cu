@@ -73,7 +73,7 @@ __global__ void compute_eb_field_gpu_kernel(VectorFieldView<T> e_field_view, Vec
 			interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
 			interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
 		};
-		EBVectors<T> eb_vec_global{};
+		EBVectors<T> eb_vec_global;
 		for(int q = 0; q < laser_count; q++) {
 			cuda::std::array<T, 3> r_vec_local = d_lasers<T>[q].pos_global_to_local(r_vec_global);
 			EBVectors<T> eb_vec_local = compute_eb( d_lasers<T>[q], r_vec_local, t);
