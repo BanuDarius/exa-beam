@@ -45,11 +45,13 @@ void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std:
 	ComplexScalarField<T> u_field(parameters, laser);
 	VectorField<T> e_field(parameters, laser), b_field(parameters, laser);
 	
-	if(use_gpu) {
-		compute_u_field_gpu(u_field, laser);
-		u_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
-		cudaDeviceSynchronize();
-	} else compute_u_field(u_field, laser);
+	if(output_laser_fields) {
+		if(use_gpu) {
+			compute_u_field_gpu(u_field, laser);
+			u_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
+			cudaDeviceSynchronize();
+		} else compute_u_field(u_field, laser);
+	}
 	for(int step = 0; step < steps; step++) {
 		T time = step * dt;
 		if(use_gpu) higuera_cary_update_gpu(particles, laser, time, dt);

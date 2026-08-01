@@ -27,7 +27,6 @@ SOFTWARE. */
 #include <cstdint>
 #include <cassert>
 #include <numbers>
-#include <concepts>
 
 #include <cuda_runtime.h>
 #include <cuda/std/array>
@@ -291,8 +290,8 @@ struct ComplexScalarField {
 	std::size_t field_size;
 	cuda::std::array<int, 3> num;
 	cuda::std::array<T, 3> r_max;
-	std::unique_ptr<cuda::std::complex<T>[], CUDAHostMemoryAdmin<cuda::std::complex<T>>> h_v;
-	std::unique_ptr<cuda::std::complex<T>[], CUDADeviceMemoryAdmin<cuda::std::complex<T>>> d_v;
+	std::unique_ptr<cuda::std::complex<T>[], CUDAHostMemoryAdminGeneric<cuda::std::complex<T>>> h_v;
+	std::unique_ptr<cuda::std::complex<T>[], CUDADeviceMemoryAdminGeneric<cuda::std::complex<T>>> d_v;
 	ComplexScalarField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };

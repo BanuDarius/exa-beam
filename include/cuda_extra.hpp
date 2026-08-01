@@ -25,6 +25,7 @@ SOFTWARE. */
 
 #include <new>
 #include <cstdint>
+#include <concepts>
 
 #include <cuda_runtime.h>
 
@@ -34,13 +35,19 @@ constexpr int threads_3d_ny = 8;
 constexpr int threads_3d_nz = 2;
 constexpr int threads_1d_nx = 256;
 
-template <typename T> struct CUDADeviceMemoryAdmin {
+template <std::floating_point T> struct CUDADeviceMemoryAdmin {
 	void operator()(T *ptr) noexcept {
 		if(ptr) cudaFree(ptr);
 	}
 };
 
-template <typename T> struct CUDAHostMemoryAdmin {
+template <typename T> struct CUDADeviceMemoryAdminGeneric {
+	void operator()(T *ptr) noexcept {
+		if(ptr) cudaFree(ptr);
+	}
+};
+
+template <std::floating_point T> struct CUDAHostMemoryAdmin {
 	void operator()(T *ptr) noexcept {
 		if(ptr) { 
 			cudaError_t err = cudaHostUnregister(ptr);
@@ -50,9 +57,11 @@ template <typename T> struct CUDAHostMemoryAdmin {
 	}
 };
 
-struct MemoryAdmin {
-	void operator()(uint32_t *ptr) noexcept {
-		if(ptr) {
+template <typename T> struct CUDAHostMemoryAdminGeneric {
+	void operator()(T *ptr) noexcept {
+		if(ptr) { 
+			cudaError_t err = cudaHostUnregister(ptr);
+			if(err == cudaErrorHostMemoryNotRegistered) cudaGetLastError();
 			::operator delete[](ptr, static_cast<std::align_val_t>(mem_align));
 		}
 	}
