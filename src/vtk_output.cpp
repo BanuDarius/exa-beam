@@ -47,10 +47,10 @@ void output_vtk_vector_next(std::ofstream &output_file, const std::string &name)
 
 template <std::floating_point T>
 void output_vtk_scalar_field(std::ofstream &output_file, const DataVTK &data_vtk, const ScalarField<T> &field, const std::string &name) {
-	const int nx = field.num[0], ny = field.num[1], nz = field.num[2];
-	uint32_t *vtk_scalar = data_vtk.vtk_scalar.get();
-	const std::size_t field_size = field.field_size;
 	ScalarFieldView field_view = field.get_cpu_view();
+	std::size_t field_size = field.field_size;
+	uint32_t *vtk_scalar = data_vtk.vtk_scalar.get();
+	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
 	#pragma omp parallel for collapse(3) schedule(static)
 	for(int k = 0; k < nz; k++) {
 		for(int j = 0; j < ny; j++) {
@@ -69,10 +69,10 @@ void output_vtk_scalar_field(std::ofstream &output_file, const DataVTK &data_vtk
 
 template <std::floating_point T>
 void output_vtk_complex_scalar_field(std::ofstream &output_file, const DataVTK &data_vtk, const ComplexScalarField<T> &field, const std::string &name) {
-	const int nx = field.num[0], ny = field.num[1], nz = field.num[2];
-	uint32_t *vtk_scalar = data_vtk.vtk_scalar.get();
-	const std::size_t field_size = field.field_size;
 	ComplexScalarFieldView field_view = field.get_cpu_view();
+	uint32_t *vtk_scalar = data_vtk.vtk_scalar.get();
+	std::size_t field_size = field.field_size;
+	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
 	#pragma omp parallel for collapse(3) schedule(static)
 	for(int k = 0; k < nz; k++) {
 		for(int j = 0; j < ny; j++) {
@@ -91,10 +91,10 @@ void output_vtk_complex_scalar_field(std::ofstream &output_file, const DataVTK &
 
 template <std::floating_point T>
 void output_vtk_vector_field(std::ofstream &output_file, const DataVTK &data_vtk, const VectorField<T> &field, const std::string &name) {
-	const int nx = field.num[0], ny = field.num[1], nz = field.num[2];
-	uint32_t *vtk_vector = data_vtk.vtk_vector.get();
-	const std::size_t field_size = field.field_size;
 	VectorFieldView field_view = field.get_cpu_view();
+	std::size_t field_size = field.field_size;
+	uint32_t *vtk_vector = data_vtk.vtk_vector.get();
+	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
 	#pragma omp parallel for collapse(3) schedule(static)
 	for(int k = 0; k < nz; k++) {
 		for(int j = 0; j < ny; j++) {
@@ -115,10 +115,10 @@ void output_vtk_vector_field(std::ofstream &output_file, const DataVTK &data_vtk
 
 template <std::floating_point T>
 void output_vtk_particles(std::ofstream &output_file, const DataVTK &data_vtk, const Particles<T> &particles) {
-	const int nx = particles.num[0], ny = particles.num[1], nz = particles.num[2];
-	uint32_t *vtk_vector = data_vtk.vtk_vector.get();
-	const std::size_t field_size = data_vtk.field_size;
 	ParticlesView particles_view = particles.get_cpu_view();
+	uint32_t *vtk_vector = data_vtk.vtk_vector.get();
+	std::size_t field_size = data_vtk.field_size;
+	int nx = particles.num[0], ny = particles.num[1], nz = particles.num[2];
 	#pragma omp parallel for collapse(3) schedule(static)
 	for(int k = 0; k < nz; k++) {
 		for(int j = 0; j < ny; j++) {
