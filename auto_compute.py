@@ -20,11 +20,11 @@ zeta_x_imag = 0.000
 zeta_y_real = 0.000
 zeta_y_imag = -0.707
 
-steps = 5000
+steps = 100
 substeps = 100
 max_dim_mult = 4.0
 
-nx = 64
+nx = 128
 a0 = 0.75
 p = 0
 m = 1
