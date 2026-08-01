@@ -40,12 +40,13 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 		if(use_gpu) higuera_cary_update_gpu(particles, t, dt);
 		else higuera_cary_update(particles, lasers, t, dt);
 		if(step % substeps == 0) {
+			if(use_gpu) particles.transfer_data_gpu_to_cpu(cudaStreamDefault);
 			if(output_laser_fields) {
 				if(use_gpu) {
-					compute_eb_field_gpu(e_field, b_field, u_field, t);
+					compute_eb_field_gpu(e_field, b_field, t);
 					e_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
 					b_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
-				} else compute_eb_field(e_field, b_field, u_field, lasers, t);
+				} else compute_eb_field(e_field, b_field, lasers, t);
 				
 				std::string filename_fields = std::format("{}/fields-{:04d}.vtk", output_directory, step / substeps);
 				std::ofstream output_fields(filename_fields, std::ios::binary);
@@ -61,7 +62,6 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 				output_vtk_complex_scalar_field(output_fields, data_vtk, u_field, "u00");
 			}
 			
-			particles.transfer_data_gpu_to_cpu(cudaStreamDefault);
 			std::string filename_particles = std::format("{}/particles-{:04d}.vtk", output_directory, step / substeps);
 			std::ofstream output_particles(filename_particles, std::ios::binary);
 			
