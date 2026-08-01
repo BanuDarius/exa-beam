@@ -4,11 +4,11 @@
 #ifndef MATH_FUNCTIONS_H
 #define MATH_FUNCTIONS_H
 
-#include <cmath>
 #include <concepts>
 
 #include <cuda_runtime.h>
 #include <cuda/std/array>
+#include <cuda/std/cmath>
 
 __device__ __host__ constexpr std::size_t grid_idx(int i, int j, int k, int nx, int ny, int nz) noexcept {
 	(void)nx;
@@ -29,8 +29,7 @@ __device__ __host__ inline T dot(cuda::std::array<T, 3> a, cuda::std::array<T, 3
 
 template <std::floating_point T>
 __device__ __host__ inline T magnitude(cuda::std::array<T, 3> a) noexcept {
-	using std::sqrt;
-	T x = sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
+	T x = cuda::std::sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
 	return x;
 }
 

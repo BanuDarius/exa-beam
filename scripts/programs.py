@@ -4,6 +4,7 @@
 # ---------------------------------------------------------- #
 
 import subprocess
+import numpy as np
 from pathlib import Path
 
 # ---------------------------------------------------------- #
@@ -15,9 +16,10 @@ OUTPUT_DIR = PROJECT_ROOT / "output"
 
 # ---------------------------------------------------------- #
 
-def output_init_files(sim_parameters, laser):
+def output_init_files(sim_parameters, lasers):
     input_file = sim_parameters.input_file
     laser_file = sim_parameters.input_laser
+    laser_count = len(lasers)
     
     with open(input_file, "w") as file:
         file.write(f"tf {sim_parameters.tf}\n")
@@ -27,29 +29,31 @@ def output_init_files(sim_parameters, laser):
         file.write(f"use_gpu {int(sim_parameters.use_gpu)}\n")
         file.write(f"max_dim_mult {sim_parameters.max_dim_mult}\n")
         file.write(f"output_laser_fields {int(sim_parameters.output_laser_fields)}\n")
+        file.write(f"laser_count {laser_count}\n")
     
     with open(laser_file, "w") as file:
-        file.write(f"r0_x 0.0\n")
-        file.write(f"r0_y 0.0\n")
-        file.write(f"r0_z 0.0\n")
-        file.write(f"p {laser.p}\n")
-        file.write(f"m {laser.m}\n")
-        file.write(f"a0 {laser.a0}\n")
-        file.write(f"tau {laser.tau}\n")
-        file.write(f"psi {laser.psi}\n")
-        file.write(f"phi {laser.phi}\n")
-        file.write(f"theta {laser.theta}\n")
-        file.write(f"omega {laser.omega}\n")
-        file.write(f"w0_mult {laser.w0_mult}\n")
-        file.write(f"zeta_x_real {laser.zeta_x_real}\n")
-        file.write(f"zeta_x_imag {laser.zeta_x_imag}\n")
-        file.write(f"zeta_y_real {laser.zeta_y_real}\n")
-        file.write(f"zeta_y_imag {laser.zeta_y_imag}\n")
+        for i in np.arange(laser_count):
+            file.write(f"r_0_x 0.0\n")
+            file.write(f"r_0_y 0.0\n")
+            file.write(f"r_0_z 0.0\n")
+            file.write(f"p {lasers[i].p}\n")
+            file.write(f"m {lasers[i].m}\n")
+            file.write(f"a0 {lasers[i].a0}\n")
+            file.write(f"tau {lasers[i].tau}\n")
+            file.write(f"psi {lasers[i].psi}\n")
+            file.write(f"phi {lasers[i].phi}\n")
+            file.write(f"theta {lasers[i].theta}\n")
+            file.write(f"omega {lasers[i].omega}\n")
+            file.write(f"w0_mult {lasers[i].w0_mult}\n")
+            file.write(f"zeta_x_real {lasers[i].zeta_x_real}\n")
+            file.write(f"zeta_x_imag {lasers[i].zeta_x_imag}\n")
+            file.write(f"zeta_y_real {lasers[i].zeta_y_real}\n")
+            file.write(f"zeta_y_imag {lasers[i].zeta_y_imag}\n")
         
 # ---------------------------------------------------------- #
 
-def run_simulation(sim_parameters, laser):
-    output_init_files(sim_parameters, laser)
+def run_simulation(sim_parameters, lasers):
+    output_init_files(sim_parameters, lasers)
     
     if(sim_parameters.use_floats == False):
         arguments = [BIN_DIR / "exa_beam", sim_parameters.input_file, sim_parameters.input_laser, sim_parameters.output_directory]

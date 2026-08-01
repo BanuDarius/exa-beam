@@ -4,6 +4,7 @@
 #ifndef SIM_STRUCTS_H
 #define SIM_STRUCTS_H
 
+#include <span>
 #include <memory>
 #include <cstdint>
 #include <cassert>
@@ -17,7 +18,8 @@
 #include "structs_view.hpp"
 #include "math_functions.hpp"
 
-constexpr int input_file_count = 7;
+constexpr int max_lasers = 16;
+constexpr int input_file_count = 8;
 constexpr int input_laser_count = 16;
 
 template <std::floating_point T> constexpr T m_e = T(1.0);
@@ -25,24 +27,30 @@ template <std::floating_point T> constexpr T e_0 = T(-1.0);
 template <std::floating_point T> constexpr T c = T(137.036);
 template <std::floating_point T> constexpr T pi = std::numbers::pi_v<T>;
 
+template <std::floating_point T> struct Laser;
+template <std::floating_point T> struct Parameters;
+template <std::floating_point T> struct ScalarField;
+template <std::floating_point T> struct VectorField;
+template <std::floating_point T> struct ComplexScalarField;
+
 template <std::floating_point T>
 struct Parameters {
-	int nx, steps, substeps;
+	int nx, steps, substeps, laser_count;
 	T tf, max_dim_mult;
 	bool use_gpu, output_laser_fields;
-	Parameters(int nx_n, int steps_n, int substeps_n, T tf_n, T max_dim_mult_n, bool use_gpu_n, bool output_laser_fields_n)
-		: nx(nx_n), steps(steps_n), substeps(substeps_n), tf(tf_n), max_dim_mult(max_dim_mult_n), use_gpu(use_gpu_n), output_laser_fields(output_laser_fields_n) {}
-	Parameters() = default;
+	Parameters(int nx_n, int steps_n, int substeps_n, int laser_count_n, T tf_n, T max_dim_mult_n, bool use_gpu_n, bool output_laser_fields_n)
+		: nx(nx_n), steps(steps_n), substeps(substeps_n), laser_count(laser_count_n), tf(tf_n), max_dim_mult(max_dim_mult_n), use_gpu(use_gpu_n), output_laser_fields(output_laser_fields_n) {}
+	Parameters() noexcept = default;
 };
 
 template <std::floating_point T>
 struct Laser {
-	int p, m;
+	int laser_count, p, m;
 	T a0, omega, w0, k, lambda, z_r, tau, E0, psi;
 	cuda::std::complex<T> zeta_x, zeta_y;
 	cuda::std::array<T, 3> ex_prime, ey_prime, ez_prime, r_0;
-	Laser(int p_n, int m_n, T a0_n, T omega_n, T w0_multiplier, T tau_n, T psi_n, cuda::std::complex<T> zeta_x_n, cuda::std::complex<T> zeta_y_n, T phi, T theta, cuda::std::array<T, 3> r_0_n)
-		: p(p_n), m(m_n), a0(a0_n), omega(omega_n), tau(tau_n), psi(psi_n), zeta_x(zeta_x_n), zeta_y(zeta_y_n), r_0(r_0_n) {
+	Laser(int laser_count_n, int p_n, int m_n, T a0_n, T omega_n, T w0_multiplier, T tau_n, T psi_n, cuda::std::complex<T> zeta_x_n, cuda::std::complex<T> zeta_y_n, cuda::std::array<T, 3> r_0_n, T phi, T theta)
+		: laser_count(laser_count_n), p(p_n), m(m_n), a0(a0_n), omega(omega_n), tau(tau_n), psi(psi_n), zeta_x(zeta_x_n), zeta_y(zeta_y_n), r_0(r_0_n) {
 		k = omega / c<T>;
 		lambda = (T(2.0) * pi<T> * c<T>) / omega;
 		w0 = lambda * w0_multiplier;
@@ -80,8 +88,22 @@ struct Laser {
 		cuda::std::array<T, 3> vec_global = ex_prime_vec + ey_prime_vec + ez_prime_vec;
 		return vec_global;
 	}
-	Laser() = default;
+	static void transfer_lasers_cpu_to_gpu(std::span<const Laser<T>> h_lasers);
+	Laser() noexcept = default;
 };
+
+template <std::floating_point T>
+alignas(Laser<T>) inline __constant__ unsigned char d_lasers_raw[max_lasers * sizeof(Laser<T>)];
+
+template <std::floating_point T>
+inline void Laser<T>::transfer_lasers_cpu_to_gpu(std::span<const Laser<T>> h_lasers) {
+	CUDA_CHECK(cudaMemcpyToSymbol(d_lasers_raw<T>, h_lasers.data(), h_lasers.size() * sizeof(Laser<T>), 0, cudaMemcpyHostToDevice));
+}
+
+template <std::floating_point T>
+__device__ inline const Laser<T> &get_d_lasers(int idx) {
+	return reinterpret_cast<const Laser<T>*>(d_lasers_raw<T>)[idx];
+}
 
 template <std::floating_point T>
 struct Particles {
@@ -501,8 +523,9 @@ struct DataVTK {
 
 template <std::floating_point T>
 struct EBVectors {
-	cuda::std::array<T, 3> e, b;
+	cuda::std::array<T, 3> e{}, b{};
 	__device__ __host__ EBVectors(cuda::std::array<T, 3> e_n, cuda::std::array<T, 3> b_n) : e(e_n), b(b_n) {}
+	EBVectors() = default;
 };
 
 #endif

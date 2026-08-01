@@ -4,11 +4,12 @@
 #ifndef HIGUERA_CARY_H
 #define HIGUERA_CARY_H
 
-#include <cmath>
+#include <span>
 #include <concepts>
 
 #include <cuda_runtime.h>
 #include <cuda/std/array>
+#include <cuda/std/cmath>
 
 #include "sim_structs.hpp"
 #include "math_functions.hpp"
@@ -16,9 +17,8 @@
 
 template <std::floating_point T>
 __device__ __host__ inline T comp_gamma(cuda::std::array<T, 3> u_vec) noexcept {
-	using std::sqrt;
 	T u2 = dot(u_vec, u_vec);
-	T gamma = sqrt(T(1.0) + u2 / (c<T> * c<T>));
+	T gamma = cuda::std::sqrt(T(1.0) + u2 / (c<T> * c<T>));
 	return gamma;
 }
 
@@ -64,11 +64,10 @@ __device__ __host__ inline cuda::std::array<T, 3> hc_u_prime(cuda::std::array<T,
 
 template <std::floating_point T>
 __device__ __host__ inline T hc_gamma_new(cuda::std::array<T, 3> u_minus, cuda::std::array<T, 3> beta, T gamma_minus) noexcept {
-	using std::sqrt;
 	T t1 = gamma_minus * gamma_minus - dot(beta, beta);
 	T beta_dot_u = dot(beta, u_minus);
 	T t2 = dot(beta, beta) + (beta_dot_u * beta_dot_u) / (c<T> * c<T>);
-	T t3 = sqrt(T(0.5) * (t1 + sqrt(t1 * t1 + T(4.0) * t2)));
+	T t3 = cuda::std::sqrt(T(0.5) * (t1 + cuda::std::sqrt(t1 * t1 + T(4.0) * t2)));
 	return t3;
 }
 
@@ -81,7 +80,8 @@ __device__ __host__ inline cuda::std::array<T, 3> hc_u_plus(cuda::std::array<T, 
 }
 
 template <std::floating_point T>
-inline void higuera_cary_update(Particles<T> &particles, const Laser<T> &laser, T t, T dt) noexcept {
+inline void higuera_cary_update(Particles<T> &particles, std::span<const Laser<T>> lasers, T t, T dt) noexcept {
+	int laser_count = lasers.front().laser_count;
 	ParticlesView<T> particles_view = particles.get_cpu_view();
 	#pragma omp parallel for simd schedule(static)
 	for(std::size_t idx = 0; idx < particles.particle_num; idx++) {
@@ -91,11 +91,16 @@ inline void higuera_cary_update(Particles<T> &particles, const Laser<T> &laser, 
 		
 		T half_dt = T(0.5) * dt, half_dt_gamma = half_dt / gamma;
 		cuda::std::array<T, 3> r_half_global = r_vec_global + u_vec_global * half_dt_gamma;
-		cuda::std::array<T, 3> r_half_local = laser.pos_global_to_local(r_half_global);
 		
-		EBVectors eb_vec = compute_eb(laser, r_half_local, t + half_dt);
-		eb_vec.e = laser.vec_local_to_global(eb_vec.e);
-		eb_vec.b = laser.vec_local_to_global(eb_vec.b);
+		EBVectors<T> eb_vec{};
+		for(int i = 0; i < laser_count; i++) {
+			cuda::std::array<T, 3> r_half_local = lasers[i].pos_global_to_local(r_half_global);
+			EBVectors eb_vec_local = compute_eb(lasers[i], r_half_local, t + half_dt);
+			eb_vec = EBVectors(
+				eb_vec.e + lasers[i].vec_local_to_global(eb_vec_local.e),
+				eb_vec.b + lasers[i].vec_local_to_global(eb_vec_local.b)
+			);
+		}
 		
 		cuda::std::array<T, 3> beta = hc_beta(eb_vec.b, dt);
 		cuda::std::array<T, 3> epsilon = hc_epsilon(eb_vec.e, dt);
@@ -120,6 +125,6 @@ inline void higuera_cary_update(Particles<T> &particles, const Laser<T> &laser, 
 	}
 }
 
-template <std::floating_point T> void higuera_cary_update_gpu(Particles<T> &particles, const Laser<T> &laser, T t, T dt) noexcept;
+template <std::floating_point T> void higuera_cary_update_gpu(Particles<T> &particles, T t, T dt) noexcept;
 
 #endif

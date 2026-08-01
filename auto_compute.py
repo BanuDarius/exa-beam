@@ -42,9 +42,11 @@ theta = np.radians(0.0)
 if __name__ == "__main__":
     sim_parameters = sim_init.SimParameters(tf, steps, substeps, nx, max_dim_mult, use_gpu, use_floats, output_laser_fields)
     
-    laser = sim_init.Laser(zeta_x_real, zeta_x_imag, zeta_y_real, zeta_y_imag, phi, theta, a0, p, m, w0_mult, omega, tau, psi)
+    lasers = []
+    lasers.append(sim_init.Laser(zeta_x_real, zeta_x_imag, zeta_y_real, zeta_y_imag, phi, theta, a0, p, m, w0_mult, omega, tau, psi))
+    lasers.append(sim_init.Laser(zeta_x_real, zeta_x_imag, zeta_y_real, zeta_y_imag, phi, np.radians(90.0), a0, p, m, w0_mult, omega, tau, psi))
     
-    programs.run_simulation(sim_parameters, laser)
+    programs.run_simulation(sim_parameters, lasers)
     
     print("Exa-Beam finished!\a")
 

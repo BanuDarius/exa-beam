@@ -1,6 +1,8 @@
 // Copyright (c) 2026 Banu Darius-Matei
 // SPDX-License-Identifier: MIT
 
+#include <span>
+
 #include <cuda/std/array>
 #include <cuda/std/complex>
 
@@ -33,9 +35,9 @@ void compute_lz(ScalarField<T> &lz_field, Particles<T> &particles) noexcept {
 }
 
 template <std::floating_point T>
-void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser) noexcept {
-	int nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
-	T r_max_x = u_field.r_max[0], r_max_y = u_field.r_max[1], r_max_z = u_field.r_max[2], z_r = laser.z_r, w0 = laser.w0;
+void compute_u_field(ComplexScalarField<T> &u_field, std::span<const Laser<T>> lasers) noexcept {
+	int laser_count = lasers.front().laser_count, nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
+	T r_max_x = u_field.r_max[0], r_max_y = u_field.r_max[1], r_max_z = u_field.r_max[2];
 	ComplexScalarFieldView u_field_view = u_field.get_cpu_view();
 	
 	#pragma omp parallel for simd collapse(3) schedule(static)
@@ -47,15 +49,18 @@ void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser) noex
 					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
 					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
 				};
-				cuda::std::array<T, 3> r_vec_local = laser.pos_global_to_local(r_vec_global);
-				
-				T z = r_vec_local[2];
-				T r_z = compute_r_z(z, z_r);
-				T w_z = compute_w_z(w0, z, z_r);
-				
-				cuda::std::complex<T> u_i = compute_u(laser, r_vec_local, r_z, w_z);
+				cuda::std::complex<T> u_i{};
+				for(int q = 0; q < laser_count; q++) {
+					cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+					
+					T z = r_vec_local[2];
+					T z_r = lasers[q].z_r, w0 = lasers[q].w0;
+					T r_z = compute_r_z(z, z_r);
+					T w_z = compute_w_z(w0, z, z_r);
+					
+					u_i += compute_u(lasers[q], r_vec_local, r_z, w_z);
+				}
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-				
 				u_field_view.set_field(u_i, idx);
 			}
 		}
@@ -63,8 +68,8 @@ void compute_u_field(ComplexScalarField<T> &u_field, const Laser<T> &laser) noex
 }
 
 template <std::floating_point T>
-void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const ComplexScalarField<T> &u_field, const Laser<T> &laser, T t) noexcept {
-	int nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
+void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const ComplexScalarField<T> &u_field, std::span<const Laser<T>> lasers, T t) noexcept {
+	int laser_count = lasers.front().laser_count, nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
 	T r_max_x = e_field.r_max[0], r_max_y = e_field.r_max[1], r_max_z = e_field.r_max[2];
 	ComplexScalarFieldView u_field_view = u_field.get_cpu_view();
 	VectorFieldView e_field_view = e_field.get_cpu_view(), b_field_view = b_field.get_cpu_view();
@@ -78,15 +83,16 @@ void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const Co
 					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
 					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
 				};
-				cuda::std::array<T, 3> r_vec_local = laser.pos_global_to_local(r_vec_global);
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-				
-				EBVectors<T> eb_vec_local = compute_eb(u_field_view, laser, r_vec_local, t, idx);
-				EBVectors<T> eb_vec_global(
-					laser.vec_local_to_global(eb_vec_local.e),
-					laser.vec_local_to_global(eb_vec_local.b)
-				);
-				
+				EBVectors<T> eb_vec_global{};
+				for(int q = 0; q < laser_count; q++) {
+					cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+					EBVectors<T> eb_vec_local = compute_eb(u_field_view, lasers[q], r_vec_local, t, idx);
+					eb_vec_global = EBVectors(
+						eb_vec_global.e + lasers[q].vec_local_to_global(eb_vec_local.e),
+						eb_vec_global.b + lasers[q].vec_local_to_global(eb_vec_local.b)
+					);
+				}
 				e_field_view.set_field(eb_vec_global.e, idx);
 				b_field_view.set_field(eb_vec_global.b, idx);
 			}
@@ -95,9 +101,9 @@ void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, const Co
 }
 
 template void compute_lz<double>(ScalarField<double> &lz_field, Particles<double> &particles) noexcept;
-template void compute_u_field<double>(ComplexScalarField<double> &u_field, const Laser<double> &laser) noexcept;
-template void compute_eb_field<double>(VectorField<double> &e_field, VectorField<double> &b_field, const ComplexScalarField<double> &u_field, const Laser<double> &laser, double t) noexcept;
+template void compute_u_field<double>(ComplexScalarField<double> &u_field, std::span<const Laser<double>> lasers) noexcept;
+template void compute_eb_field<double>(VectorField<double> &e_field, VectorField<double> &b_field, const ComplexScalarField<double> &u_field, std::span<const Laser<double>> lasers, double t) noexcept;
  
 template void compute_lz<float>(ScalarField<float> &lz_field, Particles<float> &particles) noexcept;
-template void compute_u_field<float>(ComplexScalarField<float> &u_field, const Laser<float> &laser) noexcept;
-template void compute_eb_field<float>(VectorField<float> &e_field, VectorField<float> &b_field,  const ComplexScalarField<float> &u_field, const Laser<float> &laser, float t) noexcept;
+template void compute_u_field<float>(ComplexScalarField<float> &u_field, std::span<const Laser<float>> lasers) noexcept;
+template void compute_eb_field<float>(VectorField<float> &e_field, VectorField<float> &b_field,  const ComplexScalarField<float> &u_field, std::span<const Laser<float>> lasers, float t) noexcept;

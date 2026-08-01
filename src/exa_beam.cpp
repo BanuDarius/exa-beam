@@ -1,7 +1,9 @@
 // Copyright (c) 2026 Banu Darius-Matei
 // SPDX-License-Identifier: MIT
 
+#include <span>
 #include <omp.h>
+#include <vector>
 #include <format>
 #include <cstdio>
 #include <cstring>
@@ -15,35 +17,35 @@
 #include "higuera_cary.hpp"
 
 template <std::floating_point T>
-void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std::string &output_directory) {
+void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers, const std::string &output_directory) {
 	bool use_gpu = parameters.use_gpu, output_laser_fields = parameters.output_laser_fields;
 	int steps = parameters.steps, substeps = parameters.substeps;
 	T dt = parameters.tf / steps;
 	
 	DataVTK data_vtk(parameters);
-	Particles<T> particles(parameters, laser);
-	ScalarField<T> lz_field(parameters, laser);
-	ComplexScalarField<T> u_field(parameters, laser);
-	VectorField<T> e_field(parameters, laser), b_field(parameters, laser);
+	Particles<T> particles(parameters, lasers.front());
+	ScalarField<T> lz_field(parameters, lasers.front());
+	ComplexScalarField<T> u_field(parameters, lasers.front());
+	VectorField<T> e_field(parameters, lasers.front()), b_field(parameters, lasers.front());
 	
 	if(output_laser_fields) {
 		if(use_gpu) {
-			compute_u_field_gpu(u_field, laser);
+			compute_u_field_gpu(u_field);
 			u_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
 			cudaDeviceSynchronize();
-		} else compute_u_field(u_field, laser);
+		} else compute_u_field(u_field, lasers);
 	}
 	for(int step = 0; step < steps; step++) {
-		T time = step * dt;
-		if(use_gpu) higuera_cary_update_gpu(particles, laser, time, dt);
-		else higuera_cary_update(particles, laser, time, dt);
+		T t = step * dt;
+		if(use_gpu) higuera_cary_update_gpu(particles, t, dt);
+		else higuera_cary_update(particles, lasers, t, dt);
 		if(step % substeps == 0) {
 			if(output_laser_fields) {
 				if(use_gpu) {
-					compute_eb_field_gpu(e_field, b_field, u_field, laser, time);
+					compute_eb_field_gpu(e_field, b_field, u_field, t);
 					e_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
 					b_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
-				} else compute_eb_field(e_field, b_field, u_field, laser, time);
+				} else compute_eb_field(e_field, b_field, u_field, lasers, t);
 				
 				std::string filename_fields = std::format("{}/fields-{:04d}.vtk", output_directory, step / substeps);
 				std::ofstream output_fields(filename_fields, std::ios::binary);
@@ -90,10 +92,15 @@ void simulate(const Parameters<T> &parameters, const Laser<T> &laser, const std:
 
 template <std::floating_point T>
 void start_simulation(const std::string &input_file, const std::string &input_laser, const std::string &output_directory) {
-	Laser<T> laser;
 	Parameters<T> parameters;
-	read_input_file(input_file, input_laser, parameters, laser);
-	simulate(parameters, laser, output_directory);
+	read_input_file(input_file, parameters);
+	
+	std::vector<Laser<T>> lasers;
+	lasers.reserve(parameters.laser_count);
+	read_lasers_file(input_laser, lasers, parameters);
+	if(parameters.use_gpu) Laser<T>::transfer_lasers_cpu_to_gpu(lasers);
+	
+	simulate<T>(parameters, lasers, output_directory);
 }
 
 int main(int argc, char **argv) {
