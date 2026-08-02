@@ -20,19 +20,19 @@ zeta_x_imag = 0.000
 zeta_y_real = 0.000
 zeta_y_imag = -0.707
 
-steps = 100
+steps = 5000
 substeps = 100
 max_dim_mult = 4.0
 
 nx = 128
-a0 = 0.75
+a0 = 0.5
 p = 0
 m = 1
-tau = 4.0
+tau = 3.0
 omega = 0.057
 w0_mult = 2.0
-psi = -0.5 * c * tau
-tf = 15.0 * c * tau
+psi = -0.25 * c * tau
+tf = 10.0 * c * tau
 
 phi = np.radians(0.0)
 theta = np.radians(0.0)

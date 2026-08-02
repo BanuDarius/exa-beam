@@ -7,9 +7,7 @@
 #include <span>
 #include <memory>
 #include <cstdint>
-#include <cassert>
 #include <numbers>
-#include <cstddef>
 
 #include <cuda_runtime.h>
 #include <cuda/std/array>
@@ -240,35 +238,12 @@ struct ScalarField {
 	}
 	ScalarField &operator=(const ScalarField &other) {
 		if(this == &other) return *this;
-		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
 		if(!use_gpu) {
 			#pragma omp parallel for simd schedule(static)
 			for(std::size_t i = 0; i < other.field_size; i++)
 				h_v[i] = other.h_v[i];
 		} else
 			CUDA_CHECK(cudaMemcpy(d_v.get(), other.d_v.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice));
-		return *this;
-	}
-	ScalarField &operator+=(const ScalarField &other) {
-		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
-		if(!use_gpu) {
-			#pragma omp parallel for simd schedule(static)
-			for(std::size_t i = 0; i < other.field_size; i++)
-				h_v[i] += other.h_v[i];
-		} else {
-			std::fprintf(stderr, "Struct operation not implemented yet\n"); std::exit(1);
-		}
-		return *this;
-	}
-	ScalarField &operator-=(const ScalarField &other) {
-		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
-		if(!use_gpu) {
-			#pragma omp parallel for simd schedule(static)
-			for(std::size_t i = 0; i < other.field_size; i++)
-				h_v[i] -= other.h_v[i];
-		} else {
-			std::fprintf(stderr, "Struct operation not implemented yet\n"); std::exit(1);
-		}
 		return *this;
 	}
 	void transfer_data_cpu_to_gpu(cudaStream_t stream) noexcept {
@@ -332,35 +307,12 @@ struct ComplexScalarField {
 	}
 	ComplexScalarField &operator=(const ComplexScalarField &other) {
 		if(this == &other) return *this;
-		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
 		if(!use_gpu) {
 			#pragma omp parallel for simd schedule(static)
 			for(std::size_t i = 0; i < other.field_size; i++)
 				h_v[i] = other.h_v[i];
 		} else
 			CUDA_CHECK(cudaMemcpy(d_v.get(), other.d_v.get(), field_size * sizeof(cuda::std::complex<T>), cudaMemcpyDeviceToDevice));
-		return *this;
-	}
-	ComplexScalarField &operator+=(const ComplexScalarField &other) {
-		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
-		if(!use_gpu) {
-			#pragma omp parallel for simd schedule(static)
-			for(std::size_t i = 0; i < other.field_size; i++)
-				h_v[i] += other.h_v[i];
-		} else {
-			std::fprintf(stderr, "Struct operation not implemented yet\n"); std::exit(1);
-		}
-		return *this;
-	}
-	ComplexScalarField &operator-=(const ComplexScalarField &other) {
-		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
-		if(!use_gpu) {
-			#pragma omp parallel for simd schedule(static)
-			for(std::size_t i = 0; i < other.field_size; i++)
-				h_v[i] -= other.h_v[i];
-		} else {
-			std::fprintf(stderr, "Struct operation not implemented yet\n"); std::exit(1);
-		}
 		return *this;
 	}
 	void transfer_data_cpu_to_gpu(cudaStream_t stream) noexcept {
@@ -440,7 +392,6 @@ struct VectorField {
 	}
 	VectorField &operator=(const VectorField &other) {
 		if(this == &other) return *this;
-		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
 		if(!use_gpu) {
 			#pragma omp parallel for simd schedule(static)
 			for(std::size_t i = 0; i < other.field_size; i++) {
@@ -450,30 +401,6 @@ struct VectorField {
 			CUDA_CHECK(cudaMemcpy(d_x.get(), other.d_x.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice));
 			CUDA_CHECK(cudaMemcpy(d_y.get(), other.d_y.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice));
 			CUDA_CHECK(cudaMemcpy(d_z.get(), other.d_z.get(), field_size * sizeof(T), cudaMemcpyDeviceToDevice));
-		}
-		return *this;
-	}
-	VectorField &operator+=(const VectorField &other) {
-		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
-		if(!use_gpu) {
-			#pragma omp parallel for simd schedule(static)
-			for(std::size_t i = 0; i < other.field_size; i++) {
-				h_x[i] += other.h_x[i]; h_y[i] += other.h_y[i]; h_z[i] += other.h_z[i];
-			}
-		} else {
-			std::fprintf(stderr, "Struct operation not implemented yet\n"); std::exit(1);
-		}
-		return *this;
-	}
-	VectorField &operator-=(const VectorField &other) {
-		assert(field_size == other.field_size && "FIELD SIZES DO NOT MATCH!");
-		if(!use_gpu) {
-			#pragma omp parallel for simd schedule(static)
-			for(std::size_t i = 0; i < other.field_size; i++) {
-				h_x[i] -= other.h_x[i]; h_y[i] -= other.h_y[i]; h_z[i] -= other.h_z[i];
-			}
-		} else {
-			std::fprintf(stderr, "Struct operation not implemented yet\n"); std::exit(1);
 		}
 		return *this;
 	}
