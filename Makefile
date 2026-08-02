@@ -3,6 +3,7 @@ BIN_DIR = bin
 BUILD_DIR = build
 INPUT_DIR = input
 OUTPUT_DIR = output
+OUTPUT_VIDEO = output-video
 
 CXX = g++
 NVCC = nvcc
@@ -51,11 +52,11 @@ $(BIN_DIR) $(BUILD_DIR):
 	$(info Created $@ directory.)
 
 output-dirs:
-	@mkdir -p $(OUTPUT_DIR) $(INPUT_DIR)
+	@mkdir -p $(OUTPUT_DIR) $(OUTPUT_VIDEO) $(INPUT_DIR)
 	$(info Created output directories.)
 
 clean:
-	@rm -rf $(BUILD_DIR) $(BIN_DIR) $(OUTPUT_DIR) $(INPUT_DIR)
+	@rm -rf $(BUILD_DIR) $(BIN_DIR) $(OUTPUT_DIR) $(OUTPUT_VIDEO) $(INPUT_DIR)
 	$(info Removed output directories.)
 
 -include $(OBJS:.o=.d)

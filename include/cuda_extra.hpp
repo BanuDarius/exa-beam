@@ -16,19 +16,19 @@ constexpr int threads_3d_ny = 8;
 constexpr int threads_3d_nz = 2;
 constexpr int threads_1d_nx = 256;
 
-template <std::floating_point T> struct CUDADeviceMemoryAdmin {
+template <std::floating_point T> struct DeviceMemory {
 	void operator()(T *ptr) noexcept {
 		if(ptr) cudaFree(ptr);
 	}
 };
 
-template <typename T> struct CUDADeviceMemoryAdminGeneric {
+template <typename T> struct DeviceMemoryGeneric {
 	void operator()(T *ptr) noexcept {
 		if(ptr) cudaFree(ptr);
 	}
 };
 
-template <std::floating_point T> struct CUDAHostMemoryAdmin {
+template <std::floating_point T> struct HostMemory {
 	void operator()(T *ptr) noexcept {
 		if(ptr) { 
 			cudaError_t err = cudaHostUnregister(ptr);
@@ -38,7 +38,7 @@ template <std::floating_point T> struct CUDAHostMemoryAdmin {
 	}
 };
 
-template <typename T> struct CUDAHostMemoryAdminGeneric {
+template <typename T> struct HostMemoryGeneric {
 	void operator()(T *ptr) noexcept {
 		if(ptr) { 
 			cudaError_t err = cudaHostUnregister(ptr);
@@ -53,7 +53,7 @@ template <typename T> struct CUDAHostMemoryAdminGeneric {
 		cudaError_t err = (function); \
 		if(err != cudaSuccess) { \
 			std::fprintf(stderr, "%s\n", cudaGetErrorString(err)); \
-			std::exit(1);\
+			std::exit(1); \
 		} \
 	} while(false)
 #endif

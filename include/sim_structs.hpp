@@ -110,8 +110,8 @@ struct Particles {
 	std::size_t particle_num;
 	cuda::std::array<int, 3> num;
 	cuda::std::array<T, 3> r_max;
-	std::unique_ptr<T[], CUDAHostMemoryAdmin<T>> h_x, h_y, h_z, h_ux, h_uy, h_uz, h_gamma;
-	std::unique_ptr<T[], CUDADeviceMemoryAdmin<T>> d_x, d_y, d_z, d_ux, d_uy, d_uz, d_gamma;
+	std::unique_ptr<T[], HostMemory<T>> h_x, h_y, h_z, h_ux, h_uy, h_uz, h_gamma;
+	std::unique_ptr<T[], DeviceMemory<T>> d_x, d_y, d_z, d_ux, d_uy, d_uz, d_gamma;
 	Particles(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		particle_num = nx * ny * nz;
 		num = { nx, ny, nz };
@@ -200,8 +200,8 @@ struct ScalarField {
 	std::size_t field_size;
 	cuda::std::array<int, 3> num;
 	cuda::std::array<T, 3> r_max;
-	std::unique_ptr<T[], CUDAHostMemoryAdmin<T>> h_v;
-	std::unique_ptr<T[], CUDADeviceMemoryAdmin<T>> d_v;
+	std::unique_ptr<T[], HostMemory<T>> h_v;
+	std::unique_ptr<T[], DeviceMemory<T>> d_v;
 	ScalarField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
@@ -269,8 +269,8 @@ struct ComplexScalarField {
 	std::size_t field_size;
 	cuda::std::array<int, 3> num;
 	cuda::std::array<T, 3> r_max;
-	std::unique_ptr<cuda::std::complex<T>[], CUDAHostMemoryAdminGeneric<cuda::std::complex<T>>> h_v;
-	std::unique_ptr<cuda::std::complex<T>[], CUDADeviceMemoryAdminGeneric<cuda::std::complex<T>>> d_v;
+	std::unique_ptr<cuda::std::complex<T>[], HostMemoryGeneric<cuda::std::complex<T>>> h_v;
+	std::unique_ptr<cuda::std::complex<T>[], DeviceMemoryGeneric<cuda::std::complex<T>>> d_v;
 	ComplexScalarField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
@@ -338,8 +338,8 @@ struct VectorField {
 	std::size_t field_size;
 	cuda::std::array<int, 3> num;
 	cuda::std::array<T, 3> r_max;
-	std::unique_ptr<T[], CUDAHostMemoryAdmin<T>> h_x, h_y, h_z;
-	std::unique_ptr<T[], CUDADeviceMemoryAdmin<T>> d_x, d_y, d_z;
+	std::unique_ptr<T[], HostMemory<T>> h_x, h_y, h_z;
+	std::unique_ptr<T[], DeviceMemory<T>> d_x, d_y, d_z;
 	VectorField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
@@ -428,11 +428,11 @@ struct VectorField {
 struct DataVTK {
 	bool use_gpu;
 	std::size_t field_size;
-	std::unique_ptr<uint32_t[]> vtk_scalar, vtk_vector;
+	std::unique_ptr<uint32_t[], HostMemoryGeneric<uint32_t>> vtk_scalar, vtk_vector;
 	DataVTK(int nx, int ny, int nz, bool use_gpu_n) : use_gpu(use_gpu_n) {
 		field_size = nx * ny * nz;
-		vtk_scalar = std::make_unique_for_overwrite<uint32_t[]>(field_size);
-		vtk_vector = std::make_unique_for_overwrite<uint32_t[]>(3 * field_size);
+		vtk_scalar.reset(new (static_cast<std::align_val_t>(mem_align)) uint32_t[field_size]);
+		vtk_vector.reset(new (static_cast<std::align_val_t>(mem_align)) uint32_t[3 * field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
 			vtk_scalar[i] = 0u;
