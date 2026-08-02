@@ -10,13 +10,13 @@ jobs:
     compile-check:
         runs-on: self-hosted
             steps:
-                - name: Check program
-                  uses: actions/checkout@v4
-                  
-                - name: Clean directory
-                  run: make clean
-                    
-                - name: Compile
-                  run: |
+                name: Check program
+                uses: actions/checkout@v4
+
+                name: Clean directory
+                run: make clean
+
+                name: Compile
+                run: |
                     echo "Started automatic build."
                     make -j$(nproc)
