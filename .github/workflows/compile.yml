@@ -1,0 +1,22 @@
+name: Automatic CI/CD
+
+on:
+    push:
+        branches: [ "main", "master" ]
+    pull_request:
+        nremches: [ "main", "master" ]
+
+jobs:
+    compile-check:
+        runs-on: self-hosted
+            steps:
+                - name: Check program
+                  uses: actions/checkout@v4
+                  
+                - name: Clean directory
+                  run: make clean
+                    
+                - name: Compile
+                  run: |
+                    echo "Started automatic build."
+                    make -j$(nproc)
