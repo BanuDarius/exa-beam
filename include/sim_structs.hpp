@@ -5,8 +5,6 @@
 #define SIM_STRUCTS_H
 
 #include <span>
-#include <memory>
-#include <cstdint>
 #include <numbers>
 
 #include <cuda_runtime.h>

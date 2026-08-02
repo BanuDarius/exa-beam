@@ -56,5 +56,4 @@ template <typename T> struct CUDAHostMemoryAdminGeneric {
 			std::exit(1);\
 		} \
 	} while(false)
-
 #endif

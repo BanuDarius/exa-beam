@@ -5,7 +5,6 @@
 #define STRUCTS_VIEW_H
 
 #include <memory>
-#include <concepts>
 
 #include <cuda_runtime.h>
 #include <cuda/std/array>

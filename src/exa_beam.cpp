@@ -51,7 +51,6 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 				
 				std::string filename_fields = std::format("{}/fields-{:04d}.vtk", output_directory, step / substeps);
 				std::ofstream output_fields(filename_fields, std::ios::binary);
-				
 				if(!output_fields) {
 					std::fprintf(stderr, "CANNOT OPEN OUTPUT FIELD FILE!\n"); return;
 				}
@@ -65,7 +64,6 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 			
 			std::string filename_particles = std::format("{}/particles-{:04d}.vtk", output_directory, step / substeps);
 			std::ofstream output_particles(filename_particles, std::ios::binary);
-			
 			if(!output_particles) {
 				std::fprintf(stderr, "CANNOT OPEN OUTPUT PARTICLES FILE!\n"); return;
 			}
@@ -78,7 +76,6 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 	if(use_gpu) {
 		compute_lz_gpu(lz_field, particles);
 		lz_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
-		cudaDeviceSynchronize();
 	} else compute_lz(lz_field, particles);
 	
 	std::string filename_lz = std::format("{}/lz.vtk", output_directory);
@@ -87,6 +84,7 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 		std::fprintf(stderr, "CANNOT OPEN OUTPUT LZ FILE!\n"); return;
 	}
 	
+	cudaDeviceSynchronize();
 	output_vtk_header(output_lz, lz_field);
 	output_vtk_scalar_field(output_lz, data_vtk, lz_field, "Lz");
 }

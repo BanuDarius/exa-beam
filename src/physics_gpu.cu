@@ -31,7 +31,6 @@ template <std::floating_point T>
 __global__ void compute_u_field_gpu_kernel(ComplexScalarFieldView<T> u_field_view, __grid_constant__ const GPULasers<T> lasers) {
 	T r_max_x = u_field_view.r_max[0], r_max_y = u_field_view.r_max[1], r_max_z = u_field_view.r_max[2];
 	int laser_count = lasers.laser_count, nx = u_field_view.num[0], ny = u_field_view.num[1], nz = u_field_view.num[2];
-	std::size_t field_size = u_field_view.field_size;
 	
 	int i = blockIdx.z * blockDim.z + threadIdx.z;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -61,7 +60,6 @@ template <std::floating_point T>
 __global__ void compute_eb_field_gpu_kernel(VectorFieldView<T> e_field_view, VectorFieldView<T> b_field_view, __grid_constant__ const GPULasers<T> lasers, T t) {
 	T r_max_x = e_field_view.r_max[0], r_max_y = e_field_view.r_max[1], r_max_z = e_field_view.r_max[2];
 	int laser_count = lasers.laser_count, nx = e_field_view.num[0], ny = e_field_view.num[1], nz = e_field_view.num[2];
-	std::size_t field_size = e_field_view.field_size;
 	
 	int i = blockIdx.z * blockDim.z + threadIdx.z;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
