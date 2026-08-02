@@ -28,7 +28,7 @@ if __name__ == "__main__":
     
     view = GetRenderView()
     view.ViewSize = [1920, 1080]
-    view.Background = [0.0, 1.0, 1.0]
+    view.Background = [0.75, 0.75, 0.75]
     
     display = Show(reader, view)
     display.Representation = 'Point Gaussian'
