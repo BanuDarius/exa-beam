@@ -33,19 +33,20 @@ def render_paraview():
     
     display = Show(reader, view)
     display.Representation = 'Point Gaussian'
-    display.GaussianRadius = 200
+    display.GaussianRadius = 400
     display.ShaderPreset = 'Plain circle'
     
     ColorBy(display, ('POINTS', 'velocity', 'Magnitude'))
     momentumLUT = GetColorTransferFunction('velocity')
-    momentumLUT.ApplyPreset('Cool to Warm', False)
+    momentumLUT.ApplyPreset('Cool to Warm (Extended)', False)
     momentumLUT.RescaleTransferFunction(0.0, 50.0)
     momentumLUT.EnableOpacityMapping = 1
     
     momentumPWF = GetOpacityTransferFunction('velocity')
     momentumPWF.Points = [
         0.0,  0.0, 0.5, 0.0,
-        10.0, 1.0, 0.5, 0.0,
+        15.0,  0.0, 0.5, 0.0,
+        20.0, 1.0, 0.5, 0.0,
         30.0, 1.0, 0.5, 0.0
     ]
     

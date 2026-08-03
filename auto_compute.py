@@ -22,7 +22,7 @@ zeta_y_real = 0.000
 zeta_y_imag = -0.707
 
 steps = 5000
-substeps = 100
+substeps = 25
 max_dim_mult = 4.0
 
 nx = 128
