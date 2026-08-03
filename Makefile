@@ -1,7 +1,7 @@
 SRC_DIR = src
 BIN_DIR = bin
-BUILD_DIR = build
 INPUT_DIR = input
+BUILD_DIR = build
 OUTPUT_DIR = output
 OUTPUT_VIDEO = output-video
 

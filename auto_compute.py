@@ -6,6 +6,7 @@
 import numpy as np
 import scripts.sim_init as sim_init
 import scripts.programs as programs
+import scripts.render as render
 
 c = 137.036
 
@@ -47,6 +48,8 @@ if __name__ == "__main__":
     lasers.append(sim_init.Laser(zeta_x_real, zeta_x_imag, zeta_y_real, zeta_y_imag, phi, np.radians(70.0), a0, p, m, w0_mult, omega, tau, psi))
     
     programs.run_simulation(sim_parameters, lasers)
+    
+    #render.render_paraview()
     
     print("Exa-Beam finished!\a")
     
