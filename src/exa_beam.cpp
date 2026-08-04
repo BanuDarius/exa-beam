@@ -103,7 +103,7 @@ void start_simulation(const std::string &input_file, const std::string &input_la
 
 int main(int argc, char **argv) {
 	if(argc > 5) {
-		std::fprintf(stderr, "%s BAD ARGUMENTS!\n", argv[0]);
+		std::fprintf(stderr, "%s INVALID ARGUMENTS!\n", argv[0]);
 		return 1;
 	}
 	double start_time = omp_get_wtime();
