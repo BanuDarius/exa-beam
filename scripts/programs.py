@@ -27,15 +27,17 @@ def output_init_files(sim_parameters, lasers):
         file.write(f"steps {sim_parameters.steps}\n")
         file.write(f"substeps {sim_parameters.substeps}\n")
         file.write(f"use_gpu {int(sim_parameters.use_gpu)}\n")
-        file.write(f"max_dim_mult {sim_parameters.max_dim_mult}\n")
+        file.write(f"max_dim_mult_x {sim_parameters.max_dim_mult[0]}\n")
+        file.write(f"max_dim_mult_y {sim_parameters.max_dim_mult[1]}\n")
+        file.write(f"max_dim_mult_z {sim_parameters.max_dim_mult[2]}\n")
         file.write(f"output_laser_fields {int(sim_parameters.output_laser_fields)}\n")
         file.write(f"laser_count {laser_count}\n")
     
     with open(laser_file, "w") as file:
         for i in np.arange(laser_count):
-            file.write(f"r_0_x 0.0\n")
-            file.write(f"r_0_y 0.0\n")
-            file.write(f"r_0_z 0.0\n")
+            file.write(f"r0_x 0.0\n")
+            file.write(f"r0_y 0.0\n")
+            file.write(f"r0_z 0.0\n")
             file.write(f"p {lasers[i].p}\n")
             file.write(f"m {lasers[i].m}\n")
             file.write(f"a0 {lasers[i].a0}\n")

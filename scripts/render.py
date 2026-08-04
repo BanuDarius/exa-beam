@@ -52,7 +52,7 @@ def render_paraview():
     
     view.ResetCamera()
     camera = GetActiveCamera()
-    camera.Elevation(40)
+    camera.Elevation(45)
     camera.Azimuth(45)
     camera.Zoom(2)
     

@@ -6,13 +6,15 @@
 #include <fstream>
 
 #include <cuda_runtime.h>
+#include <cuda/std/array>
 #include <cuda/std/complex>
 
 #include "init.hpp"
 
 template <std::floating_point T>
 void read_input_file(const std::string &parameters_filename, Parameters<T> &parameters) {
-	T max_dim_mult, tf;
+	T tf;
+	cuda::std::array<T, 3> max_dim_mult;
 	int i = 0, nx, steps, substeps, laser_count, use_gpu, output_laser_fields;
 	
 	std::string current;
@@ -33,8 +35,12 @@ void read_input_file(const std::string &parameters_filename, Parameters<T> &para
 			if(input_param >> substeps) i++;
 		} else if(current == "laser_count") {
 			if(input_param >> laser_count) i++;
-		} else if(current == "max_dim_mult") {
-			if(input_param >> max_dim_mult) i++;
+		} else if(current == "max_dim_mult_x") {
+			if(input_param >> max_dim_mult[0]) i++;
+		} else if(current == "max_dim_mult_y") {
+			if(input_param >> max_dim_mult[1]) i++;
+		} else if(current == "max_dim_mult_z") {
+			if(input_param >> max_dim_mult[2]) i++;
 		} else if(current == "output_laser_fields") {
 			if(input_param >> output_laser_fields) i++;
 		}
@@ -42,12 +48,12 @@ void read_input_file(const std::string &parameters_filename, Parameters<T> &para
 	if(i != input_file_count) {
 		std::fprintf(stderr, "INVALID INPUT FILE!\n"); std::exit(1);
 	}
-	parameters = Parameters(nx, steps, substeps, laser_count, tf, max_dim_mult, static_cast<bool>(use_gpu), static_cast<bool>(output_laser_fields));
+	parameters = Parameters(tf, nx, steps, substeps, laser_count, max_dim_mult, static_cast<bool>(use_gpu), static_cast<bool>(output_laser_fields));
 }
 
 template <std::floating_point T>
 void read_lasers_file(const std::string &lasers_filename, std::vector<Laser<T>> &lasers, const Parameters<T> &parameters) {
-	cuda::std::array<T, 3> r_0;
+	cuda::std::array<T, 3> r0;
 	int laser_count = parameters.laser_count, i = 0, j = 0, p, m;
 	T a0, tau, psi, phi, theta, omega, w0_mult, zeta_x_real, zeta_x_imag, zeta_y_real, zeta_y_imag;
 	
@@ -73,14 +79,14 @@ void read_lasers_file(const std::string &lasers_filename, std::vector<Laser<T>> 
 			if(input_lasers >> theta) i++;
 		} else if(current == "omega") {
 			if(input_lasers >> omega) i++;
+		} else if(current == "r0_x") {
+			if(input_lasers >> r0[0]) i++;
+		} else if(current == "r0_y") {
+			if(input_lasers >> r0[1]) i++;
+		} else if(current == "r0_z") {
+			if(input_lasers >> r0[2]) i++;
 		} else if(current == "w0_mult") {
 			if(input_lasers >> w0_mult) i++;
-		} else if(current == "r_0_x") {
-			if(input_lasers >> r_0[0]) i++;
-		} else if(current == "r_0_y") {
-			if(input_lasers >> r_0[1]) i++;
-		} else if(current == "r_0_z") {
-			if(input_lasers >> r_0[2]) i++;
 		} else if(current == "zeta_x_real") {
 			if(input_lasers >> zeta_x_real) i++;
 		} else if(current == "zeta_x_imag") {
@@ -94,7 +100,7 @@ void read_lasers_file(const std::string &lasers_filename, std::vector<Laser<T>> 
 			i = 0; j++;
 			cuda::std::complex<T> zeta_x(zeta_x_real, zeta_x_imag);
 			cuda::std::complex<T> zeta_y(zeta_y_real, zeta_y_imag);
-			lasers.push_back(Laser(p, m, a0, omega, w0_mult, tau, psi, zeta_x, zeta_y, r_0, phi, theta));
+			lasers.push_back(Laser(p, m, a0, omega, w0_mult, tau, psi, zeta_x, zeta_y, r0, phi, theta));
 		}
 	}
 	if(j != laser_count) {

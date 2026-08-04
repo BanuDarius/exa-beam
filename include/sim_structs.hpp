@@ -16,7 +16,7 @@
 #include "math_functions.hpp"
 
 constexpr int max_lasers = 16;
-constexpr int input_file_count = 8;
+constexpr int input_file_count = 10;
 constexpr int input_laser_count = 16;
 
 template <std::floating_point T> constexpr T m_e = T(1.0);
@@ -34,11 +34,12 @@ template <std::floating_point T> struct ComplexScalarField;
 
 template <std::floating_point T>
 struct Parameters {
+	T tf;
 	int nx, steps, substeps, laser_count;
-	T tf, max_dim_mult;
+	cuda::std::array<T, 3> max_dim_mult;
 	bool use_gpu, output_laser_fields;
-	Parameters(int nx_n, int steps_n, int substeps_n, int laser_count_n, T tf_n, T max_dim_mult_n, bool use_gpu_n, bool output_laser_fields_n)
-		: nx(nx_n), steps(steps_n), substeps(substeps_n), laser_count(laser_count_n), tf(tf_n), max_dim_mult(max_dim_mult_n), use_gpu(use_gpu_n), output_laser_fields(output_laser_fields_n) {}
+	Parameters(T tf_n, int nx_n, int steps_n, int substeps_n, int laser_count_n, cuda::std::array<T, 3> max_dim_mult_n, bool use_gpu_n, bool output_laser_fields_n)
+		: tf(tf_n), nx(nx_n), steps(steps_n), substeps(substeps_n), laser_count(laser_count_n), max_dim_mult(max_dim_mult_n), use_gpu(use_gpu_n), output_laser_fields(output_laser_fields_n) {}
 	Parameters() noexcept = default;
 };
 
@@ -47,9 +48,9 @@ struct Laser {
 	int p, m;
 	T a0, omega, w0, k, lambda, z_r, tau, E0, psi;
 	cuda::std::complex<T> zeta_x, zeta_y;
-	cuda::std::array<T, 3> ex_prime, ey_prime, ez_prime, r_0;
-	Laser(int p_n, int m_n, T a0_n, T omega_n, T w0_multiplier, T tau_n, T psi_n, cuda::std::complex<T> zeta_x_n, cuda::std::complex<T> zeta_y_n, cuda::std::array<T, 3> r_0_n, T phi, T theta)
-		: p(p_n), m(m_n), a0(a0_n), omega(omega_n), tau(tau_n), psi(psi_n), zeta_x(zeta_x_n), zeta_y(zeta_y_n), r_0(r_0_n) {
+	cuda::std::array<T, 3> ex_prime, ey_prime, ez_prime, r0;
+	Laser(int p_n, int m_n, T a0_n, T omega_n, T w0_multiplier, T tau_n, T psi_n, cuda::std::complex<T> zeta_x_n, cuda::std::complex<T> zeta_y_n, cuda::std::array<T, 3> r0_n, T phi, T theta)
+		: p(p_n), m(m_n), a0(a0_n), omega(omega_n), tau(tau_n), psi(psi_n), zeta_x(zeta_x_n), zeta_y(zeta_y_n), r0(r0_n) {
 		k = omega / c<T>;
 		lambda = (T(2.0) * pi<T> * c<T>) / omega;
 		w0 = lambda * w0_multiplier;
@@ -72,7 +73,7 @@ struct Laser {
 		};
 	}
 	__device__ __host__ cuda::std::array<T, 3> pos_global_to_local(cuda::std::array<T, 3> r_vec) const noexcept {
-		r_vec -= r_0;
+		r_vec -= r0;
 		cuda::std::array<T, 3> r_vec_local = {
 			dot(ex_prime, r_vec),
 			dot(ey_prime, r_vec),
@@ -94,7 +95,7 @@ template <std::floating_point T>
 struct GPULasers {
 	int laser_count;
 	cuda::std::array<Laser<T>, max_lasers> d_lasers;
-	__device__ __host__ const Laser<T> &operator[](int idx) const noexcept {
+	__device__ const Laser<T> &operator[](int idx) const noexcept {
 		return d_lasers[idx];
 	}
 	GPULasers(std::span<const Laser<T>> h_lasers) : laser_count(h_lasers.size()) {
@@ -112,10 +113,9 @@ struct Particles {
 	cuda::std::array<T, 3> r_max;
 	std::unique_ptr<T[], HostMemory<T>> h_x, h_y, h_z, h_ux, h_uy, h_uz, h_gamma;
 	std::unique_ptr<T[], DeviceMemory<T>> d_x, d_y, d_z, d_ux, d_uy, d_uz, d_gamma;
-	Particles(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
+	Particles(int nx, int ny, int nz, cuda::std::array<T, 3> r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n), r_max(r_max_n) {
 		particle_num = nx * ny * nz;
 		num = { nx, ny, nz };
-		r_max = { r_max_n, r_max_n, r_max_n };
 		h_x.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
 		h_y.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
 		h_z.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
@@ -188,7 +188,7 @@ struct Particles {
 		return ParticlesView<T>(d_x.get(), d_y.get(), d_z.get(), d_ux.get(), d_uy.get(), d_uz.get(), d_gamma.get(), num, r_max, particle_num);
 	}
 	Particles(const Parameters<T> &parameters, const Laser<T> &laser)
-		: Particles(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult, parameters.use_gpu) {}
+		: Particles(parameters.nx, parameters.nx, parameters.nx, parameters.max_dim_mult * laser.w0, parameters.use_gpu) {}
 	Particles(Particles &&other) noexcept = default;
 	Particles &operator=(Particles &&other) noexcept = default;
 	~Particles() = default;
@@ -202,10 +202,9 @@ struct ScalarField {
 	cuda::std::array<T, 3> r_max;
 	std::unique_ptr<T[], HostMemory<T>> h_v;
 	std::unique_ptr<T[], DeviceMemory<T>> d_v;
-	ScalarField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
+	ScalarField(int nx, int ny, int nz, cuda::std::array<T, 3> r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n), r_max(r_max_n) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
-		r_max = { r_max_n, r_max_n, r_max_n };
 		h_v.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
@@ -257,7 +256,7 @@ struct ScalarField {
 		return ScalarFieldView<T>(d_v.get(), num, r_max, field_size);
 	}
 	ScalarField(const Parameters<T> &parameters, const Laser<T> &laser)
-		: ScalarField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult, parameters.use_gpu) {}
+		: ScalarField(parameters.nx, parameters.nx, parameters.nx, parameters.max_dim_mult * laser.w0, parameters.use_gpu) {}
 	ScalarField(ScalarField &&other) noexcept = default;
 	ScalarField &operator=(ScalarField &&other) noexcept = default;
 	~ScalarField() = default;
@@ -271,10 +270,9 @@ struct ComplexScalarField {
 	cuda::std::array<T, 3> r_max;
 	std::unique_ptr<cuda::std::complex<T>[], HostMemoryGeneric<cuda::std::complex<T>>> h_v;
 	std::unique_ptr<cuda::std::complex<T>[], DeviceMemoryGeneric<cuda::std::complex<T>>> d_v;
-	ComplexScalarField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
+	ComplexScalarField(int nx, int ny, int nz, cuda::std::array<T, 3> r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n), r_max(r_max_n) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
-		r_max = { r_max_n, r_max_n, r_max_n };
 		h_v.reset(new (static_cast<std::align_val_t>(mem_align)) cuda::std::complex<T>[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
@@ -326,7 +324,7 @@ struct ComplexScalarField {
 		return ComplexScalarFieldView<T>(d_v.get(), num, r_max, field_size);
 	}
 	ComplexScalarField(const Parameters<T> &parameters, const Laser<T> &laser)
-		: ComplexScalarField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult, parameters.use_gpu) {}
+		: ComplexScalarField(parameters.nx, parameters.nx, parameters.nx, parameters.max_dim_mult * laser.w0, parameters.use_gpu) {}
 	ComplexScalarField(ComplexScalarField &&other) noexcept = default;
 	ComplexScalarField &operator=(ComplexScalarField &&other) noexcept = default;
 	~ComplexScalarField() = default;
@@ -340,10 +338,9 @@ struct VectorField {
 	cuda::std::array<T, 3> r_max;
 	std::unique_ptr<T[], HostMemory<T>> h_x, h_y, h_z;
 	std::unique_ptr<T[], DeviceMemory<T>> d_x, d_y, d_z;
-	VectorField(int nx, int ny, int nz, T r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n) {
+	VectorField(int nx, int ny, int nz, cuda::std::array<T, 3> r_max_n, bool use_gpu_n) : use_gpu(use_gpu_n), r_max(r_max_n) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
-		r_max = { r_max_n, r_max_n, r_max_n };
 		h_x.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
 		h_y.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
 		h_z.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
@@ -419,7 +416,7 @@ struct VectorField {
 		return VectorFieldView<T>(d_x.get(), d_y.get(), d_z.get(), num, r_max, field_size);
 	}
 	VectorField(const Parameters<T> &parameters, const Laser<T> &laser)
-		: VectorField(parameters.nx, parameters.nx, parameters.nx, laser.w0 * parameters.max_dim_mult, parameters.use_gpu) {}
+		: VectorField(parameters.nx, parameters.nx, parameters.nx, parameters.max_dim_mult * laser.w0, parameters.use_gpu) {}
 	VectorField(VectorField &&other) noexcept = default;
 	VectorField &operator=(VectorField &&other) noexcept = default;
 	~VectorField() = default;
