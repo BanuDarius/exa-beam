@@ -62,8 +62,10 @@ __device__ __host__ inline cuda::std::complex<T> compute_u(const Laser<T> &laser
 		phase = - k * rho2 / (T(2.0) * r_z) + psi_g;
 	} else if(cuda::std::abs(m) == 1) {
 		phi = compute_phi(x, y);
+		T m_t = static_cast<T>(m);
+		
 		amplitude = cuda::std::sqrt(T(2.0)) * w0 * rho / w_z2 * cuda::std::exp(- rho2 / w_z2);
-		phase = - m * phi - k * rho2 / (T(2.0) * r_z) + T(2.0) * psi_g;
+		phase = - m_t * phi - k * rho2 / (T(2.0) * r_z) + T(2.0) * psi_g;
 	}
 	
 	T real = amplitude * cuda::std::cos(phase);
@@ -94,10 +96,10 @@ __device__ __host__ inline EBVectors<T> compute_eb(const Laser<T> &laser, cuda::
 	
 	if(cuda::std::abs(m) == 1) {
 		T rho2 = x * x + y * y;
+		T m_t = static_cast<T>(m);
 		T ampl = T(1.0) / (k * rho2);
 		cuda::std::complex<T> I(T(0.0), T(1.0));
 		
-		T m_t = static_cast<T>(m);
 		cuda::std::complex<T> e_term = ampl * (m_t * (x * zeta_y - y * zeta_x) + I * (x * zeta_x + y * zeta_y));
 		cuda::std::complex<T> b_term = ampl * (m_t * (x * zeta_x + y * zeta_y) + I * (y * zeta_x - x * zeta_y));
 		

@@ -27,9 +27,10 @@ class SimParameters():
 # ---------------------------------------------------------- #
 
 class Laser():
-    def __init__(self, zeta_x_real, zeta_x_imag, zeta_y_real, zeta_y_imag, phi, theta, a0, p, m, w0_mult, omega, tau, psi):
+    def __init__(self, zeta_x_real, zeta_x_imag, zeta_y_real, zeta_y_imag, phi, theta, r0, a0, p, m, w0_mult, omega, tau, psi):
         self.p = p
         self.m = m
+        self.r0 = r0
         self.a0 = a0
         self.tau = tau
         self.psi = psi

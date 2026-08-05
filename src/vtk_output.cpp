@@ -153,7 +153,7 @@ void output_vtk_particles(std::ofstream &output_file, const DataVTK &data_vtk, c
 			}
 		}
 	}
-	output_file << "POINT_DATA " << field_size << "\n";
+	output_file << "\n" << "POINT_DATA " << field_size << "\n";
 	output_file << "VECTORS velocity float\n";
 	output_file.write(reinterpret_cast<const char*>(vtk_vector), 3 * field_size * sizeof(uint32_t));
 }

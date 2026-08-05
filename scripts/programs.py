@@ -35,9 +35,9 @@ def output_init_files(sim_parameters, lasers):
     
     with open(laser_file, "w") as file:
         for i in np.arange(laser_count):
-            file.write(f"r0_x 0.0\n")
-            file.write(f"r0_y 0.0\n")
-            file.write(f"r0_z 0.0\n")
+            file.write(f"r0_x {lasers[i].r0[0]}\n")
+            file.write(f"r0_y {lasers[i].r0[1]}\n")
+            file.write(f"r0_z {lasers[i].r0[2]}\n")
             file.write(f"p {lasers[i].p}\n")
             file.write(f"m {lasers[i].m}\n")
             file.write(f"a0 {lasers[i].a0}\n")

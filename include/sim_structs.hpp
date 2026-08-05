@@ -50,12 +50,13 @@ struct Laser {
 	cuda::std::complex<T> zeta_x, zeta_y;
 	cuda::std::array<T, 3> ex_prime, ey_prime, ez_prime, r0;
 	Laser(int p_n, int m_n, T a0_n, T omega_n, T w0_multiplier, T tau_n, T psi_n, cuda::std::complex<T> zeta_x_n, cuda::std::complex<T> zeta_y_n, cuda::std::array<T, 3> r0_n, T phi, T theta)
-		: p(p_n), m(m_n), a0(a0_n), omega(omega_n), tau(tau_n), psi(psi_n), zeta_x(zeta_x_n), zeta_y(zeta_y_n), r0(r0_n) {
+		: p(p_n), m(m_n), a0(a0_n), omega(omega_n), tau(tau_n), psi(psi_n), zeta_x(zeta_x_n), zeta_y(zeta_y_n) {
 		k = omega / c<T>;
 		lambda = (T(2.0) * pi<T> * c<T>) / omega;
 		w0 = lambda * w0_multiplier;
 		z_r = pi<T> * w0 * w0 / lambda;
 		E0 = omega * m_e<T> * c<T> * a0 / std::abs(e_0<T>);
+		r0 = r0_n * w0;
 		ex_prime = {
 			std::cos(theta) * std::cos(phi),
 			std::cos(theta) * std::sin(phi),

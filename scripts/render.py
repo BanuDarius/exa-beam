@@ -16,6 +16,7 @@ OUTPUT_VIDEO_DIR = MAIN_DIR / "output-video"
 # ---------------------------------------------------------- #
 
 def render_paraview():
+    resolution = [2560, 1440]
     output_filenames = str(OUTPUT_DIR / "particles-*.vtk")
     output_video_filename = str(OUTPUT_VIDEO_DIR / "video.mp4")
     frames_filename = str(OUTPUT_VIDEO_DIR / "frame.png")
@@ -28,12 +29,12 @@ def render_paraview():
     animationScene.UpdateAnimationUsingDataTimeSteps()
     
     view = GetRenderView()
-    view.ViewSize = [1920, 1080]
+    view.ViewSize = resolution
     LoadPalette('WarmGrayBackground')
     
     display = Show(reader, view)
     display.Representation = 'Point Gaussian'
-    display.GaussianRadius = 400
+    display.GaussianRadius = 300
     display.ShaderPreset = 'Plain circle'
     
     ColorBy(display, ('POINTS', 'velocity', 'Magnitude'))
@@ -46,21 +47,21 @@ def render_paraview():
     momentumPWF.Points = [
         0.0,  0.0, 0.5, 0.0,
         15.0,  0.0, 0.5, 0.0,
-        20.0, 1.0, 0.5, 0.0,
+        16.0, 1.0, 0.5, 0.0,
         30.0, 1.0, 0.5, 0.0
     ]
     
     view.ResetCamera()
     camera = GetActiveCamera()
-    camera.Elevation(45)
+    camera.Elevation(0)
     camera.Azimuth(45)
     camera.Zoom(2)
     
     print("Rendering animation frames.")
-    SaveAnimation(frames_filename, view, FrameRate=10, ImageResolution=[1920, 1080])
+    SaveAnimation(frames_filename, view, FrameRate=10, ImageResolution=resolution)
     print("Rendered animation frames.")
     
-    ffmpeg_command = ["ffmpeg", "-y", "-framerate", "10", "-i", ffmpeg_input, "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", "-loglevel", "error", output_video_filename]
+    ffmpeg_command = ["ffmpeg", "-y", "-framerate", "10", "-i", ffmpeg_input, "-c:v", "libx264", "-crf", "6", "-pix_fmt", "yuv420p", "-loglevel", "error", output_video_filename]
     subprocess.run(ffmpeg_command, text=True)
     
     for frame in OUTPUT_VIDEO_DIR.glob("frame.*.png"):
