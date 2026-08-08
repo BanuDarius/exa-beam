@@ -4,7 +4,7 @@
 #include "higuera_cary.hpp"
 
 template<std::floating_point T>
-__global__ void higuera_cary_step_kernel(ParticlesView<T> particles_view, __grid_constant__ const GPULasers<T> lasers, T t, T dt) {
+__global__ void higuera_cary_step_kernel(ParticlesView<T> particles_view, __grid_constant__ const DeviceLasers<T> lasers, T t, T dt) {
 	int laser_count = lasers.laser_count;
 	std::size_t idx = blockDim.x * blockIdx.x + threadIdx.x;
 	if(idx < particles_view.particle_num) {
@@ -49,7 +49,7 @@ __global__ void higuera_cary_step_kernel(ParticlesView<T> particles_view, __grid
 }
 
 template <std::floating_point T>
-void higuera_cary_update_gpu(Particles<T> &particles, const GPULasers<T> &lasers, T t, T dt) noexcept {
+void higuera_cary_update_gpu(Particles<T> &particles, const DeviceLasers<T> &lasers, T t, T dt) noexcept {
 	std::size_t particle_num = particles.particle_num;
 	dim3 threads(threads_1d_nx);
 	dim3 blocks((particle_num + threads.x - 1) / threads.x);
@@ -59,6 +59,6 @@ void higuera_cary_update_gpu(Particles<T> &particles, const GPULasers<T> &lasers
 	CUDA_CHECK(cudaGetLastError());
 }
 
-template void higuera_cary_update_gpu<double>(Particles<double> &particles, const GPULasers<double> &lasers, double t, double dt) noexcept;
+template void higuera_cary_update_gpu<double>(Particles<double> &particles, const DeviceLasers<double> &lasers, double t, double dt) noexcept;
 
-template void higuera_cary_update_gpu<float>(Particles<float> &particles, const GPULasers<float> &lasers, float t, float dt) noexcept;
+template void higuera_cary_update_gpu<float>(Particles<float> &particles, const DeviceLasers<float> &lasers, float t, float dt) noexcept;

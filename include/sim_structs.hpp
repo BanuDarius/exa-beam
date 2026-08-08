@@ -49,11 +49,11 @@ struct Laser {
 	T a0, omega, w0, k, lambda, z_r, tau, E0, psi;
 	cuda::std::complex<T> zeta_x, zeta_y;
 	cuda::std::array<T, 3> ex_prime, ey_prime, ez_prime, r0;
-	Laser(int p_n, int m_n, T a0_n, T omega_n, T w0_multiplier, T tau_n, T psi_n, cuda::std::complex<T> zeta_x_n, cuda::std::complex<T> zeta_y_n, cuda::std::array<T, 3> r0_n, T phi, T theta)
+	Laser(int p_n, int m_n, T a0_n, T omega_n, T w0_mult, T tau_n, T psi_n, cuda::std::complex<T> zeta_x_n, cuda::std::complex<T> zeta_y_n, cuda::std::array<T, 3> r0_n, T phi, T theta)
 		: p(p_n), m(m_n), a0(a0_n), omega(omega_n), tau(tau_n), psi(psi_n), zeta_x(zeta_x_n), zeta_y(zeta_y_n) {
 		k = omega / c<T>;
 		lambda = (T(2.0) * pi<T> * c<T>) / omega;
-		w0 = lambda * w0_multiplier;
+		w0 = lambda * w0_mult;
 		z_r = pi<T> * w0 * w0 / lambda;
 		E0 = omega * m_e<T> * c<T> * a0 / std::abs(e_0<T>);
 		r0 = r0_n * w0;
@@ -93,17 +93,17 @@ struct Laser {
 };
 
 template <std::floating_point T>
-struct GPULasers {
+struct DeviceLasers {
 	int laser_count;
 	cuda::std::array<Laser<T>, max_lasers> d_lasers;
 	__device__ const Laser<T> &operator[](int idx) const noexcept {
 		return d_lasers[idx];
 	}
-	GPULasers(std::span<const Laser<T>> h_lasers) : laser_count(h_lasers.size()) {
+	DeviceLasers(std::span<const Laser<T>> h_lasers) : laser_count(h_lasers.size()) {
 		for(int i = 0; i < laser_count; i++)
 			d_lasers[i] = h_lasers[i];
 	}
-	GPULasers() noexcept = default;
+	DeviceLasers() noexcept = default;
 };
 
 template <std::floating_point T>
