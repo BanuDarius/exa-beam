@@ -47,10 +47,10 @@ def output_init_files(sim_parameters, lasers):
             file.write(f"theta {lasers[i].theta}\n")
             file.write(f"omega {lasers[i].omega}\n")
             file.write(f"w0_mult {lasers[i].w0_mult}\n")
-            file.write(f"zeta_x_real {lasers[i].zeta_x_real}\n")
-            file.write(f"zeta_x_imag {lasers[i].zeta_x_imag}\n")
-            file.write(f"zeta_y_real {lasers[i].zeta_y_real}\n")
-            file.write(f"zeta_y_imag {lasers[i].zeta_y_imag}\n")
+            file.write(f"zeta_x_real {lasers[i].zeta_x[0]}\n")
+            file.write(f"zeta_x_imag {lasers[i].zeta_x[1]}\n")
+            file.write(f"zeta_y_real {lasers[i].zeta_y[0]}\n")
+            file.write(f"zeta_y_imag {lasers[i].zeta_y[1]}\n")
         
 # ---------------------------------------------------------- #
 
