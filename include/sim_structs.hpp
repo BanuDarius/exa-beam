@@ -73,19 +73,19 @@ struct Laser {
 			std::cos(theta)
 		};
 	}
-	__device__ __host__ cuda::std::array<T, 3> pos_global_to_local(cuda::std::array<T, 3> r_vec) const noexcept {
-		r_vec -= r0;
+	__device__ __host__ cuda::std::array<T, 3> pos_global_to_local(cuda::std::array<T, 3> r_vec_global) const noexcept {
+		r_vec_global -= r0;
 		cuda::std::array<T, 3> r_vec_local = {
-			dot(ex_prime, r_vec),
-			dot(ey_prime, r_vec),
-			dot(ez_prime, r_vec)
+			dot(ex_prime, r_vec_global),
+			dot(ey_prime, r_vec_global),
+			dot(ez_prime, r_vec_global)
 		};
 		return r_vec_local;
 	}
-	__device__ __host__ cuda::std::array<T, 3> vec_local_to_global(cuda::std::array<T, 3> vec) const noexcept {
-		cuda::std::array<T, 3> ex_prime_vec = ex_prime * vec[0];
-		cuda::std::array<T, 3> ey_prime_vec = ey_prime * vec[1];
-		cuda::std::array<T, 3> ez_prime_vec = ez_prime * vec[2];
+	__device__ __host__ cuda::std::array<T, 3> vec_local_to_global(cuda::std::array<T, 3> vec_local) const noexcept {
+		cuda::std::array<T, 3> ex_prime_vec = ex_prime * vec_local[0];
+		cuda::std::array<T, 3> ey_prime_vec = ey_prime * vec_local[1];
+		cuda::std::array<T, 3> ez_prime_vec = ez_prime * vec_local[2];
 		cuda::std::array<T, 3> vec_global = ex_prime_vec + ey_prime_vec + ez_prime_vec;
 		return vec_global;
 	}
