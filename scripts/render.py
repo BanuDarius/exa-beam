@@ -30,7 +30,7 @@ def render_paraview():
     
     view = GetRenderView()
     view.ViewSize = resolution
-    LoadPalette('WarmGrayBackground')
+    LoadPalette('BlackBackground')
     
     display = Show(reader, view)
     display.Representation = 'Point Gaussian'
