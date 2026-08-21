@@ -18,7 +18,7 @@ output_laser_fields = False
 
 nx = 64
 steps = 5000
-substeps = 50
+substeps = 25
 max_dim_mult = [ 2.0, 2.0, 10.0 ]
 
 p = 0
