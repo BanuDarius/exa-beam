@@ -89,10 +89,10 @@ __device__ __host__ inline EBVectors<T> compute_eb(const Laser<T> &laser, cuda::
 	cuda::std::complex<T> phase(cuda::std::cos(chi), cuda::std::sin(chi));
 	u_pm *= E0 * phase * env(chi, tau);
 	
-	cuda::std::complex<T> field_term(T(1.0) / r_z, -T(2.0) / (k * w_z * w_z));
+	cuda::std::complex<T> field_term(T(1.0) / r_z, - T(2.0) / (k * w_z * w_z));
 	
-	cuda::std::complex<T> e_z = field_term * (zeta_x * x + zeta_y * y);
-	cuda::std::complex<T> b_z = field_term * (zeta_x * y - zeta_y * x);
+	cuda::std::complex<T> e_z = - field_term * (zeta_x * x + zeta_y * y);
+	cuda::std::complex<T> b_z = - field_term * (zeta_x * y - zeta_y * x);
 	
 	if(cuda::std::abs(m) == 1) {
 		T rho2 = x * x + y * y;
@@ -103,8 +103,8 @@ __device__ __host__ inline EBVectors<T> compute_eb(const Laser<T> &laser, cuda::
 		cuda::std::complex<T> e_term = ampl * (m_t * (x * zeta_y - y * zeta_x) + I * (x * zeta_x + y * zeta_y));
 		cuda::std::complex<T> b_term = ampl * (m_t * (x * zeta_x + y * zeta_y) + I * (y * zeta_x - x * zeta_y));
 		
-		e_z += e_term;
-		b_z += b_term;
+		e_z -= e_term;
+		b_z -= b_term;
 	}
 	
 	cuda::std::array<T, 3> e_vec = {
