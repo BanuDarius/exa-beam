@@ -12,8 +12,8 @@ c = 137.036
 
 # ---------------------------------------------------------- #
 
-use_gpu = True
-use_floats = True
+use_gpu = False
+use_floats = False
 output_laser_fields = False
 
 nx = 64

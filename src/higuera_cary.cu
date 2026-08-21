@@ -58,7 +58,8 @@ void higuera_cary_update_gpu(Particles<T> &particles, const DeviceLasers<T> &las
 	higuera_cary_step_kernel<<<blocks, threads>>>(particles_view, lasers, t, dt);
 	CUDA_CHECK(cudaGetLastError());
 }
-
+template __global__ void higuera_cary_step_kernel<double>(ParticlesView<double> particles_view, __grid_constant__ const DeviceLasers<double> lasers, double t, double dt);
 template void higuera_cary_update_gpu<double>(Particles<double> &particles, const DeviceLasers<double> &lasers, double t, double dt) noexcept;
 
+template __global__ void higuera_cary_step_kernel<float>(ParticlesView<float> particles_view, __grid_constant__ const DeviceLasers<float> lasers, float t, float dt);
 template void higuera_cary_update_gpu<float>(Particles<float> &particles, const DeviceLasers<float> &lasers, float t, float dt) noexcept;

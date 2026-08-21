@@ -124,7 +124,7 @@ inline void higuera_cary_update(Particles<T> &particles, std::span<const Laser<T
 		particles_view.set_velocity(u_final_global, idx);
 	}
 }
-template<std::floating_point T> __global__ void higuera_cary_step_kernel(ParticlesView<T> particles_view, __grid_constant__ const DeviceLasers<T> lasers, T t, T dt);
+template <std::floating_point T> __global__ void higuera_cary_step_kernel(ParticlesView<T> particles_view, __grid_constant__ const DeviceLasers<T> lasers, T t, T dt);
 template <std::floating_point T> void higuera_cary_update_gpu(Particles<T> &particles, const DeviceLasers<T> &lasers, T t, T dt) noexcept;
 
 #endif

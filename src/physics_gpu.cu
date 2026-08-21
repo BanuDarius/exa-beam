@@ -1,11 +1,9 @@
 // Copyright (c) 2026 Banu Darius-Matei
 // SPDX-License-Identifier: MIT
 
-#include <array>
-#include <complex>
-
 #include <cuda_runtime.h>
 #include <cuda/std/array>
+#include <cuda/std/complex>
 
 #include "physics_gpu.hpp"
 #include "laguerre_gauss.hpp"
