@@ -16,19 +16,20 @@ use_gpu = True
 use_floats = True
 output_laser_fields = False
 
-nx = 64
-steps = 5000
-substeps = 25
-max_dim_mult = [ 2.0, 2.0, 10.0 ]
+nx = 128
+steps = 40000
+substeps = 250
+max_dim_mult = [ 2.0, 2.0, 4.0 ]
 
 p = 0
 m = 1
 a0 = 1.0
-tau = 4.0
+tau = 20.0
 omega = 0.057
-w0_mult = 2.0
-psi = -0.3 * c * tau
-tf = 10.0 * c * tau
+w0_mult = 4.0
+offset = max_dim_mult[2] * w0_mult
+psi = - 6.0 * np.pi * offset
+tf = - (psi + offset) / omega
 
 phi = np.radians(0.0)
 theta = np.radians(0.0)
@@ -44,7 +45,7 @@ if __name__ == "__main__":
     
     lasers = []
     lasers.append(sim_init.Laser(zeta_x, zeta_y, phi, theta, r0, a0, p, m, w0_mult, omega, tau, psi))
-    lasers.append(sim_init.Laser([0.000, -0.707], [0.707, 0.000], phi, np.radians(180.0), r0, a0, p, -m, w0_mult, omega, tau, psi))
+    lasers.append(sim_init.Laser(zeta_x, zeta_y, phi, np.radians(180.0), r0, a0, p, -m, w0_mult, omega, tau, psi))
     
     programs.run_simulation(sim_parameters, lasers)
     

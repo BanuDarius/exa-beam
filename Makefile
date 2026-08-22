@@ -23,11 +23,11 @@ LDLIBS = -lm
 TARGET = $(BIN_DIR)/exa_beam
 
 SRCS_CPP = $(wildcard $(SRC_DIR)/*.cpp)
-SRCS_CU  = $(wildcard $(SRC_DIR)/*.cu)
+SRCS_CU = $(wildcard $(SRC_DIR)/*.cu)
 
 OBJS_CPP = $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SRCS_CPP))
-OBJS_CU  = $(patsubst $(SRC_DIR)/%.cu, $(BUILD_DIR)/%.o, $(SRCS_CU))
-OBJS     = $(OBJS_CPP) $(OBJS_CU)
+OBJS_CU = $(patsubst $(SRC_DIR)/%.cu, $(BUILD_DIR)/%.o, $(SRCS_CU))
+OBJS = $(OBJS_CPP) $(OBJS_CU)
 
 all: output-dirs $(TARGET)
 

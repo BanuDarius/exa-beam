@@ -46,22 +46,23 @@ def render_paraview():
     momentumPWF = GetOpacityTransferFunction('velocity')
     momentumPWF.Points = [
         0.0,  0.0, 0.5, 0.0,
-        15.0,  0.0, 0.5, 0.0,
-        16.0, 1.0, 0.5, 0.0,
-        30.0, 1.0, 0.5, 0.0
+        20.0,  0.0, 0.5, 0.0,
+        21.0, 1.0, 0.5, 0.0,
+        60.0, 1.0, 0.5, 0.0
     ]
     
     view.ResetCamera()
     camera = GetActiveCamera()
+    camera.SetParallelProjection(True)
     camera.Elevation(0)
-    camera.Azimuth(45)
+    camera.Azimuth(90)
     camera.Zoom(2)
     
     print("Rendering animation frames.")
     SaveAnimation(frames_filename, view, FrameRate=10, ImageResolution=resolution)
     print("Rendered animation frames.")
     
-    ffmpeg_command = ["ffmpeg", "-y", "-framerate", "10", "-i", ffmpeg_input, "-c:v", "libx264", "-crf", "6", "-pix_fmt", "yuv420p", "-loglevel", "error", output_video_filename]
+    ffmpeg_command = ["ffmpeg", "-y", "-framerate", "10", "-i", ffmpeg_input, "-c:v", "libx264", "-crf", "4", "-pix_fmt", "yuv420p", "-loglevel", "error", output_video_filename]
     subprocess.run(ffmpeg_command, text=True)
     
     for frame in OUTPUT_VIDEO_DIR.glob("frame.*.png"):
