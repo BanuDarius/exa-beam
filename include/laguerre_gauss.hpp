@@ -58,7 +58,7 @@ __device__ __host__ inline cuda::std::complex<T> compute_u(const Laser<T> &laser
 	T amplitude, phase, phi;
 	
 	if(m == 0) {
-		amplitude = w0 / w_z * cuda::std::exp(-rho2 / w_z2);
+		amplitude = w0 / w_z * cuda::std::exp(- rho2 / w_z2);
 		phase = - k * rho2 / (T(2.0) * r_z) + psi_g;
 	} else if(cuda::std::abs(m) == 1) {
 		phi = compute_phi(x, y);

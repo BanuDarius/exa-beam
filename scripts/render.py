@@ -34,7 +34,7 @@ def render_paraview():
     
     display = Show(reader, view)
     display.Representation = 'Point Gaussian'
-    display.GaussianRadius = 300
+    display.GaussianRadius = 500
     display.ShaderPreset = 'Plain circle'
     
     ColorBy(display, ('POINTS', 'velocity', 'Magnitude'))
@@ -47,15 +47,15 @@ def render_paraview():
     momentumPWF.Points = [
         0.0,  0.0, 0.5, 0.0,
         20.0,  0.0, 0.5, 0.0,
-        21.0, 1.0, 0.5, 0.0,
-        60.0, 1.0, 0.5, 0.0
+        20.0, 1.0, 0.5, 0.0,
+        50.0, 1.0, 0.5, 0.0
     ]
     
     view.ResetCamera()
     camera = GetActiveCamera()
-    camera.SetParallelProjection(True)
-    camera.Elevation(0)
-    camera.Azimuth(90)
+    camera.SetParallelProjection(False)
+    camera.Elevation(15)
+    camera.Azimuth(45)
     camera.Zoom(2)
     
     print("Rendering animation frames.")
