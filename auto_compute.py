@@ -16,8 +16,8 @@ use_gpu = True
 use_floats = True
 output_laser_fields = False
 
-nx = 64
-steps = 10000
+nx = 128
+steps = 12000
 substeps = 50
 max_dim_mult = [ 2.0, 2.0, 4.0 ]
 
