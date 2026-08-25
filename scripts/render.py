@@ -36,25 +36,26 @@ def render_paraview():
     display.Representation = 'Point Gaussian'
     display.GaussianRadius = 500
     display.ShaderPreset = 'Plain circle'
+    max_velocity = 120
     
     ColorBy(display, ('POINTS', 'velocity', 'Magnitude'))
     momentumLUT = GetColorTransferFunction('velocity')
     momentumLUT.ApplyPreset('Cool to Warm (Extended)', False)
-    momentumLUT.RescaleTransferFunction(0.0, 50.0)
+    momentumLUT.RescaleTransferFunction(0.0, max_velocity)
     momentumLUT.EnableOpacityMapping = 1
     
     momentumPWF = GetOpacityTransferFunction('velocity')
     momentumPWF.Points = [
         0.0,  0.0, 0.5, 0.0,
-        20.0,  0.0, 0.5, 0.0,
-        20.0, 1.0, 0.5, 0.0,
-        50.0, 1.0, 0.5, 0.0
+        40.0, 0.0, 0.5, 0.0,
+        40.0, 1.0, 0.5, 0.0,
+        max_velocity, 1.0, 0.5, 0.0
     ]
     
     view.ResetCamera()
     camera = GetActiveCamera()
     camera.SetParallelProjection(False)
-    camera.Elevation(15)
+    camera.Elevation(30)
     camera.Azimuth(45)
     camera.Zoom(2)
     
