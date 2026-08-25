@@ -1,14 +1,12 @@
 // Copyright (c) 2026 Banu Darius-Matei
 // SPDX-License-Identifier: MIT
 
-#include <span>
-
 #include <cuda/std/array>
 #include <cuda/std/complex>
 
 #include "physics.hpp"
-#include "laguerre_gauss.hpp"
 #include "math_functions.hpp"
+#include "laguerre_gauss.hpp"
 
 template <std::floating_point T>
 void compute_lz(ScalarField<T> &lz_field, Particles<T> &particles) noexcept {

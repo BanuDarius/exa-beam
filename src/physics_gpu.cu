@@ -6,8 +6,8 @@
 #include <cuda/std/complex>
 
 #include "physics_gpu.hpp"
-#include "laguerre_gauss.hpp"
 #include "math_functions.hpp"
+#include "laguerre_gauss.hpp"
 
 template <std::floating_point T>
 __global__ void compute_lz_gpu_kernel(ScalarFieldView<T> lz_view, ParticlesView<T> particles_view) {

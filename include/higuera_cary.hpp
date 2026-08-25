@@ -85,17 +85,13 @@ inline void higuera_cary_update(Particles<T> &particles, std::span<const Laser<T
 	ParticlesView<T> particles_view = particles.get_cpu_view();
 	#pragma omp parallel for simd schedule(static)
 	for(std::size_t idx = 0; idx < particles.particle_num; idx++) {
-		T gamma = particles_view.get_gamma(idx);
 		cuda::std::array<T, 3> r_vec_global = particles_view.get_position(idx);
 		cuda::std::array<T, 3> u_vec_global = particles_view.get_velocity(idx);
 		
-		T half_dt = T(0.5) * dt, half_dt_gamma = half_dt / gamma;
-		cuda::std::array<T, 3> r_half_global = r_vec_global + u_vec_global * half_dt_gamma;
-		
 		EBVectors<T> eb_vec;
 		for(int i = 0; i < laser_count; i++) {
-			cuda::std::array<T, 3> r_half_local = lasers[i].pos_global_to_local(r_half_global);
-			EBVectors eb_vec_local = compute_eb(lasers[i], r_half_local, t + half_dt);
+			cuda::std::array<T, 3> r_vec_local = lasers[i].pos_global_to_local(r_vec_global);
+			EBVectors eb_vec_local = compute_eb(lasers[i], r_vec_local, t);
 			eb_vec = EBVectors(
 				eb_vec.e + lasers[i].vec_local_to_global(eb_vec_local.e),
 				eb_vec.b + lasers[i].vec_local_to_global(eb_vec_local.b)
@@ -114,16 +110,16 @@ inline void higuera_cary_update(Particles<T> &particles, std::span<const Laser<T
 		cuda::std::array<T, 3> u_prime = hc_u_prime(u_minus, t_rot);
 		cuda::std::array<T, 3> u_plus = hc_u_plus(u_minus, u_prime, t_rot, s_factor);
 		
-		cuda::std::array<T, 3> u_final_global = u_plus + epsilon;
-		gamma = comp_gamma(u_final_global);
-		half_dt_gamma = T(0.5) * dt / gamma;
-		r_vec_global = r_half_global + u_final_global * half_dt_gamma;
+		u_vec_global = u_plus + epsilon;
+		T gamma_half = comp_gamma(u_vec_global);
+		r_vec_global += u_vec_global * (dt / gamma_half);
 		
-		particles_view.set_gamma(gamma, idx);
+		particles_view.set_gamma(gamma_half, idx);
 		particles_view.set_position(r_vec_global, idx);
-		particles_view.set_velocity(u_final_global, idx);
+		particles_view.set_velocity(u_vec_global, idx);
 	}
 }
+
 template <std::floating_point T> __global__ void higuera_cary_step_kernel(ParticlesView<T> particles_view, __grid_constant__ const DeviceLasers<T> lasers, T t, T dt);
 template <std::floating_point T> void higuera_cary_update_gpu(Particles<T> &particles, const DeviceLasers<T> &lasers, T t, T dt) noexcept;
 

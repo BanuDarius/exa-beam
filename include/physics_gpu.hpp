@@ -4,7 +4,6 @@
 #ifndef PHYSICS_GPU_H
 #define PHYSICS_GPU_H
 
-#include <span>
 #include <concepts>
 
 #include "sim_structs.hpp"
