@@ -1,8 +1,6 @@
 # Copyright (c) 2026 Banu Darius-Matei
 # SPDX-License-Identifier: MIT
 
-# ---------------------------------------------------------- #
-
 import sys
 import glob
 import subprocess
@@ -12,8 +10,6 @@ from paraview.simple import *
 MAIN_DIR = Path(__file__).resolve().parent.parent
 OUTPUT_DIR = MAIN_DIR / "output"
 OUTPUT_VIDEO_DIR = MAIN_DIR / "output-video"
-
-# ---------------------------------------------------------- #
 
 def render_paraview():
     resolution = [2560, 1440]
@@ -68,5 +64,3 @@ def render_paraview():
     
     for frame in OUTPUT_VIDEO_DIR.glob("frame.*.png"):
         frame.unlink()
-
-# ---------------------------------------------------------- #

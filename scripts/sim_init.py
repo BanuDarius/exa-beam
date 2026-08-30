@@ -8,8 +8,6 @@ PROJECT_ROOT = MAIN_DIR.parent
 INPUT_DIR = PROJECT_ROOT / "input"
 OUTPUT_DIR = PROJECT_ROOT / "output"
 
-# ---------------------------------------------------------- #
-
 class SimParameters():
     def __init__(self, tf, steps, substeps, nx, max_dim_mult, use_gpu, use_floats, output_laser_fields):
         self.tf = tf
@@ -24,8 +22,6 @@ class SimParameters():
         self.input_laser = INPUT_DIR / "laser.txt"
         self.output_laser_fields = output_laser_fields
         
-# ---------------------------------------------------------- #
-
 class Laser():
     def __init__(self, zeta_x, zeta_y, phi, theta, r0, a0, p, m, w0_mult, omega, tau, psi):
         self.p = p
@@ -40,5 +36,3 @@ class Laser():
         self.zeta_x = zeta_x
         self.zeta_y = zeta_y
         self.w0_mult = w0_mult
-        
-# ---------------------------------------------------------- #

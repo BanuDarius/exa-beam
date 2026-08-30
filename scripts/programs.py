@@ -1,20 +1,14 @@
 # Copyright (c) 2026 Banu Darius-Matei
 # SPDX-License-Identifier: MIT
 
-# ---------------------------------------------------------- #
-
 import subprocess
 import numpy as np
 from pathlib import Path
-
-# ---------------------------------------------------------- #
 
 MAIN_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = MAIN_DIR.parent
 BIN_DIR = PROJECT_ROOT / "bin"
 OUTPUT_DIR = PROJECT_ROOT / "output"
-
-# ---------------------------------------------------------- #
 
 def output_init_files(sim_parameters, lasers):
     input_file = sim_parameters.input_file
@@ -51,9 +45,7 @@ def output_init_files(sim_parameters, lasers):
             file.write(f"zeta_x_imag {lasers[i].zeta_x[1]}\n")
             file.write(f"zeta_y_real {lasers[i].zeta_y[0]}\n")
             file.write(f"zeta_y_imag {lasers[i].zeta_y[1]}\n")
-        
-# ---------------------------------------------------------- #
-
+            
 def run_simulation(sim_parameters, lasers):
     output_init_files(sim_parameters, lasers)
     
@@ -63,5 +55,3 @@ def run_simulation(sim_parameters, lasers):
         arguments = [BIN_DIR / "exa_beam", "--float", sim_parameters.input_file, sim_parameters.input_laser, sim_parameters.output_directory]
     
     subprocess.run(arguments, text=True)
-    
-# ---------------------------------------------------------- #
