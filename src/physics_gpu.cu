@@ -30,9 +30,9 @@ __global__ void compute_u_field_gpu_kernel(ComplexScalarFieldView<T> u_field_vie
 	T r_max_x = u_field_view.r_max[0], r_max_y = u_field_view.r_max[1], r_max_z = u_field_view.r_max[2];
 	int laser_count = lasers.laser_count, nx = u_field_view.num[0], ny = u_field_view.num[1], nz = u_field_view.num[2];
 	
-	int i = blockIdx.z * blockDim.z + threadIdx.z;
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
-	int k = blockIdx.x * blockDim.x + threadIdx.x;
+	int k = blockIdx.z * blockDim.z + threadIdx.z;
 	if(i < nx && j < ny && k < nz) {
 		std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 		cuda::std::array<T, 3> r_vec_global = {
@@ -59,9 +59,9 @@ __global__ void compute_eb_field_gpu_kernel(VectorFieldView<T> e_field_view, Vec
 	T r_max_x = e_field_view.r_max[0], r_max_y = e_field_view.r_max[1], r_max_z = e_field_view.r_max[2];
 	int laser_count = lasers.laser_count, nx = e_field_view.num[0], ny = e_field_view.num[1], nz = e_field_view.num[2];
 	
-	int i = blockIdx.z * blockDim.z + threadIdx.z;
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
-	int k = blockIdx.x * blockDim.x + threadIdx.x;
+	int k = blockIdx.z * blockDim.z + threadIdx.z;
 	if(i < nx && j < ny && k < nz) {
 		std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 		cuda::std::array<T, 3> r_vec_global = {
@@ -101,9 +101,9 @@ void compute_u_field_gpu(ComplexScalarField<T> &u_field, const DeviceLasers<T> &
 	int nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
 	dim3 threads(threads_3d_nx, threads_3d_ny, threads_3d_nz);
 	dim3 blocks(
-		(nz + threads.x - 1) / threads.x,
+		(nx + threads.x - 1) / threads.x,
 		(ny + threads.y - 1) / threads.y,
-		(nx + threads.z - 1) / threads.z
+		(nz + threads.z - 1) / threads.z
 	);
 	
 	ComplexScalarFieldView<T> u_field_view = u_field.get_gpu_view();
@@ -116,9 +116,9 @@ void compute_eb_field_gpu(VectorField<T> &e_field, VectorField<T> &b_field, cons
 	int nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
 	dim3 threads(threads_3d_nx, threads_3d_ny, threads_3d_nz);
 	dim3 blocks(
-		(nz + threads.x - 1) / threads.x,
+		(nx + threads.x - 1) / threads.x,
 		(ny + threads.y - 1) / threads.y,
-		(nx + threads.z - 1) / threads.z
+		(nz + threads.z - 1) / threads.z
 	);
 	
 	VectorFieldView<T> e_field_view = e_field.get_gpu_view();
@@ -126,6 +126,7 @@ void compute_eb_field_gpu(VectorField<T> &e_field, VectorField<T> &b_field, cons
 	compute_eb_field_gpu_kernel<<<blocks, threads>>>(e_field_view, b_field_view, lasers, t);
 	CUDA_CHECK(cudaGetLastError());
 }
+
 template __global__ void compute_lz_gpu_kernel<double>(ScalarFieldView<double> lz_view, ParticlesView<double> particles_view);
 template __global__ void compute_u_field_gpu_kernel<double>(ComplexScalarFieldView<double> u_field_view, __grid_constant__ const DeviceLasers<double> lasers);
 template __global__ void compute_eb_field_gpu_kernel<double>(VectorFieldView<double> e_field_view, VectorFieldView<double> b_field_view, __grid_constant__ const DeviceLasers<double> lasers, double t);

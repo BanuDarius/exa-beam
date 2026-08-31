@@ -15,9 +15,9 @@ void compute_lz(ScalarField<T> &lz_field, Particles<T> &particles) noexcept {
 	ParticlesView particles_view = particles.get_cpu_view();
 	
 	#pragma omp parallel for simd collapse(3) schedule(static)
-	for(int i = 0; i < nx; i++) {
+	for(int k = 0; k < nz; k++) {
 		for(int j = 0; j < ny; j++) {
-			for(int k = 0; k < nz; k++) {
+			for(int i = 0; i < nx; i++) {
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				cuda::std::array<T, 3> r_vec = particles_view.get_position(idx);
 				cuda::std::array<T, 3> u_vec = particles_view.get_velocity(idx);
@@ -39,9 +39,9 @@ void compute_u_field(ComplexScalarField<T> &u_field, std::span<const Laser<T>> l
 	ComplexScalarFieldView u_field_view = u_field.get_cpu_view();
 	
 	#pragma omp parallel for simd collapse(3) schedule(static)
-	for(int i = 0; i < nx; i++) {
+	for(int k = 0; k < nz; k++) {
 		for(int j = 0; j < ny; j++) {
-			for(int k = 0; k < nz; k++) {
+			for(int i = 0; i < nx; i++) {
 				cuda::std::array<T, 3> r_vec_global = {
 					interpolate(-r_max_x, r_max_x, static_cast<T>(i), static_cast<T>(nx)),
 					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
@@ -72,9 +72,9 @@ void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, std::spa
 	VectorFieldView e_field_view = e_field.get_cpu_view(), b_field_view = b_field.get_cpu_view();
 	
 	#pragma omp parallel for simd collapse(3) schedule(static)
-	for(int i = 0; i < nx; i++) {
+	for(int k = 0; k < nz; k++) {
 		for(int j = 0; j < ny; j++) {
-			for(int k = 0; k < nz; k++) {
+			for(int i = 0; i < nx; i++) {
 				cuda::std::array<T, 3> r_vec_global = {
 					interpolate(-r_max_x, r_max_x, static_cast<T>(i), static_cast<T>(nx)),
 					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),

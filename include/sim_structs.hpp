@@ -125,9 +125,9 @@ struct Particles {
 		h_uz.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
 		h_gamma.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
 		#pragma omp parallel for simd collapse(3) schedule(static)
-		for(int i = 0; i < nx; i++) {
+		for(int k = 0; k < nz; k++) {
 			for(int j = 0; j < ny; j++) {
-				for(int k = 0; k < nz; k++) {
+				for(int i = 0; i < nx; i++) {
 					std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 					h_x[idx] = interpolate(-r_max[0], r_max[0], static_cast<T>(i), static_cast<T>(nx));
 					h_y[idx] = interpolate(-r_max[1], r_max[1], static_cast<T>(j), static_cast<T>(ny));
