@@ -56,8 +56,8 @@ void output_vtk_scalar_field(std::ofstream &output_file, const DataVTK &data_vtk
 		for(int j = 0; j < ny; j++) {
 			for(int i = 0; i < nx; i++) {
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-				
 				T field_v = field_view.get_field(idx);
+				
 				vtk_scalar[idx] = swap_endian(static_cast<float>(field_v));
 			}
 		}
@@ -77,8 +77,8 @@ void output_vtk_complex_scalar_field(std::ofstream &output_file, const DataVTK &
 		for(int j = 0; j < ny; j++) {
 			for(int i = 0; i < nx; i++) {
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-				
 				cuda::std::complex<T> field_v = field_view.get_field(idx);
+				
 				vtk_scalar[idx] = swap_endian(static_cast<float>(cuda::std::real(field_v)));
 			}
 		}
@@ -98,8 +98,8 @@ void output_vtk_vector_field(std::ofstream &output_file, const DataVTK &data_vtk
 		for(int j = 0; j < ny; j++) {
 			for(int i = 0; i < nx; i++) {
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-				
 				cuda::std::array<T, 3> vec = field_view.get_field(idx);
+				
 				vtk_vector[3 * idx] = swap_endian(static_cast<float>(vec[0]));
 				vtk_vector[3 * idx + 1] = swap_endian(static_cast<float>(vec[1]));
 				vtk_vector[3 * idx + 2] = swap_endian(static_cast<float>(vec[2]));
@@ -121,8 +121,8 @@ void output_vtk_particles(std::ofstream &output_file, const DataVTK &data_vtk, c
 		for(int j = 0; j < ny; j++) {
 			for(int i = 0; i < nx; i++) {
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-				
 				cuda::std::array<T, 3> r_vec = particles_view.get_position(idx);
+				
 				vtk_vector[3 * idx] = swap_endian(static_cast<float>(r_vec[0]));
 				vtk_vector[3 * idx + 1] = swap_endian(static_cast<float>(r_vec[1]));
 				vtk_vector[3 * idx + 2] = swap_endian(static_cast<float>(r_vec[2]));
@@ -140,8 +140,8 @@ void output_vtk_particles(std::ofstream &output_file, const DataVTK &data_vtk, c
 		for(int j = 0; j < ny; j++) {
 			for(int i = 0; i < nx; i++) {
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-				
 				cuda::std::array<T, 3> u_vec = particles_view.get_velocity(idx);
+				
 				vtk_vector[3 * idx] = swap_endian(static_cast<float>(u_vec[0]));
 				vtk_vector[3 * idx + 1] = swap_endian(static_cast<float>(u_vec[1]));
 				vtk_vector[3 * idx + 2] = swap_endian(static_cast<float>(u_vec[2]));
