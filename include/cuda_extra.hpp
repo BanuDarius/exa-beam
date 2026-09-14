@@ -5,7 +5,6 @@
 #define CUDA_EXTRA_H
 
 #include <new>
-#include <cstdint>
 #include <concepts>
 
 #include <cuda_runtime.h>
