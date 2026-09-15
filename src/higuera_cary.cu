@@ -3,7 +3,7 @@
 
 #include "higuera_cary.hpp"
 
-template<std::floating_point T>
+template <std::floating_point T>
 __global__ void higuera_cary_step_kernel(ParticlesView<T> particles_view, __grid_constant__ const DeviceLasers<T> lasers, T t, T dt) {
 	int laser_count = lasers.laser_count;
 	std::size_t idx = blockDim.x * blockIdx.x + threadIdx.x;
