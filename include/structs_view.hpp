@@ -22,8 +22,7 @@ struct ParticlesView {
 			T *__restrict__ ptr_gamma = std::assume_aligned<mem_align>(gamma);
 			return ptr_gamma[idx];
 		#else
-			T gamma_v = gamma[idx];
-			return gamma_v;
+			return gamma[idx];
 		#endif
 	}
 	__device__ __host__ cuda::std::array<T, 3> get_position(std::size_t idx) const noexcept {
@@ -31,11 +30,9 @@ struct ParticlesView {
 			T *__restrict__ ptr_x = std::assume_aligned<mem_align>(x);
 			T *__restrict__ ptr_y = std::assume_aligned<mem_align>(y);
 			T *__restrict__ ptr_z = std::assume_aligned<mem_align>(z);
-			cuda::std::array<T, 3> r_vec = { ptr_x[idx], ptr_y[idx], ptr_z[idx] };
-			return r_vec;
+			return { ptr_x[idx], ptr_y[idx], ptr_z[idx] };
 		#else
-			cuda::std::array<T, 3> r_vec = { x[idx], y[idx], z[idx] };
-			return r_vec;
+			return { x[idx], y[idx], z[idx] };
 		#endif
 	}
 	__device__ __host__ cuda::std::array<T, 3> get_velocity(std::size_t idx) const noexcept {
@@ -43,11 +40,9 @@ struct ParticlesView {
 			T *__restrict__ ptr_ux = std::assume_aligned<mem_align>(ux);
 			T *__restrict__ ptr_uy = std::assume_aligned<mem_align>(uy);
 			T *__restrict__ ptr_uz = std::assume_aligned<mem_align>(uz);
-			cuda::std::array<T, 3> u_vec = { ptr_ux[idx], ptr_uy[idx], ptr_uz[idx] };
-			return u_vec;
+			return { ptr_ux[idx], ptr_uy[idx], ptr_uz[idx] };
 		#else
-			cuda::std::array<T, 3> u_vec = { ux[idx], uy[idx], uz[idx] };
-			return u_vec;
+			return { ux[idx], uy[idx], uz[idx] };
 		#endif
 	}
 	__device__ __host__ void set_gamma(T gamma_v, std::size_t idx) noexcept {
@@ -93,8 +88,7 @@ struct ScalarFieldView {
 			T *__restrict__ ptr_v = std::assume_aligned<mem_align>(v);
 			return ptr_v[idx];
 		#else
-			T v_n = v[idx];
-			return v_n;
+			return v[idx];
 		#endif
 	}
 	__device__ __host__ void set_field(T v_n, std::size_t idx) noexcept {
@@ -120,8 +114,7 @@ struct ComplexScalarFieldView {
 			cuda::std::complex<T> *__restrict__ ptr_v = std::assume_aligned<mem_align>(v);
 			return ptr_v[idx];
 		#else
-			cuda::std::complex<T> v_n = v[idx];
-			return v_n;
+			return v[idx];
 		#endif
 	}
 	__device__ __host__ void set_field(cuda::std::complex<T> v_n, std::size_t idx) noexcept {
@@ -147,11 +140,9 @@ struct VectorFieldView {
 			T *__restrict__ ptr_x = std::assume_aligned<mem_align>(x);
 			T *__restrict__ ptr_y = std::assume_aligned<mem_align>(y);
 			T *__restrict__ ptr_z = std::assume_aligned<mem_align>(z);
-			cuda::std::array<T, 3> vec = { ptr_x[idx], ptr_y[idx], ptr_z[idx] };
-			return vec;
+			return { ptr_x[idx], ptr_y[idx], ptr_z[idx] };
 		#else
-			cuda::std::array<T, 3> vec = { x[idx], y[idx], z[idx] };
-			return vec;
+			return { x[idx], y[idx], z[idx] };
 		#endif
 	}
 	__device__ __host__ void set_field(cuda::std::array<T, 3> vec, std::size_t idx) noexcept {
