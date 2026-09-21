@@ -58,8 +58,7 @@ __device__ __host__ inline cuda::std::array<T, 3> hc_u_minus(cuda::std::array<T,
 template <std::floating_point T>
 __device__ __host__ inline cuda::std::array<T, 3> hc_u_prime(cuda::std::array<T, 3> u_minus, cuda::std::array<T, 3> t_rot) noexcept {
 	cuda::std::array<T, 3> term = cross(u_minus, t_rot);
-	cuda::std::array<T, 3> u_prime = u_minus + term;
-	return u_prime;
+	return u_minus + term;
 }
 
 template <std::floating_point T>
