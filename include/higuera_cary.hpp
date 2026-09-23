@@ -18,8 +18,7 @@
 template <std::floating_point T>
 __device__ __host__ inline T comp_gamma(cuda::std::array<T, 3> u_vec) noexcept {
 	T u2 = dot(u_vec, u_vec);
-	T gamma = cuda::std::sqrt(T(1.0) + u2 / (c<T> * c<T>));
-	return gamma;
+	return cuda::std::sqrt(T(1.0) + u2 / (c<T> * c<T>));
 }
 
 template <std::floating_point T>
