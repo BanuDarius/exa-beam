@@ -44,8 +44,7 @@ __device__ __host__ inline cuda::std::array<T, 3> hc_epsilon(cuda::std::array<T,
 template <std::floating_point T>
 __device__ __host__ inline cuda::std::array<T, 3> hc_t_rot(cuda::std::array<T, 3> beta, T gamma_new) noexcept {
 	T term = T(1.0) / gamma_new;
-	cuda::std::array<T, 3> t_rot = beta * term;
-	return t_rot;
+	return beta * term;
 }
 
 template <std::floating_point T>
