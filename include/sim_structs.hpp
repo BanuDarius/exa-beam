@@ -447,11 +447,4 @@ struct DataVTK {
 	~DataVTK() = default;
 };
 
-template <std::floating_point T>
-struct EBVectors {
-	cuda::std::array<T, 3> e{}, b{};
-	__device__ __host__ EBVectors(cuda::std::array<T, 3> e_n, cuda::std::array<T, 3> b_n) : e(e_n), b(b_n) {}
-	EBVectors() = default;
-};
-
 #endif

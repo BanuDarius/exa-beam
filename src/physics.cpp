@@ -66,10 +66,10 @@ void compute_u_field(ComplexScalarField<T> &u_field, std::span<const Laser<T>> l
 }
 
 template <std::floating_point T>
-void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, std::span<const Laser<T>> lasers, T t) noexcept {
+void compute_e_field(VectorField<T> &e_field, std::span<const Laser<T>> lasers, T t) noexcept {
 	int laser_count = lasers.size(), nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
 	T r_max_x = e_field.r_max[0], r_max_y = e_field.r_max[1], r_max_z = e_field.r_max[2];
-	VectorFieldView e_field_view = e_field.get_cpu_view(), b_field_view = b_field.get_cpu_view();
+	VectorFieldView e_field_view = e_field.get_cpu_view();
 	
 	#pragma omp parallel for simd collapse(3) schedule(static)
 	for(int k = 0; k < nz; k++) {
@@ -81,17 +81,41 @@ void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, std::spa
 					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
 				};
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-				EBVectors<T> eb_vec_global;
+				cuda::std::array<T, 3>  e_vec_global{};
 				for(int q = 0; q < laser_count; q++) {
 					cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
-					EBVectors<T> eb_vec_local = compute_eb(lasers[q], r_vec_local, t);
-					eb_vec_global = EBVectors(
-						eb_vec_global.e + lasers[q].vec_local_to_global(eb_vec_local.e),
-						eb_vec_global.b + lasers[q].vec_local_to_global(eb_vec_local.b)
-					);
+					cuda::std::array<T, 3> e_vec_local = compute_e(lasers[q], r_vec_local, t);
+					e_vec_global += lasers[q].vec_local_to_global(e_vec_local);
 				}
-				e_field_view.set_field(eb_vec_global.e, idx);
-				b_field_view.set_field(eb_vec_global.b, idx);
+				e_field_view.set_field(e_vec_global, idx);
+			}
+		}
+	}
+}
+
+template <std::floating_point T>
+void compute_b_field(VectorField<T> &b_field, std::span<const Laser<T>> lasers, T t) noexcept {
+	int laser_count = lasers.size(), nx = b_field.num[0], ny = b_field.num[1], nz = b_field.num[2];
+	T r_max_x = b_field.r_max[0], r_max_y = b_field.r_max[1], r_max_z = b_field.r_max[2];
+	VectorFieldView b_field_view = b_field.get_cpu_view();
+	
+	#pragma omp parallel for simd collapse(3) schedule(static)
+	for(int k = 0; k < nz; k++) {
+		for(int j = 0; j < ny; j++) {
+			for(int i = 0; i < nx; i++) {
+				cuda::std::array<T, 3> r_vec_global = {
+					interpolate(-r_max_x, r_max_x, static_cast<T>(i), static_cast<T>(nx)),
+					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
+					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
+				};
+				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
+				cuda::std::array<T, 3>  b_vec_global{};
+				for(int q = 0; q < laser_count; q++) {
+					cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+					cuda::std::array<T, 3> b_vec_local = compute_b(lasers[q], r_vec_local, t);
+					b_vec_global += lasers[q].vec_local_to_global(b_vec_local);
+				}
+				b_field_view.set_field(b_vec_global, idx);
 			}
 		}
 	}
@@ -99,8 +123,10 @@ void compute_eb_field(VectorField<T> &e_field, VectorField<T> &b_field, std::spa
 
 template void compute_lz<double>(ScalarField<double> &lz_field, Particles<double> &particles) noexcept;
 template void compute_u_field<double>(ComplexScalarField<double> &u_field, std::span<const Laser<double>> lasers) noexcept;
-template void compute_eb_field<double>(VectorField<double> &e_field, VectorField<double> &b_field, std::span<const Laser<double>> lasers, double t) noexcept;
+template void compute_e_field<double>(VectorField<double> &e_field, std::span<const Laser<double>> lasers, double t) noexcept;
+template void compute_b_field<double>(VectorField<double> &b_field, std::span<const Laser<double>> lasers, double t) noexcept;
  
 template void compute_lz<float>(ScalarField<float> &lz_field, Particles<float> &particles) noexcept;
 template void compute_u_field<float>(ComplexScalarField<float> &u_field, std::span<const Laser<float>> lasers) noexcept;
-template void compute_eb_field<float>(VectorField<float> &e_field, VectorField<float> &b_field, std::span<const Laser<float>> lasers, float t) noexcept;
+template void compute_e_field<float>(VectorField<float> &e_field, std::span<const Laser<float>> lasers, float t) noexcept;
+template void compute_b_field<float>(VectorField<float> &b_field, std::span<const Laser<float>> lasers, float t) noexcept;

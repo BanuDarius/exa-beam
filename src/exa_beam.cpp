@@ -38,28 +38,30 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 	}
 	for(int step = 0; step < steps; step++) {
 		T t = step * dt;
-		if(use_gpu) higuera_cary_update_gpu(particles, device_lasers, t, dt);
-		else higuera_cary_update(particles, lasers, t, dt);
+		if(use_gpu) compute_b_field_gpu(b_field, device_lasers, t);
+		else compute_b_field(b_field, lasers, t);
+		
+		if(use_gpu) higuera_cary_update_velocity_gpu(particles, device_lasers, t, dt);
+		else higuera_cary_update_velocity(particles, lasers, t, dt);
+		if(use_gpu) higuera_cary_update_position_gpu(particles, dt);
+		else higuera_cary_update_position(particles, dt);
+		
+		if(use_gpu) compute_b_field_gpu(b_field, device_lasers, t + T(0.5) * dt);
+		else compute_b_field(b_field, lasers, t + T(0.5) * dt);
+		
+		if(use_gpu) compute_e_field_gpu(e_field, device_lasers, t + dt);
+		else compute_e_field(e_field, lasers, t + dt);
+		
 		if(step % substeps == 0) {
-			if(use_gpu) particles.transfer_data_gpu_to_cpu(cudaStreamDefault);
-			if(output_laser_fields) {
-				if(use_gpu) {
-					compute_eb_field_gpu(e_field, b_field, device_lasers, t);
-					e_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
-					b_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
-				} else compute_eb_field(e_field, b_field, lasers, t);
-				
-				std::string filename_fields = std::format("{}/fields-{:04d}.vtk", output_directory, step / substeps);
-				std::ofstream output_fields(filename_fields, std::ios::binary);
-				if(!output_fields) {
-					std::fprintf(stderr, "CANNOT OPEN OUTPUT FIELD FILE!\n"); return;
-				}
-				
-				cudaDeviceSynchronize();
-				output_vtk_header(output_fields, e_field);
-				output_vtk_vector_field(output_fields, data_vtk, e_field, "E");
-				output_vtk_vector_field(output_fields, data_vtk, b_field, "B");
-				output_vtk_complex_scalar_field(output_fields, data_vtk, u_field, "u00");
+			if(use_gpu) {
+				e_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
+				b_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
+				particles.transfer_data_gpu_to_cpu(cudaStreamDefault);
+			}
+			std::string filename_fields = std::format("{}/fields-{:04d}.vtk", output_directory, step / substeps);
+			std::ofstream output_fields(filename_fields, std::ios::binary);
+			if(!output_fields) {
+				std::fprintf(stderr, "CANNOT OPEN OUTPUT FIELD FILE!\n"); return;
 			}
 			
 			std::string filename_particles = std::format("{}/particles-{:04d}.vtk", output_directory, step / substeps);
@@ -70,6 +72,11 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 			
 			cudaDeviceSynchronize();
 			output_vtk_particles(output_particles, data_vtk, particles);
+			
+			output_vtk_header(output_fields, e_field);
+			output_vtk_vector_field(output_fields, data_vtk, e_field, "E");
+			output_vtk_vector_field(output_fields, data_vtk, b_field, "B");
+			output_vtk_complex_scalar_field(output_fields, data_vtk, u_field, "u00");
 			std::printf("Computed step: %d/%d.\n", step, steps);
 		}
 	}
