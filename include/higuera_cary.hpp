@@ -77,7 +77,7 @@ __device__ __host__ inline cuda::std::array<T, 3> hc_u_plus(cuda::std::array<T, 
 }
 
 template <std::floating_point T>
-inline void higuera_cary_update_velocity(Particles<T> &particles, std::span<const Laser<T>> lasers, T t, T dt) noexcept {
+inline void higuera_cary_update(Particles<T> &particles, std::span<const Laser<T>> lasers, T t, T dt) noexcept {
 	int laser_count = lasers.size();
 	ParticlesView<T> particles_view = particles.get_cpu_view();
 	#pragma omp parallel for simd schedule(static)
@@ -108,30 +108,15 @@ inline void higuera_cary_update_velocity(Particles<T> &particles, std::span<cons
 		
 		u_vec_global = u_plus + epsilon;
 		T gamma_half = comp_gamma(u_vec_global);
+		r_vec_global += u_vec_global * (dt / gamma_half);
 		
 		particles_view.set_gamma(gamma_half, idx);
+		particles_view.set_position(r_vec_global, idx);
 		particles_view.set_velocity(u_vec_global, idx);
 	}
 }
 
-template <std::floating_point T>
-inline void higuera_cary_update_position(Particles<T> &particles, T dt) noexcept {
-	ParticlesView<T> particles_view = particles.get_cpu_view();
-	#pragma omp parallel for simd schedule(static)
-	for(std::size_t idx = 0; idx < particles.particle_num; idx++) {
-		cuda::std::array<T, 3> r_vec_global = particles_view.get_position(idx);
-		cuda::std::array<T, 3> u_vec_global = particles_view.get_velocity(idx);
-		
-		T gamma_half = particles_view.get_gamma(idx);
-		
-		r_vec_global += u_vec_global * (dt / gamma_half);
-		particles_view.set_position(r_vec_global, idx);
-	}
-}
-
-template <std::floating_point T> __global__ void higuera_cary_update_velocity_kernel(ParticlesView<T> particles_view, __grid_constant__ const DeviceLasers<T> lasers, T t, T dt);
-template <std::floating_point T> __global__ void higuera_cary_update_position_kernel(ParticlesView<T> particles_view, T dt);
-template <std::floating_point T> void higuera_cary_update_velocity_gpu(Particles<T> &particles, const DeviceLasers<T> &lasers, T t, T dt) noexcept;
-template <std::floating_point T> void higuera_cary_update_position_gpu(Particles<T> &particles, T dt) noexcept;
+template <std::floating_point T> __global__ void higuera_cary_update_kernel(ParticlesView<T> particles_view, __grid_constant__ const DeviceLasers<T> lasers, T t, T dt);
+template <std::floating_point T> void higuera_cary_update_gpu(Particles<T> &particles, const DeviceLasers<T> &lasers, T t, T dt) noexcept;
 
 #endif

@@ -41,10 +41,8 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 		if(use_gpu) compute_b_field_gpu(b_field, device_lasers, t);
 		else compute_b_field(b_field, lasers, t);
 		
-		if(use_gpu) higuera_cary_update_velocity_gpu(particles, device_lasers, t, dt);
-		else higuera_cary_update_velocity(particles, lasers, t, dt);
-		if(use_gpu) higuera_cary_update_position_gpu(particles, dt);
-		else higuera_cary_update_position(particles, dt);
+		if(use_gpu) higuera_cary_update_gpu(particles, device_lasers, t, dt);
+		else higuera_cary_update(particles, lasers, t, dt);
 		
 		if(use_gpu) compute_b_field_gpu(b_field, device_lasers, t + T(0.5) * dt);
 		else compute_b_field(b_field, lasers, t + T(0.5) * dt);
