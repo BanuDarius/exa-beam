@@ -15,8 +15,8 @@ void compute_lz(ScalarField<T> &lz_field, Particles<T> &particles) noexcept {
 	ParticlesView particles_view = particles.get_cpu_view();
 	
 	#pragma omp parallel for simd collapse(3) schedule(static)
-	for(int k = 0; k < nz; k++) {
-		for(int j = 0; j < ny; j++) {
+	for(int k = 0; k < nz; k++)
+		for(int j = 0; j < ny; j++)
 			for(int i = 0; i < nx; i++) {
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				cuda::std::array<T, 3> r_vec = particles_view.get_position(idx);
@@ -28,8 +28,6 @@ void compute_lz(ScalarField<T> &lz_field, Particles<T> &particles) noexcept {
 				
 				lz_field_view.set_field(lz, idx);
 			}
-		}
-	}
 }
 
 template <std::floating_point T>
@@ -43,14 +41,18 @@ void fdtd_update_b(VectorField<T> &b_field, VectorField<T> &e_field, T dt) noexc
 	for(int k = 0; k < nz - 1; k++)
 		for(int j = 0; j < ny - 1; j++)
 			for(int i = 0; i < nx - 1; i++) {
-				T dzEy = inv_dz * (e.get_y(i, j, k + 1) - e.get_y(i, j, k));
-				T dyEz = inv_dy * (e.get_z(i, j + 1, k) - e.get_z(i, j, k));
+				T e_x = e.get_x(i, j, k);
+				T e_y = e.get_y(i, j, k);
+				T e_z = e.get_z(i, j, k);
 				
-				T dxEz = inv_dx * (e.get_z(i + 1, j, k) - e.get_z(i, j, k));
-				T dzEx = inv_dz * (e.get_x(i, j, k + 1) - e.get_x(i, j, k));
+				T dzEy = inv_dz * (e.get_y(i, j, k + 1) - e_y);
+				T dyEz = inv_dy * (e.get_z(i, j + 1, k) - e_z);
 				
-				T dyEx = inv_dy * (e.get_x(i, j + 1, k) - e.get_x(i, j, k));
-				T dxEy = inv_dx * (e.get_y(i + 1, j, k) - e.get_y(i, j, k));
+				T dxEz = inv_dx * (e.get_z(i + 1, j, k) - e_z);
+				T dzEx = inv_dz * (e.get_x(i, j, k + 1) - e_x);
+				
+				T dyEx = inv_dy * (e.get_x(i, j + 1, k) - e_x);
+				T dxEy = inv_dx * (e.get_y(i + 1, j, k) - e_y);
 				
 				T dtBx = dzEy - dyEz;
 				T dtBy = dxEz - dzEx;
@@ -101,10 +103,83 @@ void fdtd_update_e(VectorField<T> &e_field, VectorField<T> &b_field, T dt) noexc
 			}
 }
 
+template <std::floating_point T>
+void initialize_eb_fields(VectorField<T> &e_field, VectorField<T> &b_field, std::span<const Laser<T>> lasers, T dt) noexcept {
+	VectorFieldView e = e_field.get_cpu_view(), b = b_field.get_cpu_view();
+	
+	int nx = e.num[0], ny = e.num[1], nz = e.num[2], num_lasers = lasers.size();
+	T r_max_x = e.r_max[0], r_max_y = e.r_max[1], r_max_z = e.r_max[2];
+	T dx = T(2.0) * r_max_x / (nx - 1), dy = T(2.0) * r_max_y / (ny - 1), dz = T(2.0) * r_max_z / (nz - 1);
+	#pragma omp parallel for simd collapse(3) schedule(static)
+	for(int k = 0; k < nz; k++)
+		for(int j = 0; j < ny; j++)
+			for(int i = 0; i < nx; i++) {
+				T x = - r_max_x + static_cast<T>(i) * dx;
+				T y = - r_max_y + static_cast<T>(j) * dy;
+				T z = - r_max_z + static_cast<T>(k) * dz;
+				
+				cuda::std::array<T, 3> r_vec_global = { x + dx * T(0.5), y, z };
+				T e_x = T(0.0);
+				for(int q = 0; q < num_lasers; q++) {
+					cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+					cuda::std::array<T, 3> e_vec_local = compute_e(lasers[q], r_vec_local, T(0.0));
+					e_x += lasers[q].vec_local_to_global(e_vec_local)[0];
+				}
+				e.set_x(e_x, i, j, k);
+				
+				r_vec_global = { x, y + dy * T(0.5), z };
+				T e_y = T(0.0);
+				for(int q = 0; q < num_lasers; q++) {
+					cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+					cuda::std::array<T, 3> e_vec_local = compute_e(lasers[q], r_vec_local, T(0.0));
+					e_y += lasers[q].vec_local_to_global(e_vec_local)[1];
+				}
+				e.set_y(e_y, i, j, k);
+				
+				r_vec_global = { x, y, z + dz * T(0.5) };
+				T e_z = T(0.0);
+				for(int q = 0; q < num_lasers; q++) {
+					cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+					cuda::std::array<T, 3> e_vec_local = compute_e(lasers[q], r_vec_local, T(0.0));
+					e_z += lasers[q].vec_local_to_global(e_vec_local)[2];
+				}
+				e.set_z(e_z, i, j, k);
+				
+				r_vec_global = { x, y + dy * T(0.5), z + dz * T(0.5) };
+				T b_x = T(0.0);
+				for(int q = 0; q < num_lasers; q++) {
+					cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+					cuda::std::array<T, 3> b_vec_local = compute_b(lasers[q], r_vec_local, - T(0.5) * dt);
+					b_x += lasers[q].vec_local_to_global(b_vec_local)[0];
+				}
+				b.set_x(b_x, i, j, k);
+				
+				r_vec_global = { x + dx * T(0.5), y, z + dz * T(0.5) };
+				T b_y = T(0.0);
+				for(int q = 0; q < num_lasers; q++) {
+					cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+					cuda::std::array<T, 3> b_vec_local = compute_b(lasers[q], r_vec_local, - T(0.5) * dt);
+					b_y += lasers[q].vec_local_to_global(b_vec_local)[1];
+				}
+				b.set_y(b_y, i, j, k);
+				
+				r_vec_global = { x + dx * T(0.5), y + dy * T(0.5), z };
+				T b_z = T(0.0);
+				for(int q = 0; q < num_lasers; q++) {
+					cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+					cuda::std::array<T, 3> b_vec_local = compute_b(lasers[q], r_vec_local, - T(0.5) * dt);
+					b_z += lasers[q].vec_local_to_global(b_vec_local)[2];
+				}
+				b.set_z(b_z, i, j, k);
+			}
+}
+
 template void compute_lz<double>(ScalarField<double> &lz_field, Particles<double> &particles) noexcept;
 template void fdtd_update_b<double>(VectorField<double> &b_field, VectorField<double> &e_field, double dt) noexcept;
 template void fdtd_update_e<double>(VectorField<double> &e_field, VectorField<double> &b_field, double dt) noexcept;
+template void initialize_eb_fields<double>(VectorField<double> &e_field, VectorField<double> &b_field, std::span<const Laser<double>> lasers, double dt) noexcept;
 
 template void compute_lz<float>(ScalarField<float> &lz_field, Particles<float> &particles) noexcept;
 template void fdtd_update_b<float>(VectorField<float> &b_field, VectorField<float> &e_field, float dt) noexcept;
 template void fdtd_update_e<float>(VectorField<float> &e_field, VectorField<float> &b_field, float dt) noexcept;
+template void initialize_eb_fields<float>(VectorField<float> &e_field, VectorField<float> &b_field, std::span<const Laser<float>> lasers, float dt) noexcept;

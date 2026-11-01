@@ -8,14 +8,14 @@ import scripts.programs as programs
 
 c = 137.036
 
-use_gpu = True
+use_gpu = False
 use_floats = True
-output_laser_fields = False
+output_laser_fields = True
 
 nx = 32
-steps = 20000
+steps = 10000
 substeps = 50
-max_dim_mult = [ 5.0, 3.0, 5.0 ]
+max_dim_mult = [ 5.0, 5.0, 5.0 ]
 
 p = 0
 m = 0
@@ -23,26 +23,26 @@ a0 = 1.5
 tau = 4.0
 omega = 0.057
 w0_mult = 4.0
-offset = max_dim_mult[2] * w0_mult
-psi = - 10.0 * np.pi * offset
-tf = - 2.0 * psi / omega
+
+psi = 0.0
+tf = max_dim_mult[2] * 2.0 * np.pi / omega
 
 phi = np.radians(0.0)
 theta = np.radians(0.0)
 
 r0 = [ 0.0, 0.0, 0.0 ]
-zeta_x = [ 0.707, 0.000 ]
-zeta_y = [ 0.000, -0.707 ]
+zeta_x = [ 1, 0.000 ]
+zeta_y = [ 0.000, 0 * -0.707 ]
 
 if __name__ == "__main__":
     sim_parameters = sim_init.SimParameters(tf, steps, substeps, nx, max_dim_mult, use_gpu, use_floats, output_laser_fields)
     
     lasers = []
     lasers.append(sim_init.Laser(zeta_x, zeta_y, phi, theta, r0, a0, p, m, w0_mult, omega, tau, psi))
-    lasers.append(sim_init.Laser(zeta_x, zeta_y, phi, np.radians(90.0), r0, a0, p, -m, w0_mult, omega, tau, psi))
+    #lasers.append(sim_init.Laser(zeta_x, zeta_y, phi, np.radians(90.0), r0, a0, p, -m, w0_mult, omega, tau, psi))
     
     programs.run_simulation(sim_parameters, lasers)
     
-    render.render_paraview()
+    #render.render_paraview()
     
     print("Exa-Beam finished!\a")

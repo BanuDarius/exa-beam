@@ -14,5 +14,6 @@ template <std::floating_point T> __global__ void fdtd_update_e_gpu_kernel(Vector
 template <std::floating_point T> void compute_lz_gpu(ScalarField<T> &lz_field, Particles<T> &particles) noexcept;
 template <std::floating_point T> void fdtd_update_b_gpu(VectorField<T> &b_field, VectorField<T> &e_field, T dt) noexcept;
 template <std::floating_point T> void fdtd_update_e_gpu(VectorField<T> &e_field, VectorField<T> &b_field, T dt) noexcept;
+template <std::floating_point T> void initialize_eb_fields_gpu(VectorField<T> &e_field, VectorField<T> &b_field, std::span<const Laser<T>> lasers, T dt) noexcept;
 
 #endif

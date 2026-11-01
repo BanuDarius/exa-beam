@@ -18,7 +18,7 @@
 
 template <std::floating_point T>
 void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers, const std::string &output_directory) {
-	bool use_gpu = parameters.use_gpu; //output_laser_fields = parameters.output_laser_fields;
+	bool use_gpu = parameters.use_gpu;
 	int steps = parameters.steps, substeps = parameters.substeps;
 	T dt = parameters.tf / steps;
 	
@@ -28,7 +28,8 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 	ScalarField<T> lz_field(parameters, lasers.front());
 	VectorField<T> e_field(parameters, lasers.front()), b_field(parameters, lasers.front());
 	
-	//initialize_eb_fields(e_field, b_field, lasers);
+	if(use_gpu) initialize_eb_fields_gpu(e_field, b_field, lasers, dt);
+	else initialize_eb_fields(e_field, b_field, lasers, dt);
 	
 	for(int step = 0; step < steps; step++) {
 		T t = step * dt;
