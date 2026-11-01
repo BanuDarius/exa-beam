@@ -33,100 +33,78 @@ void compute_lz(ScalarField<T> &lz_field, Particles<T> &particles) noexcept {
 }
 
 template <std::floating_point T>
-void compute_u_field(ComplexScalarField<T> &u_field, std::span<const Laser<T>> lasers) noexcept {
-	int laser_count = lasers.size(), nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
-	T r_max_x = u_field.r_max[0], r_max_y = u_field.r_max[1], r_max_z = u_field.r_max[2];
-	ComplexScalarFieldView u_field_view = u_field.get_cpu_view();
+void fdtd_update_b(VectorField<T> &b_field, VectorField<T> &e_field, T dt) noexcept {
+	VectorFieldView b = b_field.get_cpu_view(), e = e_field.get_cpu_view();
+	
+	int nx = b.num[0], ny = b.num[1], nz = b.num[2];
+	T inv_dx = b.inv_dx[0], inv_dy = b.inv_dx[1], inv_dz = b.inv_dx[2];
 	
 	#pragma omp parallel for simd collapse(3) schedule(static)
-	for(int k = 0; k < nz; k++) {
-		for(int j = 0; j < ny; j++) {
-			for(int i = 0; i < nx; i++) {
-				cuda::std::array<T, 3> r_vec_global = {
-					interpolate(-r_max_x, r_max_x, static_cast<T>(i), static_cast<T>(nx)),
-					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
-					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
-				};
-				cuda::std::complex<T> u_i{};
-				for(int q = 0; q < laser_count; q++) {
-					cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
-					
-					T z = r_vec_local[2];
-					T z_r = lasers[q].z_r, w0 = lasers[q].w0;
-					T r_z = compute_r_z(z, z_r);
-					T w_z = compute_w_z(w0, z, z_r);
-					
-					u_i += compute_u(lasers[q], r_vec_local, r_z, w_z);
-				}
-				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-				u_field_view.set_field(u_i, idx);
+	for(int k = 0; k < nz - 1; k++)
+		for(int j = 0; j < ny - 1; j++)
+			for(int i = 0; i < nx - 1; i++) {
+				T dzEy = inv_dz * (e.get_y(i, j, k + 1) - e.get_y(i, j, k));
+				T dyEz = inv_dy * (e.get_z(i, j + 1, k) - e.get_z(i, j, k));
+				
+				T dxEz = inv_dx * (e.get_z(i + 1, j, k) - e.get_z(i, j, k));
+				T dzEx = inv_dz * (e.get_x(i, j, k + 1) - e.get_x(i, j, k));
+				
+				T dyEx = inv_dy * (e.get_x(i, j + 1, k) - e.get_x(i, j, k));
+				T dxEy = inv_dx * (e.get_y(i + 1, j, k) - e.get_y(i, j, k));
+				
+				T dtBx = dzEy - dyEz;
+				T dtBy = dxEz - dzEx;
+				T dtBz = dyEx - dxEy;
+				
+				b.set_x(b.get_x(i, j, k) + dt * dtBx, i, j, k);
+				b.set_y(b.get_y(i, j, k) + dt * dtBy, i, j, k);
+				b.set_z(b.get_z(i, j, k) + dt * dtBz, i, j, k);
 			}
-		}
-	}
 }
 
 template <std::floating_point T>
-void compute_e_field(VectorField<T> &e_field, std::span<const Laser<T>> lasers, T t) noexcept {
-	int laser_count = lasers.size(), nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
-	T r_max_x = e_field.r_max[0], r_max_y = e_field.r_max[1], r_max_z = e_field.r_max[2];
-	VectorFieldView e_field_view = e_field.get_cpu_view();
+void fdtd_update_e(VectorField<T> &e_field, VectorField<T> &b_field, T dt) noexcept {
+	VectorFieldView e = e_field.get_cpu_view(), b = b_field.get_cpu_view();
+	
+	int nx = e.num[0], ny = e.num[1], nz = e.num[2];
+	T inv_dx = e.inv_dx[0], inv_dy = e.inv_dx[1], inv_dz = e.inv_dx[2], c2 = c<T> * c<T>;
 	
 	#pragma omp parallel for simd collapse(3) schedule(static)
-	for(int k = 0; k < nz; k++) {
-		for(int j = 0; j < ny; j++) {
-			for(int i = 0; i < nx; i++) {
-				cuda::std::array<T, 3> r_vec_global = {
-					interpolate(-r_max_x, r_max_x, static_cast<T>(i), static_cast<T>(nx)),
-					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
-					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
-				};
-				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-				cuda::std::array<T, 3>  e_vec_global{};
-				for(int q = 0; q < laser_count; q++) {
-					cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
-					cuda::std::array<T, 3> e_vec_local = compute_e(lasers[q], r_vec_local, t);
-					e_vec_global += lasers[q].vec_local_to_global(e_vec_local);
-				}
-				e_field_view.set_field(e_vec_global, idx);
+	for(int k = 1; k < nz - 1; k++)
+		for(int j = 1; j < ny - 1; j++)
+			for(int i = 0; i < nx - 1; i++) {
+				T dyBz = inv_dy * (b.get_z(i, j, k) - b.get_z(i, j - 1, k));
+				T dzBy = inv_dz * (b.get_y(i, j, k) - b.get_y(i, j, k - 1));
+				T dtEx = c2 * (dyBz - dzBy);
+				
+				e.set_x(e.get_x(i, j, k) + dt * dtEx, i, j, k);
 			}
-		}
-	}
-}
-
-template <std::floating_point T>
-void compute_b_field(VectorField<T> &b_field, std::span<const Laser<T>> lasers, T t) noexcept {
-	int laser_count = lasers.size(), nx = b_field.num[0], ny = b_field.num[1], nz = b_field.num[2];
-	T r_max_x = b_field.r_max[0], r_max_y = b_field.r_max[1], r_max_z = b_field.r_max[2];
-	VectorFieldView b_field_view = b_field.get_cpu_view();
-	
 	#pragma omp parallel for simd collapse(3) schedule(static)
-	for(int k = 0; k < nz; k++) {
-		for(int j = 0; j < ny; j++) {
-			for(int i = 0; i < nx; i++) {
-				cuda::std::array<T, 3> r_vec_global = {
-					interpolate(-r_max_x, r_max_x, static_cast<T>(i), static_cast<T>(nx)),
-					interpolate(-r_max_y, r_max_y, static_cast<T>(j), static_cast<T>(ny)),
-					interpolate(-r_max_z, r_max_z, static_cast<T>(k), static_cast<T>(nz))
-				};
-				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-				cuda::std::array<T, 3>  b_vec_global{};
-				for(int q = 0; q < laser_count; q++) {
-					cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
-					cuda::std::array<T, 3> b_vec_local = compute_b(lasers[q], r_vec_local, t);
-					b_vec_global += lasers[q].vec_local_to_global(b_vec_local);
-				}
-				b_field_view.set_field(b_vec_global, idx);
+	for(int k = 1; k < nz - 1; k++)
+		for(int j = 0; j < ny - 1; j++)
+			for(int i = 1; i < nx - 1; i++) {
+				T dzBx = inv_dz * (b.get_x(i, j, k) - b.get_x(i, j, k - 1));
+				T dxBz = inv_dx * (b.get_z(i, j, k) - b.get_z(i - 1, j, k));
+				T dtEy = c2 * (dzBx - dxBz);
+				
+				e.set_y(e.get_y(i, j, k) + dt * dtEy, i, j, k);
 			}
-		}
-	}
+	#pragma omp parallel for simd collapse(3) schedule(static)
+	for(int k = 0; k < nz - 1; k++)
+		for(int j = 1; j < ny - 1; j++)
+			for(int i = 1; i < nx - 1; i++) {
+				T dxBy = inv_dx * (b.get_y(i, j, k) - b.get_y(i - 1, j, k));
+				T dyBx = inv_dy * (b.get_x(i, j, k) - b.get_x(i, j - 1, k));
+				T dtEz = c2 * (dxBy - dyBx);
+				
+				e.set_z(e.get_z(i, j, k) + dt * dtEz, i, j, k);
+			}
 }
 
 template void compute_lz<double>(ScalarField<double> &lz_field, Particles<double> &particles) noexcept;
-template void compute_u_field<double>(ComplexScalarField<double> &u_field, std::span<const Laser<double>> lasers) noexcept;
-template void compute_e_field<double>(VectorField<double> &e_field, std::span<const Laser<double>> lasers, double t) noexcept;
-template void compute_b_field<double>(VectorField<double> &b_field, std::span<const Laser<double>> lasers, double t) noexcept;
- 
+template void fdtd_update_b<double>(VectorField<double> &b_field, VectorField<double> &e_field, double dt) noexcept;
+template void fdtd_update_e<double>(VectorField<double> &e_field, VectorField<double> &b_field, double dt) noexcept;
+
 template void compute_lz<float>(ScalarField<float> &lz_field, Particles<float> &particles) noexcept;
-template void compute_u_field<float>(ComplexScalarField<float> &u_field, std::span<const Laser<float>> lasers) noexcept;
-template void compute_e_field<float>(VectorField<float> &e_field, std::span<const Laser<float>> lasers, float t) noexcept;
-template void compute_b_field<float>(VectorField<float> &b_field, std::span<const Laser<float>> lasers, float t) noexcept;
+template void fdtd_update_b<float>(VectorField<float> &b_field, VectorField<float> &e_field, float dt) noexcept;
+template void fdtd_update_e<float>(VectorField<float> &e_field, VectorField<float> &b_field, float dt) noexcept;

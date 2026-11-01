@@ -12,7 +12,7 @@
 
 __device__ __host__ constexpr std::size_t grid_idx(int i, int j, int k, int nx, int ny, int nz) noexcept {
 	(void)nz;
-	return (static_cast<std::size_t>(k) * nx * ny) + (static_cast<std::size_t>(j) * nx) + i;
+	return (static_cast<std::size_t>(k) * nx * ny) + (static_cast<std::size_t>(j) * nx) + static_cast<std::size_t>(i);
 }
 
 template <std::floating_point T>
