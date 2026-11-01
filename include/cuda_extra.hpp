@@ -10,8 +10,8 @@
 #include <cuda_runtime.h>
 
 constexpr int mem_align = 64;
-constexpr int threads_3d_nx = 64;
-constexpr int threads_3d_ny = 4;
+constexpr int threads_3d_nx = 32;
+constexpr int threads_3d_ny = 8;
 constexpr int threads_3d_nz = 1;
 constexpr int threads_1d_nx = 256;
 
