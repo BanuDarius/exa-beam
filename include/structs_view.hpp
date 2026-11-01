@@ -106,32 +106,6 @@ struct ScalarFieldView {
 };
 
 template <std::floating_point T>
-struct ComplexScalarFieldView {
-	cuda::std::complex<T> *__restrict__ v;
-	cuda::std::array<int, 3> num;
-	cuda::std::array<T, 3> r_max;
-	std::size_t field_size;
-	__device__ __host__ cuda::std::complex<T> get_field(std::size_t idx) const noexcept {
-		#if !defined(__CUDA_ARCH__)
-			cuda::std::complex<T> *__restrict__ ptr_v = std::assume_aligned<mem_align>(v);
-			return ptr_v[idx];
-		#else
-			return v[idx];
-		#endif
-	}
-	__device__ __host__ void set_field(cuda::std::complex<T> v_new, std::size_t idx) noexcept {
-		#if !defined(__CUDA_ARCH__)
-			cuda::std::complex<T> *__restrict__ ptr_v = std::assume_aligned<mem_align>(v);
-			ptr_v[idx] = v_new;
-		#else
-			v[idx] = v_new;
-		#endif
-	}
-	ComplexScalarFieldView(cuda::std::complex<T> *v_new, cuda::std::array<int, 3> num_new, cuda::std::array<T, 3> r_max_new, std::size_t field_size_new)
-		: v(v_new), num(num_new), r_max(r_max_new), field_size(field_size_new) {}
-};
-
-template <std::floating_point T>
 struct VectorFieldView {
 	T *__restrict__ x, *__restrict__ y, *__restrict__ z;
 	cuda::std::array<int, 3> num;
