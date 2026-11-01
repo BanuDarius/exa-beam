@@ -67,27 +67,6 @@ void output_vtk_scalar_field(std::ofstream &output_file, const DataVTK &data_vtk
 }
 
 template <std::floating_point T>
-void output_vtk_complex_scalar_field(std::ofstream &output_file, const DataVTK &data_vtk, const ComplexScalarField<T> &field, const std::string &name) {
-	ComplexScalarFieldView field_view = field.get_cpu_view();
-	uint32_t *vtk_scalar = data_vtk.vtk_scalar.get();
-	std::size_t field_size = field.field_size;
-	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
-	#pragma omp parallel for collapse(3) schedule(static)
-	for(int k = 0; k < nz; k++) {
-		for(int j = 0; j < ny; j++) {
-			for(int i = 0; i < nx; i++) {
-				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-				cuda::std::complex<T> field_v = field_view.get_field(idx);
-				
-				vtk_scalar[idx] = swap_endian(static_cast<float>(cuda::std::real(field_v)));
-			}
-		}
-	}
-	output_vtk_scalar_next(output_file, name);
-	output_file.write(reinterpret_cast<const char*>(vtk_scalar), field_size * sizeof(uint32_t));
-}
-
-template <std::floating_point T>
 void output_vtk_vector_field(std::ofstream &output_file, const DataVTK &data_vtk, const VectorField<T> &field, const std::string &name) {
 	VectorFieldView field_view = field.get_cpu_view();
 	std::size_t field_size = field.field_size;
@@ -156,13 +135,11 @@ void output_vtk_particles(std::ofstream &output_file, const DataVTK &data_vtk, c
 template void output_vtk_header<double>(std::ofstream &output_file, const ScalarField<double> &field);
 template void output_vtk_header<double>(std::ofstream &output_file, const VectorField<double> &field);
 template void output_vtk_scalar_field<double>(std::ofstream &output_file, const DataVTK &data_vtk, const ScalarField<double> &field, const std::string &name);
-template void output_vtk_complex_scalar_field<double>(std::ofstream &output_file, const DataVTK &data_vtk, const ComplexScalarField<double> &field, const std::string &name);
 template void output_vtk_vector_field<double>(std::ofstream &output_file, const DataVTK &data_vtk, const VectorField<double> &field, const std::string &name);
 template void output_vtk_particles<double>(std::ofstream &output_file, const DataVTK &data_vtk, const Particles<double> &particles);
 
 template void output_vtk_header<float>(std::ofstream &output_file, const ScalarField<float> &field);
 template void output_vtk_header<float>(std::ofstream &output_file, const VectorField<float> &field);
 template void output_vtk_scalar_field<float>(std::ofstream &output_file, const DataVTK &data_vtk, const ScalarField<float> &field, const std::string &name);
-template void output_vtk_complex_scalar_field<float>(std::ofstream &output_file, const DataVTK &data_vtk, const ComplexScalarField<float> &field, const std::string &name);
 template void output_vtk_vector_field<float>(std::ofstream &output_file, const DataVTK &data_vtk, const VectorField<float> &field, const std::string &name);
 template void output_vtk_particles<float>(std::ofstream &output_file, const DataVTK &data_vtk, const Particles<float> &particles);

@@ -22,7 +22,6 @@ template <std::floating_point T> void output_vtk_header(std::ofstream &output_fi
 void output_vtk_scalar_next(std::ofstream &output_file, const std::string &name);
 void output_vtk_vector_next(std::ofstream &output_file, const std::string &name);
 template <std::floating_point T> void output_vtk_scalar_field(std::ofstream &output_file, const DataVTK &data_vtk, const ScalarField<T> &field, const std::string &name);
-template <std::floating_point T> void output_vtk_complex_scalar_field(std::ofstream &output_file, const DataVTK &data_vtk, const ComplexScalarField<T> &field, const std::string &name);
 template <std::floating_point T> void output_vtk_vector_field(std::ofstream &output_file,const DataVTK &data_vtk, const VectorField<T> &field, const std::string &name);
 template <std::floating_point T> void output_vtk_particles(std::ofstream &output_file, const DataVTK &data_vtk, const Particles<T> &particles);
 

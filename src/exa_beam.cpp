@@ -26,7 +26,6 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 	DeviceLasers<T> device_lasers(lasers);
 	Particles<T> particles(parameters, lasers.front());
 	ScalarField<T> lz_field(parameters, lasers.front());
-	ComplexScalarField<T> u_field(parameters, lasers.front());
 	VectorField<T> e_field(parameters, lasers.front()), b_field(parameters, lasers.front());
 	
 	//Initialize E at step 0, B at step -1/2 * dt...

@@ -25,7 +25,7 @@ __global__ void compute_lz_gpu_kernel(ScalarFieldView<T> lz_view, ParticlesView<
 	}
 }
 
-template <std::floating_point T>
+/*template <std::floating_point T>
 __global__ void compute_u_field_gpu_kernel(ComplexScalarFieldView<T> u_field_view, __grid_constant__ const DeviceLasers<T> lasers) {
 	T r_max_x = u_field_view.r_max[0], r_max_y = u_field_view.r_max[1], r_max_z = u_field_view.r_max[2];
 	int laser_count = lasers.laser_count, nx = u_field_view.num[0], ny = u_field_view.num[1], nz = u_field_view.num[2];
@@ -53,7 +53,7 @@ __global__ void compute_u_field_gpu_kernel(ComplexScalarFieldView<T> u_field_vie
 		
 		u_field_view.set_field(u_i, idx);
 	}
-}
+}*/
 
 template <std::floating_point T>
 void compute_lz_gpu(ScalarField<T> &lz_field, Particles<T> &particles) noexcept {
@@ -67,7 +67,7 @@ void compute_lz_gpu(ScalarField<T> &lz_field, Particles<T> &particles) noexcept 
 	CUDA_CHECK(cudaGetLastError());
 }
 
-template <std::floating_point T>
+/*template <std::floating_point T>
 void compute_u_field_gpu(ComplexScalarField<T> &u_field, const DeviceLasers<T> &lasers) noexcept {
 	int nx = u_field.num[0], ny = u_field.num[1], nz = u_field.num[2];
 	dim3 threads(threads_3d_nx, threads_3d_ny, threads_3d_nz);
@@ -80,11 +80,10 @@ void compute_u_field_gpu(ComplexScalarField<T> &u_field, const DeviceLasers<T> &
 	ComplexScalarFieldView<T> u_field_view = u_field.get_gpu_view();
 	compute_u_field_gpu_kernel<<<blocks, threads>>>(u_field_view, lasers);
 	CUDA_CHECK(cudaGetLastError());
-}
+}*/
 
 template __global__ void compute_lz_gpu_kernel<double>(ScalarFieldView<double> lz_view, ParticlesView<double> particles_view);
 template void compute_lz_gpu<double>(ScalarField<double> &lz_field, Particles<double> &particles) noexcept;
 
 template __global__ void compute_lz_gpu_kernel<float>(ScalarFieldView<float> lz_view, ParticlesView<float> particles_view);
-
 template void compute_lz_gpu<float>(ScalarField<float> &lz_field, Particles<float> &particles) noexcept;
