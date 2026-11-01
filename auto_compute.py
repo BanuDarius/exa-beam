@@ -8,7 +8,7 @@ import scripts.programs as programs
 
 c = 137.036
 
-use_gpu = False
+use_gpu = True
 use_floats = True
 output_laser_fields = True
 
@@ -18,7 +18,7 @@ substeps = 50
 max_dim_mult = [ 5.0, 5.0, 5.0 ]
 
 p = 0
-m = 0
+m = 1
 a0 = 1.5
 tau = 4.0
 omega = 0.057
@@ -31,8 +31,8 @@ phi = np.radians(0.0)
 theta = np.radians(0.0)
 
 r0 = [ 0.0, 0.0, 0.0 ]
-zeta_x = [ 1, 0.000 ]
-zeta_y = [ 0.000, 0 * -0.707 ]
+zeta_x = [ 0.707, 0.000 ]
+zeta_y = [ 0.000, - 0.707 ]
 
 if __name__ == "__main__":
     sim_parameters = sim_init.SimParameters(tf, steps, substeps, nx, max_dim_mult, use_gpu, use_floats, output_laser_fields)

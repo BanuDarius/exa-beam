@@ -37,19 +37,18 @@ fast: all
 
 $(TARGET): $(OBJS) | $(BIN_DIR)
 	@$(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS)
-	$(info Linked $@.)
+	$(info Linking $@.)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
 	@$(CXX) $(CXXFLAGS) -c $< -o $@
-	$(info Compiled CPU $@.)
+	$(info Compiling CPU $@.)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cu | $(BUILD_DIR)
 	@$(NVCC) $(NVCCFLAGS) -c $< -o $@
-	$(info Compiled GPU $@.)
+	$(info Compiling CUDA $@.)
 
 $(BIN_DIR) $(BUILD_DIR):
 	@mkdir -p $@
-	$(info Created $@ directory.)
 
 output-dirs:
 	@mkdir -p $(OUTPUT_DIR) $(OUTPUT_VIDEO) $(INPUT_DIR)

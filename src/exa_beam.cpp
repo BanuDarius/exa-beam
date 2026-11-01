@@ -28,7 +28,7 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 	ScalarField<T> lz_field(parameters, lasers.front());
 	VectorField<T> e_field(parameters, lasers.front()), b_field(parameters, lasers.front());
 	
-	if(use_gpu) initialize_eb_fields_gpu(e_field, b_field, lasers, dt);
+	if(use_gpu) initialize_eb_fields_gpu(e_field, b_field, device_lasers, dt);
 	else initialize_eb_fields(e_field, b_field, lasers, dt);
 	
 	for(int step = 0; step < steps; step++) {

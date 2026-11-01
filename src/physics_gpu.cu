@@ -89,6 +89,76 @@ __global__ void fdtd_update_e_gpu_kernel(VectorFieldView<T> e, VectorFieldView<T
 }
 
 template <std::floating_point T>
+__global__ void initialize_eb_fields_gpu_kernel(VectorFieldView<T> e, VectorFieldView<T> b, __grid_constant__ const DeviceLasers<T> lasers, T dt) {
+	int nx = e.num[0], ny = e.num[1], nz = e.num[2], num_lasers = lasers.laser_count;
+	T r_max_x = e.r_max[0], r_max_y = e.r_max[1], r_max_z = e.r_max[2];
+	T dx = T(2.0) * r_max_x / (nx - 1), dy = T(2.0) * r_max_y / (ny - 1), dz = T(2.0) * r_max_z / (nz - 1);
+	
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	int k = blockIdx.z * blockDim.z + threadIdx.z;
+	if(i < nx && j < ny && k < nz) {
+		T x = - r_max_x + static_cast<T>(i) * dx;
+		T y = - r_max_y + static_cast<T>(j) * dy;
+		T z = - r_max_z + static_cast<T>(k) * dz;
+		
+		cuda::std::array<T, 3> r_vec_global = { x + dx * T(0.5), y, z };
+		T e_x = T(0.0);
+		for(int q = 0; q < num_lasers; q++) {
+			cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+			cuda::std::array<T, 3> e_vec_local = compute_e(lasers[q], r_vec_local, T(0.0));
+			e_x += lasers[q].vec_local_to_global(e_vec_local)[0];
+		}
+		e.set_x(e_x, i, j, k);
+		
+		r_vec_global = { x, y + dy * T(0.5), z };
+		T e_y = T(0.0);
+		for(int q = 0; q < num_lasers; q++) {
+			cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+			cuda::std::array<T, 3> e_vec_local = compute_e(lasers[q], r_vec_local, T(0.0));
+			e_y += lasers[q].vec_local_to_global(e_vec_local)[1];
+		}
+		e.set_y(e_y, i, j, k);
+		
+		r_vec_global = { x, y, z + dz * T(0.5) };
+		T e_z = T(0.0);
+		for(int q = 0; q < num_lasers; q++) {
+			cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+			cuda::std::array<T, 3> e_vec_local = compute_e(lasers[q], r_vec_local, T(0.0));
+			e_z += lasers[q].vec_local_to_global(e_vec_local)[2];
+		}
+		e.set_z(e_z, i, j, k);
+		
+		r_vec_global = { x, y + dy * T(0.5), z + dz * T(0.5) };
+		T b_x = T(0.0);
+		for(int q = 0; q < num_lasers; q++) {
+			cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+			cuda::std::array<T, 3> b_vec_local = compute_b(lasers[q], r_vec_local, - T(0.5) * dt);
+			b_x += lasers[q].vec_local_to_global(b_vec_local)[0];
+		}
+		b.set_x(b_x, i, j, k);
+		
+		r_vec_global = { x + dx * T(0.5), y, z + dz * T(0.5) };
+		T b_y = T(0.0);
+		for(int q = 0; q < num_lasers; q++) {
+			cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+			cuda::std::array<T, 3> b_vec_local = compute_b(lasers[q], r_vec_local, - T(0.5) * dt);
+			b_y += lasers[q].vec_local_to_global(b_vec_local)[1];
+		}
+		b.set_y(b_y, i, j, k);
+		
+		r_vec_global = { x + dx * T(0.5), y + dy * T(0.5), z };
+		T b_z = T(0.0);
+		for(int q = 0; q < num_lasers; q++) {
+			cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+			cuda::std::array<T, 3> b_vec_local = compute_b(lasers[q], r_vec_local, - T(0.5) * dt);
+			b_z += lasers[q].vec_local_to_global(b_vec_local)[2];
+		}
+		b.set_z(b_z, i, j, k);
+	}
+}
+
+template <std::floating_point T>
 void compute_lz_gpu(ScalarField<T> &lz_field, Particles<T> &particles) noexcept {
 	std::size_t particle_num = particles.particle_num;
 	dim3 threads(threads_1d_nx);
@@ -131,22 +201,34 @@ void fdtd_update_e_gpu(VectorField<T> &e_field, VectorField<T> &b_field, T dt) n
 }
 
 template <std::floating_point T>
-void initialize_eb_fields_gpu(VectorField<T> &e_field, VectorField<T> &b_field, std::span<const Laser<T>> lasers, T dt) noexcept {
-	return;
+void initialize_eb_fields_gpu(VectorField<T> &e_field, VectorField<T> &b_field, const DeviceLasers<T> &lasers, T dt) noexcept {
+	VectorFieldView<T> e = e_field.get_gpu_view(), b = b_field.get_gpu_view();
+	int nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
+	dim3 threads(threads_3d_nx, threads_3d_ny, threads_3d_nz);
+	dim3 blocks(
+		(nx + threads.x - 1) / threads.x,
+		(ny + threads.y - 1) / threads.y,
+		(nz + threads.z - 1) / threads.z
+	);
+	
+	initialize_eb_fields_gpu_kernel<<<blocks, threads>>>(e, b, lasers, dt);
+	CUDA_CHECK(cudaGetLastError());
 }
 
 template __global__ void compute_lz_gpu_kernel<double>(ScalarFieldView<double> lz_view, ParticlesView<double> particles_view);
 template __global__ void fdtd_update_b_gpu_kernel<double>(VectorFieldView<double> b, VectorFieldView<double> e, double dt);
 template __global__ void fdtd_update_e_gpu_kernel<double>(VectorFieldView<double> e, VectorFieldView<double> b, double dt);
+template __global__ void initialize_eb_fields_gpu_kernel<double>(VectorFieldView<double> e, VectorFieldView<double> b, __grid_constant__ const DeviceLasers<double> lasers, double dt);
 template void compute_lz_gpu<double>(ScalarField<double> &lz_field, Particles<double> &particles) noexcept;
 template void fdtd_update_b_gpu<double>(VectorField<double> &b_field, VectorField<double> &e_field, double dt) noexcept;
 template void fdtd_update_e_gpu<double>(VectorField<double> &e_field, VectorField<double> &b_field, double dt) noexcept;
-template void initialize_eb_fields_gpu<double>(VectorField<double> &e_field, VectorField<double> &b_field, std::span<const Laser<double>> lasers, double dt) noexcept;
+template void initialize_eb_fields_gpu<double>(VectorField<double> &e_field, VectorField<double> &b_field, const DeviceLasers<double> &lasers, double dt) noexcept;
 
 template __global__ void compute_lz_gpu_kernel<float>(ScalarFieldView<float> lz_view, ParticlesView<float> particles_view);
 template __global__ void fdtd_update_b_gpu_kernel<float>(VectorFieldView<float> b, VectorFieldView<float> e, float dt);
 template __global__ void fdtd_update_e_gpu_kernel<float>(VectorFieldView<float> e, VectorFieldView<float> b, float dt);
+template __global__ void initialize_eb_fields_gpu_kernel<float>(VectorFieldView<float> e, VectorFieldView<float> b, __grid_constant__ const DeviceLasers<float> lasers, float dt);
 template void compute_lz_gpu<float>(ScalarField<float> &lz_field, Particles<float> &particles) noexcept;
 template void fdtd_update_b_gpu<float>(VectorField<float> &b_field, VectorField<float> &e_field, float dt) noexcept;
 template void fdtd_update_e_gpu<float>(VectorField<float> &e_field, VectorField<float> &b_field, float dt) noexcept;
-template void initialize_eb_fields_gpu<float>(VectorField<float> &e_field, VectorField<float> &b_field, std::span<const Laser<float>> lasers, float dt) noexcept;
+template void initialize_eb_fields_gpu<float>(VectorField<float> &e_field, VectorField<float> &b_field, const DeviceLasers<float> &lasers, float dt) noexcept;
