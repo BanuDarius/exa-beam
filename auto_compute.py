@@ -13,8 +13,8 @@ use_floats = True
 output_laser_fields = True
 
 nx = 32
-steps = 10000
-substeps = 50
+steps = 150000
+substeps = 400
 max_dim_mult = [ 5.0, 5.0, 5.0 ]
 
 p = 0
@@ -25,7 +25,7 @@ omega = 0.057
 w0_mult = 4.0
 
 psi = 0.0
-tf = max_dim_mult[2] * 2.0 * np.pi / omega
+tf = 5.0 * max_dim_mult[2] * 2.0 * np.pi / omega
 
 phi = np.radians(0.0)
 theta = np.radians(0.0)
