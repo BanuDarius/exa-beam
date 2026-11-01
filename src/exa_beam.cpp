@@ -28,13 +28,21 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 	ScalarField<T> lz_field(parameters, lasers.front());
 	VectorField<T> e_field(parameters, lasers.front()), b_field(parameters, lasers.front());
 	
-	//Initialize E at step 0, B at step -1/2 * dt...
+	//initialize_eb_fields(e_field, b_field, lasers);
 	
 	for(int step = 0; step < steps; step++) {
 		T t = step * dt;
 		
 		if(use_gpu) higuera_cary_update_gpu(particles, device_lasers, t, dt);
 		else higuera_cary_update(particles, lasers, t, dt);
+		
+		if(use_gpu) {
+			fdtd_update_e_gpu(e_field, b_field, dt);
+			fdtd_update_b_gpu(b_field, e_field, dt);
+		} else {
+			fdtd_update_e(e_field, b_field, dt);
+			fdtd_update_b(b_field, e_field, dt);
+		}
 		
 		if(step % substeps == 0) {
 			if(use_gpu) {

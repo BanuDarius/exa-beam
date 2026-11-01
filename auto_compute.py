@@ -18,7 +18,7 @@ substeps = 50
 max_dim_mult = [ 5.0, 3.0, 5.0 ]
 
 p = 0
-m = 1
+m = 0
 a0 = 1.5
 tau = 4.0
 omega = 0.057
