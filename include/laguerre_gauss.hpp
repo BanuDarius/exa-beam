@@ -18,7 +18,7 @@
 template <std::floating_point T>
 __device__ __host__ inline T env(T chi, T tau) noexcept {
 	T term = T(4.0) * pi<T> * pi<T> * tau * tau;
-	T x = cuda::std::exp(-(chi * chi) / term);
+	T x = cuda::std::exp(- chi * chi / term);
 	return x;
 }
 

@@ -104,56 +104,62 @@ __global__ void initialize_eb_fields_gpu_kernel(VectorFieldView<T> e, VectorFiel
 		
 		cuda::std::array<T, 3> r_vec_global = { x + dx * T(0.5), y, z };
 		T e_x = T(0.0);
-		for(int q = 0; q < num_lasers; q++) {
-			cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
-			cuda::std::array<T, 3> e_vec_local = compute_e(lasers[q], r_vec_local, T(0.0));
-			e_x += lasers[q].vec_local_to_global(e_vec_local)[0];
-		}
+		if(i < nx - 1 && j < ny - 1 && j > 0 && k < nz - 1 && k > 0)
+			for(int q = 0; q < num_lasers; q++) {
+				cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+				cuda::std::array<T, 3> e_vec_local = compute_e(lasers[q], r_vec_local, T(0.0));
+				e_x += lasers[q].vec_local_to_global(e_vec_local)[0];
+			}
 		e.set_x(e_x, i, j, k);
 		
 		r_vec_global = { x, y + dy * T(0.5), z };
 		T e_y = T(0.0);
-		for(int q = 0; q < num_lasers; q++) {
-			cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
-			cuda::std::array<T, 3> e_vec_local = compute_e(lasers[q], r_vec_local, T(0.0));
-			e_y += lasers[q].vec_local_to_global(e_vec_local)[1];
-		}
+		if(i < nx - 1 && i > 0 && j < ny - 1 && k < nz - 1 && k > 0)
+			for(int q = 0; q < num_lasers; q++) {
+				cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+				cuda::std::array<T, 3> e_vec_local = compute_e(lasers[q], r_vec_local, T(0.0));
+				e_y += lasers[q].vec_local_to_global(e_vec_local)[1];
+			}
 		e.set_y(e_y, i, j, k);
 		
 		r_vec_global = { x, y, z + dz * T(0.5) };
 		T e_z = T(0.0);
-		for(int q = 0; q < num_lasers; q++) {
-			cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
-			cuda::std::array<T, 3> e_vec_local = compute_e(lasers[q], r_vec_local, T(0.0));
-			e_z += lasers[q].vec_local_to_global(e_vec_local)[2];
-		}
+		if(i < nx - 1 && i > 0 && j < ny - 1 && j > 0 && k < nz - 1)
+			for(int q = 0; q < num_lasers; q++) {
+				cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+				cuda::std::array<T, 3> e_vec_local = compute_e(lasers[q], r_vec_local, T(0.0));
+				e_z += lasers[q].vec_local_to_global(e_vec_local)[2];
+			}
 		e.set_z(e_z, i, j, k);
 		
 		r_vec_global = { x, y + dy * T(0.5), z + dz * T(0.5) };
 		T b_x = T(0.0);
-		for(int q = 0; q < num_lasers; q++) {
-			cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
-			cuda::std::array<T, 3> b_vec_local = compute_b(lasers[q], r_vec_local, - T(0.5) * dt);
-			b_x += lasers[q].vec_local_to_global(b_vec_local)[0];
-		}
+		if(i < nx - 1 && i > 0 && j < ny - 1 && k < nz - 1)
+			for(int q = 0; q < num_lasers; q++) {
+				cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+				cuda::std::array<T, 3> b_vec_local = compute_b(lasers[q], r_vec_local, - T(0.5) * dt);
+				b_x += lasers[q].vec_local_to_global(b_vec_local)[0];
+			}
 		b.set_x(b_x, i, j, k);
 		
 		r_vec_global = { x + dx * T(0.5), y, z + dz * T(0.5) };
 		T b_y = T(0.0);
-		for(int q = 0; q < num_lasers; q++) {
-			cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
-			cuda::std::array<T, 3> b_vec_local = compute_b(lasers[q], r_vec_local, - T(0.5) * dt);
-			b_y += lasers[q].vec_local_to_global(b_vec_local)[1];
-		}
+		if(i < nx - 1 && j < ny - 1 && j > 0 && k < nz - 1)
+			for(int q = 0; q < num_lasers; q++) {
+				cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+				cuda::std::array<T, 3> b_vec_local = compute_b(lasers[q], r_vec_local, - T(0.5) * dt);
+				b_y += lasers[q].vec_local_to_global(b_vec_local)[1];
+			}
 		b.set_y(b_y, i, j, k);
 		
 		r_vec_global = { x + dx * T(0.5), y + dy * T(0.5), z };
 		T b_z = T(0.0);
-		for(int q = 0; q < num_lasers; q++) {
-			cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
-			cuda::std::array<T, 3> b_vec_local = compute_b(lasers[q], r_vec_local, - T(0.5) * dt);
-			b_z += lasers[q].vec_local_to_global(b_vec_local)[2];
-		}
+		if(i < nx - 1 && j < ny - 1 && k < nz - 1 && k > 0)
+			for(int q = 0; q < num_lasers; q++) {
+				cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
+				cuda::std::array<T, 3> b_vec_local = compute_b(lasers[q], r_vec_local, - T(0.5) * dt);
+				b_z += lasers[q].vec_local_to_global(b_vec_local)[2];
+			}
 		b.set_z(b_z, i, j, k);
 	}
 }

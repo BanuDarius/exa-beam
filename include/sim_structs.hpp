@@ -22,6 +22,7 @@ constexpr int input_laser_count = 16;
 template <std::floating_point T> constexpr T m_e = T(1.0);
 template <std::floating_point T> constexpr T e_0 = T(-1.0);
 template <std::floating_point T> constexpr T c = T(137.036);
+template <std::floating_point T> constexpr T c2 = c<T> * c<T>;
 template <std::floating_point T> constexpr T pi = std::numbers::pi_v<T>;
 
 struct DataVTK;
