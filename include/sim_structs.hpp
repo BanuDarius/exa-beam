@@ -269,17 +269,18 @@ struct VectorField {
 	bool use_gpu;
 	std::size_t field_size;
 	cuda::std::array<int, 3> num;
-	cuda::std::array<T, 3> r_max, inv_dx;
+	cuda::std::array<T, 3> r_max, inv_dx, dx;
 	std::unique_ptr<T[], HostMemory<T>> h_x, h_y, h_z;
 	std::unique_ptr<T[], DeviceMemory<T>> d_x, d_y, d_z;
 	VectorField(int nx, int ny, int nz, cuda::std::array<T, 3> r_max_new, bool use_gpu_new) : use_gpu(use_gpu_new), r_max(r_max_new) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
-		inv_dx = {
-			static_cast<T>(nx - 1) / (T(2.0) * r_max[0]),
-			static_cast<T>(ny - 1) / (T(2.0) * r_max[1]),
-			static_cast<T>(nz - 1) / (T(2.0) * r_max[2])
+		dx = {
+			T(2.0) * r_max[0] / static_cast<T>(nx - 1),
+			T(2.0) * r_max[1] / static_cast<T>(ny - 1),
+			T(2.0) * r_max[2] / static_cast<T>(nz - 1)
 		};
+		inv_dx = { T(1.0) / dx[0], T(1.0) / dx[1], T(1.0) / dx[2] };
 		h_x.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
 		h_y.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
 		h_z.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
@@ -349,10 +350,10 @@ struct VectorField {
 		CUDA_CHECK(cudaMemcpyAsync(h_z.get(), d_z.get(), field_size * sizeof(T), cudaMemcpyDeviceToHost, stream));
 	}
 	VectorFieldView<T> get_cpu_view() const noexcept {
-		return VectorFieldView<T>(h_x.get(), h_y.get(), h_z.get(), num, r_max, inv_dx, field_size);
+		return VectorFieldView<T>(h_x.get(), h_y.get(), h_z.get(), num, r_max, dx, inv_dx, field_size);
 	}
 	VectorFieldView<T> get_gpu_view() const noexcept {
-		return VectorFieldView<T>(d_x.get(), d_y.get(), d_z.get(), num, r_max, inv_dx, field_size);
+		return VectorFieldView<T>(d_x.get(), d_y.get(), d_z.get(), num, r_max, dx, inv_dx, field_size);
 	}
 	VectorField(const Parameters<T> &parameters, const Laser<T> &laser)
 		: VectorField(parameters.nx, parameters.nx, parameters.nx, parameters.max_dim_mult * laser.w0, parameters.use_gpu) {}

@@ -18,9 +18,14 @@
 
 template <std::floating_point T>
 void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers, const std::string &output_directory) {
-	bool use_gpu = parameters.use_gpu;
 	int steps = parameters.steps, substeps = parameters.substeps;
+	bool use_gpu = parameters.use_gpu;
 	T dt = parameters.tf / steps;
+	float energy;
+	
+	std::string filename_energy = std::format("{}/energy.bin", output_directory);
+	std::ofstream output_energy(filename_energy, std::ios::binary);
+	if(!output_energy) { std::fprintf(stderr, "Cannot open output energy file!\n"); return; }
 	
 	DataVTK data_vtk(parameters);
 	DeviceLasers<T> device_lasers(lasers);
@@ -51,22 +56,21 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 				b_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
 				particles.transfer_data_gpu_to_cpu(cudaStreamDefault);
 			}
+			if(use_gpu) energy = compute_total_energy_gpu(e_field, b_field);
+			else energy = compute_total_energy(e_field, b_field);
+			output_energy.write(reinterpret_cast<const char*>(&energy), sizeof(float));
+			
 			std::string filename_fields = std::format("{}/fields-{:04d}.vtk", output_directory, step / substeps);
 			std::ofstream output_fields(filename_fields, std::ios::binary);
-			if(!output_fields) {
-				std::fprintf(stderr, "CANNOT OPEN OUTPUT FIELD FILE!\n"); return;
-			}
+			if(!output_fields) { std::fprintf(stderr, "Cannot open output fields file!\n"); return; }
 			
 			std::string filename_particles = std::format("{}/particles-{:04d}.vtk", output_directory, step / substeps);
 			std::ofstream output_particles(filename_particles, std::ios::binary);
-			if(!output_particles) {
-				std::fprintf(stderr, "CANNOT OPEN OUTPUT PARTICLES FILE!\n"); return;
-			}
+			if(!output_particles) { std::fprintf(stderr, "Cannot open output particles file!\n"); return; }
 			
 			cudaDeviceSynchronize();
-			output_vtk_particles(output_particles, data_vtk, particles);
-			
 			output_vtk_header(output_fields, e_field);
+			output_vtk_particles(output_particles, data_vtk, particles);
 			output_vtk_vector_field(output_fields, data_vtk, e_field, "E");
 			output_vtk_vector_field(output_fields, data_vtk, b_field, "B");
 			std::printf("Computed step: %d/%d.\n", step, steps);

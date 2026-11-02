@@ -89,6 +89,21 @@ __global__ void fdtd_update_e_gpu_kernel(VectorFieldView<T> e, VectorFieldView<T
 }
 
 template <std::floating_point T>
+__global__ void compute_total_energy_gpu_kernel(VectorFieldView<T> e, VectorFieldView<T> b, T *__restrict__ d_energy) {
+	T dx = e.dx[0], dy = e.dx[1], dz = e.dx[2];
+	int nx = e.num[0], ny = e.num[1], nz = e.num[2];
+	
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	int k = blockIdx.z * blockDim.z + threadIdx.z;
+	if(i < nx && j < ny && k < nz) {
+		cuda::std::array<T, 3> e_vec = e.get_vector(i, j, k), b_vec = b.get_vector(i, j, k);
+		T energy = T(0.5) * (dot(e_vec, e_vec) + c2<T> * dot(b_vec, b_vec));
+		atomicAdd(d_energy, energy);
+	}
+}
+
+template <std::floating_point T>
 __global__ void initialize_eb_fields_gpu_kernel(VectorFieldView<T> e, VectorFieldView<T> b, __grid_constant__ const DeviceLasers<T> lasers, T dt) {
 	int nx = e.num[0], ny = e.num[1], nz = e.num[2], num_lasers = lasers.laser_count;
 	T r_max_x = e.r_max[0], r_max_y = e.r_max[1], r_max_z = e.r_max[2];
@@ -207,6 +222,30 @@ void fdtd_update_e_gpu(VectorField<T> &e_field, VectorField<T> &b_field, T dt) n
 }
 
 template <std::floating_point T>
+T compute_total_energy_gpu(VectorField<T> &e_field, VectorField<T> &b_field) noexcept {
+	VectorFieldView<T> b = b_field.get_gpu_view(), e = e_field.get_gpu_view();
+	T dV = e.dx[0] * e.dx[1] * e.dx[2];
+	int nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
+	dim3 threads(threads_3d_nx, threads_3d_ny, threads_3d_nz);
+	dim3 blocks(
+		(nx + threads.x - 1) / threads.x,
+		(ny + threads.y - 1) / threads.y,
+		(nz + threads.z - 1) / threads.z
+	);
+	
+	T *d_energy = nullptr, h_energy;
+	cudaMalloc(&d_energy, sizeof(T));
+	cudaMemset(d_energy, 0, sizeof(T));
+	
+	compute_total_energy_gpu_kernel<<<blocks, threads>>>(e, b, d_energy);
+	CUDA_CHECK(cudaGetLastError());
+	
+	cudaMemcpy(&h_energy, d_energy, sizeof(T), cudaMemcpyDeviceToHost);
+	cudaFree(d_energy);
+	return h_energy * dV;
+}
+
+template <std::floating_point T>
 void initialize_eb_fields_gpu(VectorField<T> &e_field, VectorField<T> &b_field, const DeviceLasers<T> &lasers, T dt) noexcept {
 	VectorFieldView<T> e = e_field.get_gpu_view(), b = b_field.get_gpu_view();
 	int nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
@@ -224,17 +263,21 @@ void initialize_eb_fields_gpu(VectorField<T> &e_field, VectorField<T> &b_field, 
 template __global__ void compute_lz_gpu_kernel<double>(ScalarFieldView<double> lz_view, ParticlesView<double> particles_view);
 template __global__ void fdtd_update_b_gpu_kernel<double>(VectorFieldView<double> b, VectorFieldView<double> e, double dt);
 template __global__ void fdtd_update_e_gpu_kernel<double>(VectorFieldView<double> e, VectorFieldView<double> b, double dt);
+template __global__ void compute_total_energy_gpu_kernel(VectorFieldView<double> e, VectorFieldView<double> b, double *__restrict__ d_energy);
 template __global__ void initialize_eb_fields_gpu_kernel<double>(VectorFieldView<double> e, VectorFieldView<double> b, __grid_constant__ const DeviceLasers<double> lasers, double dt);
 template void compute_lz_gpu<double>(ScalarField<double> &lz_field, Particles<double> &particles) noexcept;
 template void fdtd_update_b_gpu<double>(VectorField<double> &b_field, VectorField<double> &e_field, double dt) noexcept;
 template void fdtd_update_e_gpu<double>(VectorField<double> &e_field, VectorField<double> &b_field, double dt) noexcept;
+template double compute_total_energy_gpu(VectorField<double> &e_field, VectorField<double> &b_field) noexcept;
 template void initialize_eb_fields_gpu<double>(VectorField<double> &e_field, VectorField<double> &b_field, const DeviceLasers<double> &lasers, double dt) noexcept;
 
 template __global__ void compute_lz_gpu_kernel<float>(ScalarFieldView<float> lz_view, ParticlesView<float> particles_view);
 template __global__ void fdtd_update_b_gpu_kernel<float>(VectorFieldView<float> b, VectorFieldView<float> e, float dt);
 template __global__ void fdtd_update_e_gpu_kernel<float>(VectorFieldView<float> e, VectorFieldView<float> b, float dt);
+template __global__ void compute_total_energy_gpu_kernel(VectorFieldView<float> e, VectorFieldView<float> b, float *__restrict__ d_energy);
 template __global__ void initialize_eb_fields_gpu_kernel<float>(VectorFieldView<float> e, VectorFieldView<float> b, __grid_constant__ const DeviceLasers<float> lasers, float dt);
 template void compute_lz_gpu<float>(ScalarField<float> &lz_field, Particles<float> &particles) noexcept;
 template void fdtd_update_b_gpu<float>(VectorField<float> &b_field, VectorField<float> &e_field, float dt) noexcept;
 template void fdtd_update_e_gpu<float>(VectorField<float> &e_field, VectorField<float> &b_field, float dt) noexcept;
+template float compute_total_energy_gpu(VectorField<float> &e_field, VectorField<float> &b_field) noexcept;
 template void initialize_eb_fields_gpu<float>(VectorField<float> &e_field, VectorField<float> &b_field, const DeviceLasers<float> &lasers, float dt) noexcept;

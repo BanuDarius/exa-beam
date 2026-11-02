@@ -75,7 +75,8 @@ struct ParticlesView {
 			ux[idx] = u_vec[0]; uy[idx] = u_vec[1]; uz[idx] = u_vec[2];
 		#endif
 	}
-	ParticlesView(T *x_new, T *y_new, T *z_new, T *ux_new, T *uy_new, T *uz_new, T *gamma_new, cuda::std::array<int, 3> num_new, cuda::std::array<T, 3> r_max_new, std::size_t particle_num_new)
+	ParticlesView(T *__restrict__ x_new, T *__restrict__ y_new, T *__restrict__ z_new, T *__restrict__ ux_new, T *__restrict__ uy_new, T *__restrict__ uz_new, T *__restrict__ gamma_new,
+	cuda::std::array<int, 3> num_new, cuda::std::array<T, 3> r_max_new, std::size_t particle_num_new)
 		: x(x_new), y(y_new), z(z_new), ux(ux_new), uy(uy_new), uz(uz_new), gamma(gamma_new), num(num_new), r_max(r_max_new), particle_num(particle_num_new) {}
 };
 
@@ -101,7 +102,7 @@ struct ScalarFieldView {
 			v[idx] = v_new;
 		#endif
 	}
-	ScalarFieldView(T *v_new, cuda::std::array<int, 3> num_new, cuda::std::array<T, 3> r_max_new, std::size_t field_size_new)
+	ScalarFieldView(T *__restrict__ v_new, cuda::std::array<int, 3> num_new, cuda::std::array<T, 3> r_max_new, std::size_t field_size_new)
 		: v(v_new), num(num_new), r_max(r_max_new), field_size(field_size_new) {}
 };
 
@@ -109,7 +110,7 @@ template <std::floating_point T>
 struct VectorFieldView {
 	T *__restrict__ x, *__restrict__ y, *__restrict__ z;
 	cuda::std::array<int, 3> num;
-	cuda::std::array<T, 3> r_max, inv_dx;
+	cuda::std::array<T, 3> r_max, dx, inv_dx;
 	std::size_t field_size;
 	__device__ __host__ T get_x(int i, int j, int k) const noexcept {
 		std::size_t idx = grid_idx(i, j, k, num[0], num[1], num[2]);
@@ -165,7 +166,8 @@ struct VectorFieldView {
 			z[idx] = z_new;
 		#endif
 	}
-	__device__ __host__ cuda::std::array<T, 3> get_field(std::size_t idx) const noexcept {
+	__device__ __host__ cuda::std::array<T, 3> get_vector(int i, int j, int k) const noexcept {
+		std::size_t idx = grid_idx(i, j, k, num[0], num[1], num[2]);
 		#if !defined(__CUDA_ARCH__)
 			T *__restrict__ ptr_x = std::assume_aligned<mem_align>(x);
 			T *__restrict__ ptr_y = std::assume_aligned<mem_align>(y);
@@ -175,7 +177,8 @@ struct VectorFieldView {
 			return { x[idx], y[idx], z[idx] };
 		#endif
 	}
-	__device__ __host__ void set_field(cuda::std::array<T, 3> vec, std::size_t idx) noexcept {
+	__device__ __host__ void set_vector(cuda::std::array<T, 3> vec, int i, int j, int k) noexcept {
+		std::size_t idx = grid_idx(i, j, k, num[0], num[1], num[2]);
 		#if !defined(__CUDA_ARCH__)
 			T *__restrict__ ptr_x = std::assume_aligned<mem_align>(x);
 			T *__restrict__ ptr_y = std::assume_aligned<mem_align>(y);
@@ -185,8 +188,9 @@ struct VectorFieldView {
 			x[idx] = vec[0]; y[idx] = vec[1]; z[idx] = vec[2];
 		#endif
 	}
-	VectorFieldView(T *x_new, T *y_new, T *z_new, cuda::std::array<int, 3> num_new, cuda::std::array<T, 3> r_max_new, cuda::std::array<T, 3> inv_dx_new, std::size_t field_size_new)
-		: x(x_new), y(y_new), z(z_new), num(num_new), r_max(r_max_new), inv_dx(inv_dx_new), field_size(field_size_new) {}
+	VectorFieldView(T *__restrict__ x_new, T *__restrict__ y_new, T *__restrict__ z_new, cuda::std::array<int, 3> num_new, cuda::std::array<T, 3> r_max_new, cuda::std::array<T, 3> dx_new,
+	cuda::std::array<T, 3> inv_dx_new, std::size_t field_size_new)
+		: x(x_new), y(y_new), z(z_new), num(num_new), r_max(r_max_new), dx(dx_new), inv_dx(inv_dx_new), field_size(field_size_new) {}
 };
 
 #endif

@@ -77,7 +77,7 @@ void output_vtk_vector_field(std::ofstream &output_file, const DataVTK &data_vtk
 		for(int j = 0; j < ny; j++) {
 			for(int i = 0; i < nx; i++) {
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-				cuda::std::array<T, 3> vec = field_view.get_field(idx);
+				cuda::std::array<T, 3> vec = field_view.get_vector(i, j, k);
 				
 				vtk_vector[3 * idx] = swap_endian(static_cast<float>(vec[0]));
 				vtk_vector[3 * idx + 1] = swap_endian(static_cast<float>(vec[1]));
