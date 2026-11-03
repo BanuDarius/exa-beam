@@ -37,7 +37,7 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 	else initialize_eb_fields(e_field, b_field, lasers, dt);
 	
 	for(int step = 0; step < steps; step++) {
-		T t = step * dt;
+		//T t = step * dt;
 		
 		//if(use_gpu) hc_update_gpu(particles, device_lasers, t, dt);
 		//else hc_update(particles, lasers, t, dt);
