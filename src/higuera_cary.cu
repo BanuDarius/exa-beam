@@ -4,7 +4,7 @@
 #include "higuera_cary.hpp"
 
 template <std::floating_point T>
-__global__ void higuera_cary_update_kernel(ParticlesView<T> particles_view, __grid_constant__ const DeviceLasers<T> lasers, T t, T dt) {
+__global__ void hc_update_kernel(ParticlesView<T> particles_view, __grid_constant__ const DeviceLasers<T> lasers, T t, T dt) {
 	int laser_count = lasers.laser_count;
 	std::size_t idx = blockDim.x * blockIdx.x + threadIdx.x;
 	if(idx < particles_view.particle_num) {
@@ -43,18 +43,18 @@ __global__ void higuera_cary_update_kernel(ParticlesView<T> particles_view, __gr
 }
 
 template <std::floating_point T>
-void higuera_cary_update_gpu(Particles<T> &particles, const DeviceLasers<T> &lasers, T t, T dt) noexcept {
+void hc_update_gpu(Particles<T> &particles, const DeviceLasers<T> &lasers, T t, T dt) noexcept {
 	std::size_t particle_num = particles.particle_num;
 	dim3 threads(threads_1d_nx);
 	dim3 blocks((particle_num + threads.x - 1) / threads.x);
 	
 	ParticlesView<T> particles_view = particles.get_gpu_view();
-	higuera_cary_update_kernel<<<blocks, threads>>>(particles_view, lasers, t, dt);
+	hc_update_kernel<<<blocks, threads>>>(particles_view, lasers, t, dt);
 	CUDA_CHECK(cudaGetLastError());
 }
 
-template __global__ void higuera_cary_update_kernel<double>(ParticlesView<double> particles_view, __grid_constant__ const DeviceLasers<double> lasers, double t, double dt);
-template void higuera_cary_update_gpu<double>(Particles<double> &particles, const DeviceLasers<double> &lasers, double t, double dt) noexcept;
+template __global__ void hc_update_kernel<double>(ParticlesView<double> particles_view, __grid_constant__ const DeviceLasers<double> lasers, double t, double dt);
+template void hc_update_gpu<double>(Particles<double> &particles, const DeviceLasers<double> &lasers, double t, double dt) noexcept;
 
-template __global__ void higuera_cary_update_kernel<float>(ParticlesView<float> particles_view, __grid_constant__ const DeviceLasers<float> lasers, float t, float dt);
-template void higuera_cary_update_gpu<float>(Particles<float> &particles, const DeviceLasers<float> &lasers, float t, float dt) noexcept;
+template __global__ void hc_update_kernel<float>(ParticlesView<float> particles_view, __grid_constant__ const DeviceLasers<float> lasers, float t, float dt);
+template void hc_update_gpu<float>(Particles<float> &particles, const DeviceLasers<float> &lasers, float t, float dt) noexcept;

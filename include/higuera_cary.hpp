@@ -77,7 +77,7 @@ __device__ __host__ inline cuda::std::array<T, 3> hc_u_plus(cuda::std::array<T, 
 }
 
 template <std::floating_point T>
-inline void higuera_cary_update(Particles<T> &particles, std::span<const Laser<T>> lasers, T t, T dt) noexcept {
+inline void hc_update(Particles<T> &particles, std::span<const Laser<T>> lasers, T t, T dt) noexcept {
 	int laser_count = lasers.size();
 	ParticlesView<T> particles_view = particles.get_cpu_view();
 	#pragma omp parallel for simd schedule(static)
@@ -116,7 +116,7 @@ inline void higuera_cary_update(Particles<T> &particles, std::span<const Laser<T
 	}
 }
 
-template <std::floating_point T> __global__ void higuera_cary_update_kernel(ParticlesView<T> particles_view, __grid_constant__ const DeviceLasers<T> lasers, T t, T dt);
-template <std::floating_point T> void higuera_cary_update_gpu(Particles<T> &particles, const DeviceLasers<T> &lasers, T t, T dt) noexcept;
+template <std::floating_point T> __global__ void hc_update_kernel(ParticlesView<T> particles_view, __grid_constant__ const DeviceLasers<T> lasers, T t, T dt);
+template <std::floating_point T> void hc_update_gpu(Particles<T> &particles, const DeviceLasers<T> &lasers, T t, T dt) noexcept;
 
 #endif
