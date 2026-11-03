@@ -13,8 +13,8 @@ use_floats = True
 output_laser_fields = True
 
 nx = 64
-steps = 100
-substeps = 20
+steps = 100000
+substeps = 500
 max_dim_mult = [ 5.0, 5.0, 5.0 ]
 
 p = 0
