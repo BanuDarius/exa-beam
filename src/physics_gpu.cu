@@ -136,7 +136,7 @@ __global__ void initialize_eb_fields_gpu_kernel(VectorFieldView<T> e, VectorFiel
 		if(i < nx - 1 && j < ny - 1 && j > 0 && k < nz - 1 && k > 0)
 			for(int q = 0; q < num_lasers; q++) {
 				cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
-				cuda::std::array<T, 3> e_vec_local = compute_e(lasers[q], r_vec_local, T(0.0));
+				cuda::std::array<T, 3> e_vec_local = lg_compute_e(lasers[q], r_vec_local, T(0.0));
 				e_x += lasers[q].vec_local_to_global(e_vec_local)[0];
 			}
 		e.set_x(e_x, i, j, k);
@@ -146,7 +146,7 @@ __global__ void initialize_eb_fields_gpu_kernel(VectorFieldView<T> e, VectorFiel
 		if(i < nx - 1 && i > 0 && j < ny - 1 && k < nz - 1 && k > 0)
 			for(int q = 0; q < num_lasers; q++) {
 				cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
-				cuda::std::array<T, 3> e_vec_local = compute_e(lasers[q], r_vec_local, T(0.0));
+				cuda::std::array<T, 3> e_vec_local = lg_compute_e(lasers[q], r_vec_local, T(0.0));
 				e_y += lasers[q].vec_local_to_global(e_vec_local)[1];
 			}
 		e.set_y(e_y, i, j, k);
@@ -156,7 +156,7 @@ __global__ void initialize_eb_fields_gpu_kernel(VectorFieldView<T> e, VectorFiel
 		if(i < nx - 1 && i > 0 && j < ny - 1 && j > 0 && k < nz - 1)
 			for(int q = 0; q < num_lasers; q++) {
 				cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
-				cuda::std::array<T, 3> e_vec_local = compute_e(lasers[q], r_vec_local, T(0.0));
+				cuda::std::array<T, 3> e_vec_local = lg_compute_e(lasers[q], r_vec_local, T(0.0));
 				e_z += lasers[q].vec_local_to_global(e_vec_local)[2];
 			}
 		e.set_z(e_z, i, j, k);
@@ -166,7 +166,7 @@ __global__ void initialize_eb_fields_gpu_kernel(VectorFieldView<T> e, VectorFiel
 		if(i < nx - 1 && i > 0 && j < ny - 1 && k < nz - 1)
 			for(int q = 0; q < num_lasers; q++) {
 				cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
-				cuda::std::array<T, 3> b_vec_local = compute_b(lasers[q], r_vec_local, - T(0.5) * dt);
+				cuda::std::array<T, 3> b_vec_local = lg_compute_b(lasers[q], r_vec_local, - T(0.5) * dt);
 				b_x += lasers[q].vec_local_to_global(b_vec_local)[0];
 			}
 		b.set_x(b_x, i, j, k);
@@ -176,7 +176,7 @@ __global__ void initialize_eb_fields_gpu_kernel(VectorFieldView<T> e, VectorFiel
 		if(i < nx - 1 && j < ny - 1 && j > 0 && k < nz - 1)
 			for(int q = 0; q < num_lasers; q++) {
 				cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
-				cuda::std::array<T, 3> b_vec_local = compute_b(lasers[q], r_vec_local, - T(0.5) * dt);
+				cuda::std::array<T, 3> b_vec_local = lg_compute_b(lasers[q], r_vec_local, - T(0.5) * dt);
 				b_y += lasers[q].vec_local_to_global(b_vec_local)[1];
 			}
 		b.set_y(b_y, i, j, k);
@@ -186,7 +186,7 @@ __global__ void initialize_eb_fields_gpu_kernel(VectorFieldView<T> e, VectorFiel
 		if(i < nx - 1 && j < ny - 1 && k < nz - 1 && k > 0)
 			for(int q = 0; q < num_lasers; q++) {
 				cuda::std::array<T, 3> r_vec_local = lasers[q].pos_global_to_local(r_vec_global);
-				cuda::std::array<T, 3> b_vec_local = compute_b(lasers[q], r_vec_local, - T(0.5) * dt);
+				cuda::std::array<T, 3> b_vec_local = lg_compute_b(lasers[q], r_vec_local, - T(0.5) * dt);
 				b_z += lasers[q].vec_local_to_global(b_vec_local)[2];
 			}
 		b.set_z(b_z, i, j, k);

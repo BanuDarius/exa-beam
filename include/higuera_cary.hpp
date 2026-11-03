@@ -16,7 +16,7 @@
 #include "laguerre_gauss.hpp"
 
 template <std::floating_point T>
-__device__ __host__ inline T comp_gamma(cuda::std::array<T, 3> u_vec) noexcept {
+__device__ __host__ inline T hc_gamma(cuda::std::array<T, 3> u_vec) noexcept {
 	T u2 = dot(u_vec, u_vec);
 	return cuda::std::sqrt(T(1.0) + u2 / (c<T> * c<T>));
 }
@@ -88,8 +88,8 @@ inline void hc_update(Particles<T> &particles, std::span<const Laser<T>> lasers,
 		
 		for(int i = 0; i < laser_count; i++) {
 			cuda::std::array<T, 3> r_vec_local = lasers[i].pos_global_to_local(r_vec_global);
-			cuda::std::array<T, 3> e_vec_local = compute_e(lasers[i], r_vec_local, t);
-			cuda::std::array<T, 3> b_vec_local = compute_b(lasers[i], r_vec_local, t);
+			cuda::std::array<T, 3> e_vec_local = lg_compute_e(lasers[i], r_vec_local, t);
+			cuda::std::array<T, 3> b_vec_local = lg_compute_b(lasers[i], r_vec_local, t);
 			e_vec_global += lasers[i].vec_local_to_global(e_vec_local);
 			b_vec_global += lasers[i].vec_local_to_global(b_vec_local);
 		}
@@ -98,7 +98,7 @@ inline void hc_update(Particles<T> &particles, std::span<const Laser<T>> lasers,
 		cuda::std::array<T, 3> epsilon = hc_epsilon(e_vec_global, dt);
 		cuda::std::array<T, 3> u_minus = hc_u_minus(u_vec_global, epsilon);
 		
-		T gamma_minus = comp_gamma(u_minus);
+		T gamma_minus = hc_gamma(u_minus);
 		T gamma_new = hc_gamma_new(u_minus, beta, gamma_minus);
 		
 		cuda::std::array<T, 3> t_rot = hc_t_rot(beta, gamma_new);
@@ -107,7 +107,7 @@ inline void hc_update(Particles<T> &particles, std::span<const Laser<T>> lasers,
 		cuda::std::array<T, 3> u_plus = hc_u_plus(u_minus, u_prime, t_rot, s_factor);
 		
 		u_vec_global = u_plus + epsilon;
-		T gamma_half = comp_gamma(u_vec_global);
+		T gamma_half = hc_gamma(u_vec_global);
 		r_vec_global += u_vec_global * (dt / gamma_half);
 		
 		particles_view.set_gamma(gamma_half, idx);

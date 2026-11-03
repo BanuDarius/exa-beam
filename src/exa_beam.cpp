@@ -39,8 +39,8 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 	for(int step = 0; step < steps; step++) {
 		T t = step * dt;
 		
-		if(use_gpu) hc_update_gpu(particles, device_lasers, t, dt);
-		else hc_update(particles, lasers, t, dt);
+		//if(use_gpu) hc_update_gpu(particles, device_lasers, t, dt);
+		//else hc_update(particles, lasers, t, dt);
 		
 		if(use_gpu) {
 			fdtd_update_b_gpu(b_field, e_field, dt);

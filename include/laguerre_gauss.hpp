@@ -23,45 +23,45 @@ __device__ __host__ inline T env(T chi, T tau) noexcept {
 }
 
 template <std::floating_point T>
-__device__ __host__ inline T compute_w_z(T w0, T z, T z_r) noexcept {
+__device__ __host__ inline T lg_w_z(T w0, T z, T z_r) noexcept {
 	T w_z = w0 * cuda::std::sqrt(T(1.0) + z * z / (z_r * z_r));
 	return w_z;
 }
 
 template <std::floating_point T>
-__device__ __host__ inline T compute_r_z(T z, T z_r) noexcept {
+__device__ __host__ inline T lg_r_z(T z, T z_r) noexcept {
 	T r_z = z + z_r * z_r / z;
 	return r_z;
 }
 
 template <std::floating_point T>
-__device__ __host__ inline T compute_guoy(T z, T z_r) noexcept {
+__device__ __host__ inline T lg_guoy(T z, T z_r) noexcept {
 	T psi = cuda::std::atan(z / z_r);
 	return psi;
 }
 
 template <std::floating_point T>
-__device__ __host__ inline T compute_phi(T x, T y) noexcept {
+__device__ __host__ inline T lg_phi(T x, T y) noexcept {
 	T phi = cuda::std::atan2(y, x);
 	return phi;
 }
 
 template <std::floating_point T>
-__device__ __host__ inline cuda::std::complex<T> compute_u(const Laser<T> &laser, cuda::std::array<T, 3> r_vec, T r_z, T w_z) noexcept {
+__device__ __host__ inline cuda::std::complex<T> lg_compute_u(const Laser<T> &laser, cuda::std::array<T, 3> r_vec, T r_z, T w_z) noexcept {
 	T w0 = laser.w0, k = laser.k, z_r = laser.z_r;
 	T x = r_vec[0], y = r_vec[1], z = r_vec[2];
 	T rho = cuda::std::sqrt(x * x + y * y);
 	T w_z2 = w_z * w_z, rho2 = rho * rho;
 	int m = laser.m;
 	
-	T psi_g = compute_guoy(z, z_r);
+	T psi_g = lg_guoy(z, z_r);
 	T amplitude, phase, phi;
 	
 	if(m == 0) {
 		amplitude = w0 / w_z * cuda::std::exp(- rho2 / w_z2);
 		phase = - k * rho2 / (T(2.0) * r_z) + psi_g;
 	} else if(cuda::std::abs(m) == 1) {
-		phi = compute_phi(x, y);
+		phi = lg_phi(x, y);
 		T m_t = static_cast<T>(m);
 		
 		amplitude = cuda::std::sqrt(T(2.0)) * w0 * rho / w_z2 * cuda::std::exp(- rho2 / w_z2);
@@ -75,17 +75,17 @@ __device__ __host__ inline cuda::std::complex<T> compute_u(const Laser<T> &laser
 }
 
 template <std::floating_point T>
-__device__ __host__ inline cuda::std::array<T, 3> compute_e(const Laser<T> &laser, cuda::std::array<T, 3> r_vec, T t) noexcept {
+__device__ __host__ inline cuda::std::array<T, 3> lg_compute_e(const Laser<T> &laser, cuda::std::array<T, 3> r_vec, T t) noexcept {
 	T w0 = laser.w0, k = laser.k, z_r = laser.z_r, E0 = laser.E0, tau = laser.tau, psi = laser.psi;
 	cuda::std::complex<T> zeta_x = laser.zeta_x, zeta_y = laser.zeta_y;
 	T x = r_vec[0], y = r_vec[1], z = r_vec[2];
 	int m = laser.m;
 	
-	T r_z = compute_r_z(z, z_r);
-	T w_z = compute_w_z(w0, z, z_r);
+	T r_z = lg_r_z(z, z_r);
+	T w_z = lg_w_z(w0, z, z_r);
 	T chi = laser.omega * t - k * z + psi;
 	
-	cuda::std::complex<T> u_pm = compute_u(laser, r_vec, r_z, w_z);
+	cuda::std::complex<T> u_pm = lg_compute_u(laser, r_vec, r_z, w_z);
 	cuda::std::complex<T> phase(cuda::std::cos(chi), cuda::std::sin(chi));
 	u_pm *= E0 * phase * env(chi, tau);
 	
@@ -112,17 +112,17 @@ __device__ __host__ inline cuda::std::array<T, 3> compute_e(const Laser<T> &lase
 }
 
 template <std::floating_point T>
-__device__ __host__ inline cuda::std::array<T, 3> compute_b(const Laser<T> &laser, cuda::std::array<T, 3> r_vec, T t) noexcept {
+__device__ __host__ inline cuda::std::array<T, 3> lg_compute_b(const Laser<T> &laser, cuda::std::array<T, 3> r_vec, T t) noexcept {
 	T w0 = laser.w0, k = laser.k, z_r = laser.z_r, E0 = laser.E0, tau = laser.tau, psi = laser.psi;
 	cuda::std::complex<T> zeta_x = laser.zeta_x, zeta_y = laser.zeta_y;
 	T x = r_vec[0], y = r_vec[1], z = r_vec[2];
 	int m = laser.m;
 	
-	T r_z = compute_r_z(z, z_r);
-	T w_z = compute_w_z(w0, z, z_r);
+	T r_z = lg_r_z(z, z_r);
+	T w_z = lg_w_z(w0, z, z_r);
 	T chi = laser.omega * t - k * z + psi;
 	
-	cuda::std::complex<T> u_pm = compute_u(laser, r_vec, r_z, w_z);
+	cuda::std::complex<T> u_pm = lg_compute_u(laser, r_vec, r_z, w_z);
 	cuda::std::complex<T> phase(cuda::std::cos(chi), cuda::std::sin(chi));
 	u_pm *= E0 * phase * env(chi, tau);
 	
