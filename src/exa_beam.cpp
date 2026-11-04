@@ -19,13 +19,13 @@
 template <std::floating_point T>
 void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers, const std::string &output_directory) {
 	int steps = parameters.steps, substeps = parameters.substeps;
+	cuda::std::array<float, 2> diagnostics;
 	bool use_gpu = parameters.use_gpu;
 	T dt = parameters.tf / steps;
-	float energy;
 	
-	std::string filename_energy = std::format("{}/energy.bin", output_directory);
-	std::ofstream output_energy(filename_energy, std::ios::binary);
-	if(!output_energy) { std::fprintf(stderr, "Cannot open output energy file!\n"); return; }
+	std::string filename_diagnostics = std::format("{}/diagnostics.bin", output_directory);
+	std::ofstream output_diagnostics(filename_diagnostics, std::ios::binary);
+	if(!output_diagnostics) { std::fprintf(stderr, "Cannot open output diagnostics file!\n"); return; }
 	
 	DataVTK data_vtk(parameters);
 	DeviceLasers<T> device_lasers(lasers);
@@ -56,9 +56,13 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 				b_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
 				particles.transfer_data_gpu_to_cpu(cudaStreamDefault);
 			}
-			if(use_gpu) energy = compute_total_energy_gpu(e_field, b_field);
-			else energy = compute_total_energy(e_field, b_field);
-			output_energy.write(reinterpret_cast<const char*>(&energy), sizeof(float));
+			if(use_gpu) diagnostics[0] = total_energy_gpu(e_field, b_field);
+			else diagnostics[0] = total_energy(e_field, b_field);
+			
+			if(use_gpu) diagnostics[1] = divergence_e_gpu(e_field);
+			else diagnostics[1] = divergence_e(e_field);
+			
+			output_diagnostics.write(reinterpret_cast<const char*>(diagnostics.data()), sizeof(float) * diagnostics.size());
 			
 			std::string filename_fields = std::format("{}/fields-{:04d}.vtk", output_directory, step / substeps);
 			std::ofstream output_fields(filename_fields, std::ios::binary);

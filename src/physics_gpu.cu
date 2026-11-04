@@ -89,7 +89,7 @@ __global__ void fdtd_update_e_gpu_kernel(VectorFieldView<T> e, VectorFieldView<T
 }
 
 template <std::floating_point T>
-__global__ void compute_total_energy_gpu_kernel(VectorFieldView<T> e, VectorFieldView<T> b, T *d_energy) {
+__global__ void total_energy_gpu_kernel(VectorFieldView<T> e, VectorFieldView<T> b, T *d_energy) {
 	int nx = e.num[0], ny = e.num[1], nz = e.num[2];
 	extern __shared__ char shared_memory[];
 	T *shared_energy = reinterpret_cast<T*>(shared_memory);
@@ -115,6 +115,44 @@ __global__ void compute_total_energy_gpu_kernel(VectorFieldView<T> e, VectorFiel
 	
 	if(local_idx == 0)
 		atomicAdd(d_energy, shared_energy[0]);
+}
+
+template <std::floating_point T>
+__global__ void divergence_e_gpu_kernel(VectorFieldView<T> e, T *d_divergence) {
+	int nx = e.num[0], ny = e.num[1], nz = e.num[2];
+	T inv_dx = e.inv_dx[0], inv_dy = e.inv_dx[1], inv_dz = e.inv_dx[2];
+	extern __shared__ char shared_memory[];
+	T *shared_divergence = reinterpret_cast<T*>(shared_memory);
+	
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	int k = blockIdx.z * blockDim.z + threadIdx.z;
+	int block_size = blockDim.x * blockDim.y * blockDim.z;
+	int local_idx = grid_idx(threadIdx.x, threadIdx.y, threadIdx.z, blockDim.x, blockDim.y, blockDim.z);
+	
+	T divergence = T(0.0);
+	if(i < nx && j < ny && k < nz) {
+		T e_x = e.get_x(i, j, k);
+		T e_y = e.get_y(i, j, k);
+		T e_z = e.get_z(i, j, k);
+		
+		T dxEx = inv_dx * (e_x - e.get_x(i - 1, j, k));
+		T dyEy = inv_dy * (e_y - e.get_y(i, j - 1, k));
+		T dzEz = inv_dz * (e_z - e.get_z(i, j, k - 1));
+		
+		T divE = dxEx + dyEy + dzEz;
+		divergence += divE * divE;
+	}
+	shared_divergence[local_idx] = divergence;
+	__syncthreads();
+	
+	for(int iter_idx = block_size / 2; iter_idx > 0; iter_idx /= 2) {
+		if(local_idx < iter_idx) shared_divergence[local_idx] += shared_divergence[local_idx + iter_idx];
+		__syncthreads();
+	}
+	
+	if(local_idx == 0)
+		atomicAdd(d_divergence, shared_divergence[0]);
 }
 
 template <std::floating_point T>
@@ -236,7 +274,7 @@ void fdtd_update_e_gpu(VectorField<T> &e_field, VectorField<T> &b_field, T dt) n
 }
 
 template <std::floating_point T>
-T compute_total_energy_gpu(VectorField<T> &e_field, VectorField<T> &b_field) noexcept {
+T total_energy_gpu(VectorField<T> &e_field, VectorField<T> &b_field) noexcept {
 	VectorFieldView<T> b = b_field.get_gpu_view(), e = e_field.get_gpu_view();
 	T dV = e.dx[0] * e.dx[1] * e.dx[2];
 	int nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
@@ -253,12 +291,37 @@ T compute_total_energy_gpu(VectorField<T> &e_field, VectorField<T> &b_field) noe
 	CUDA_CHECK(cudaMalloc(&d_energy, sizeof(T)));
 	CUDA_CHECK(cudaMemset(d_energy, 0, sizeof(T)));
 	
-	compute_total_energy_gpu_kernel<<<blocks, threads, shared_memory>>>(e, b, d_energy);
+	total_energy_gpu_kernel<<<blocks, threads, shared_memory>>>(e, b, d_energy);
 	CUDA_CHECK(cudaGetLastError());
 	
 	CUDA_CHECK(cudaMemcpy(&h_energy, d_energy, sizeof(T), cudaMemcpyDeviceToHost));
 	CUDA_CHECK(cudaFree(d_energy));
 	return h_energy * dV;
+}
+
+template <std::floating_point T>
+T divergence_e_gpu(VectorField<T> &e_field) noexcept {
+	VectorFieldView<T> e = e_field.get_gpu_view();
+	int nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
+	
+	dim3 threads(threads_3d_nx, threads_3d_ny, threads_3d_nz);
+	int shared_memory = threads.x * threads.y * threads.z * sizeof(T);
+	dim3 blocks(
+		(nx + threads.x - 1) / threads.x,
+		(ny + threads.y - 1) / threads.y,
+		(nz + threads.z - 1) / threads.z
+	);
+	
+	T *d_divergence, h_divergence;
+	CUDA_CHECK(cudaMalloc(&d_divergence, sizeof(T)));
+	CUDA_CHECK(cudaMemset(d_divergence, 0, sizeof(T)));
+	
+	divergence_e_gpu_kernel<<<blocks, threads, shared_memory>>>(e, d_divergence);
+	CUDA_CHECK(cudaGetLastError());
+	
+	CUDA_CHECK(cudaMemcpy(&h_divergence, d_divergence, sizeof(T), cudaMemcpyDeviceToHost));
+	CUDA_CHECK(cudaFree(d_divergence));
+	return cuda::std::sqrt(h_divergence / static_cast<T>(e.field_size));
 }
 
 template <std::floating_point T>
@@ -279,21 +342,25 @@ void initialize_eb_fields_gpu(VectorField<T> &e_field, VectorField<T> &b_field, 
 template __global__ void compute_lz_gpu_kernel<double>(ScalarFieldView<double> lz_view, ParticlesView<double> particles_view);
 template __global__ void fdtd_update_b_gpu_kernel<double>(VectorFieldView<double> b, VectorFieldView<double> e, double dt);
 template __global__ void fdtd_update_e_gpu_kernel<double>(VectorFieldView<double> e, VectorFieldView<double> b, double dt);
-template __global__ void compute_total_energy_gpu_kernel(VectorFieldView<double> e, VectorFieldView<double> b, double *d_energy);
+template __global__ void total_energy_gpu_kernel<double>(VectorFieldView<double> e, VectorFieldView<double> b, double *d_energy);
+template __global__ void divergence_e_gpu_kernel<double>(VectorFieldView<double> e, double *d_divergence);
 template __global__ void initialize_eb_fields_gpu_kernel<double>(VectorFieldView<double> e, VectorFieldView<double> b, __grid_constant__ const DeviceLasers<double> lasers, double dt);
 template void compute_lz_gpu<double>(ScalarField<double> &lz_field, Particles<double> &particles) noexcept;
 template void fdtd_update_b_gpu<double>(VectorField<double> &b_field, VectorField<double> &e_field, double dt) noexcept;
 template void fdtd_update_e_gpu<double>(VectorField<double> &e_field, VectorField<double> &b_field, double dt) noexcept;
-template double compute_total_energy_gpu(VectorField<double> &e_field, VectorField<double> &b_field) noexcept;
+template double total_energy_gpu<double>(VectorField<double> &e_field, VectorField<double> &b_field) noexcept;
+template double divergence_e_gpu<double>(VectorField<double> &e_field) noexcept;
 template void initialize_eb_fields_gpu<double>(VectorField<double> &e_field, VectorField<double> &b_field, const DeviceLasers<double> &lasers, double dt) noexcept;
 
 template __global__ void compute_lz_gpu_kernel<float>(ScalarFieldView<float> lz_view, ParticlesView<float> particles_view);
 template __global__ void fdtd_update_b_gpu_kernel<float>(VectorFieldView<float> b, VectorFieldView<float> e, float dt);
 template __global__ void fdtd_update_e_gpu_kernel<float>(VectorFieldView<float> e, VectorFieldView<float> b, float dt);
-template __global__ void compute_total_energy_gpu_kernel(VectorFieldView<float> e, VectorFieldView<float> b, float *d_energy);
+template __global__ void total_energy_gpu_kernel<float>(VectorFieldView<float> e, VectorFieldView<float> b, float *d_energy);
+template __global__ void divergence_e_gpu_kernel<float>(VectorFieldView<float> e, float *d_divergence);
 template __global__ void initialize_eb_fields_gpu_kernel<float>(VectorFieldView<float> e, VectorFieldView<float> b, __grid_constant__ const DeviceLasers<float> lasers, float dt);
 template void compute_lz_gpu<float>(ScalarField<float> &lz_field, Particles<float> &particles) noexcept;
 template void fdtd_update_b_gpu<float>(VectorField<float> &b_field, VectorField<float> &e_field, float dt) noexcept;
 template void fdtd_update_e_gpu<float>(VectorField<float> &e_field, VectorField<float> &b_field, float dt) noexcept;
-template float compute_total_energy_gpu(VectorField<float> &e_field, VectorField<float> &b_field) noexcept;
+template float total_energy_gpu(VectorField<float> &e_field, VectorField<float> &b_field) noexcept;
+template float divergence_e_gpu<float>(VectorField<float> &e_field) noexcept;
 template void initialize_eb_fields_gpu<float>(VectorField<float> &e_field, VectorField<float> &b_field, const DeviceLasers<float> &lasers, float dt) noexcept;

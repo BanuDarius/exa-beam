@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Banu Darius-Matei
 // SPDX-License-Identifier: MIT
 
+#include <cuda/std/cmath>
 #include <cuda/std/array>
 #include <cuda/std/complex>
 
@@ -104,7 +105,7 @@ void fdtd_update_e(VectorField<T> &e_field, VectorField<T> &b_field, T dt) noexc
 }
 
 template <std::floating_point T>
-T compute_total_energy(VectorField<T> &e_field, VectorField<T> &b_field) noexcept {
+T total_energy(VectorField<T> &e_field, VectorField<T> &b_field) noexcept {
 	VectorFieldView e = e_field.get_cpu_view(), b = b_field.get_cpu_view();
 	
 	T energy = T(0.0);
@@ -118,6 +119,31 @@ T compute_total_energy(VectorField<T> &e_field, VectorField<T> &b_field) noexcep
 				energy += T(0.5) * (dot(e_vec, e_vec) + c2<T> * dot(b_vec, b_vec));
 			}
 	return energy * dV;
+}
+
+template <std::floating_point T>
+T divergence_e(VectorField<T> &e_field) noexcept {
+	VectorFieldView e = e_field.get_cpu_view();
+	
+	T divergence = T(0.0);
+	int nx = e.num[0], ny = e.num[1], nz = e.num[2];
+	T inv_dx = e.inv_dx[0], inv_dy = e.inv_dx[1], inv_dz = e.inv_dx[2];
+	#pragma omp parallel for simd collapse(3) schedule(static) reduction(+:divergence)
+	for(int k = 1; k < nz - 1; k++)
+		for(int j = 1; j < ny - 1; j++)
+			for(int i = 1; i < nx - 1; i++) {
+				T e_x = e.get_x(i, j, k);
+				T e_y = e.get_y(i, j, k);
+				T e_z = e.get_z(i, j, k);
+				
+				T dxEx = inv_dx * (e_x - e.get_x(i - 1, j, k));
+				T dyEy = inv_dy * (e_y - e.get_y(i, j - 1, k));
+				T dzEz = inv_dz * (e_z - e.get_z(i, j, k - 1));
+				
+				T divE = dxEx + dyEy + dzEz;
+				divergence += divE * divE;
+			}
+	return cuda::std::sqrt(divergence / static_cast<T>(e.field_size));
 }
 
 template <std::floating_point T>
@@ -200,11 +226,13 @@ void initialize_eb_fields(VectorField<T> &e_field, VectorField<T> &b_field, std:
 template void compute_lz<double>(ScalarField<double> &lz_field, Particles<double> &particles) noexcept;
 template void fdtd_update_b<double>(VectorField<double> &b_field, VectorField<double> &e_field, double dt) noexcept;
 template void fdtd_update_e<double>(VectorField<double> &e_field, VectorField<double> &b_field, double dt) noexcept;
-template double compute_total_energy<double>(VectorField<double> &e_field, VectorField<double> &b_field) noexcept;
+template double total_energy<double>(VectorField<double> &e_field, VectorField<double> &b_field) noexcept;
+template double divergence_e<double>(VectorField<double> &e_field) noexcept;
 template void initialize_eb_fields<double>(VectorField<double> &e_field, VectorField<double> &b_field, std::span<const Laser<double>> lasers, double dt) noexcept;
 
 template void compute_lz<float>(ScalarField<float> &lz_field, Particles<float> &particles) noexcept;
 template void fdtd_update_b<float>(VectorField<float> &b_field, VectorField<float> &e_field, float dt) noexcept;
 template void fdtd_update_e<float>(VectorField<float> &e_field, VectorField<float> &b_field, float dt) noexcept;
-template float compute_total_energy<float>(VectorField<float> &e_field, VectorField<float> &b_field) noexcept;
+template float total_energy<float>(VectorField<float> &e_field, VectorField<float> &b_field) noexcept;
+template float divergence_e<float>(VectorField<float> &e_field) noexcept;
 template void initialize_eb_fields<float>(VectorField<float> &e_field, VectorField<float> &b_field, std::span<const Laser<float>> lasers, float dt) noexcept;
