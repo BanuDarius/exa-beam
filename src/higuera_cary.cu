@@ -8,29 +8,29 @@ __global__ void hc_update_kernel(ParticlesView<T> particles_view, __grid_constan
 	int laser_count = lasers.laser_count;
 	std::size_t idx = blockDim.x * blockIdx.x + threadIdx.x;
 	if(idx < particles_view.particle_num) {
-		cuda::std::array<T, 3> r_vec_global = particles_view.get_position(idx);
-		cuda::std::array<T, 3> u_vec_global = particles_view.get_velocity(idx);
-		cuda::std::array<T, 3> b_vec_global{}, e_vec_global{};
+		Vector3<T> r_vec_global = particles_view.get_position(idx);
+		Vector3<T> u_vec_global = particles_view.get_velocity(idx);
+		Vector3<T> b_vec_global{}, e_vec_global{};
 		
 		for(int i = 0; i < laser_count; i++) {
-			cuda::std::array<T, 3> r_vec_local = lasers[i].pos_global_to_local(r_vec_global);
-			cuda::std::array<T, 3> e_vec_local = lg_compute_e(lasers[i], r_vec_local, t);
-			cuda::std::array<T, 3> b_vec_local = lg_compute_b(lasers[i], r_vec_local, t);
+			Vector3<T> r_vec_local = lasers[i].pos_global_to_local(r_vec_global);
+			Vector3<T> e_vec_local = lg_compute_e(lasers[i], r_vec_local, t);
+			Vector3<T> b_vec_local = lg_compute_b(lasers[i], r_vec_local, t);
 			e_vec_global += lasers[i].vec_local_to_global(e_vec_local);
 			b_vec_global += lasers[i].vec_local_to_global(b_vec_local);
 		}
 		
-		cuda::std::array<T, 3> beta = hc_beta(b_vec_global, dt);
-		cuda::std::array<T, 3> epsilon = hc_epsilon(e_vec_global, dt);
-		cuda::std::array<T, 3> u_minus = hc_u_minus(u_vec_global, epsilon);
+		Vector3<T> beta = hc_beta(b_vec_global, dt);
+		Vector3<T> epsilon = hc_epsilon(e_vec_global, dt);
+		Vector3<T> u_minus = hc_u_minus(u_vec_global, epsilon);
 		
 		T gamma_minus = hc_gamma(u_minus);
 		T gamma_new = hc_gamma_new(u_minus, beta, gamma_minus);
 		
-		cuda::std::array<T, 3> t_rot = hc_t_rot(beta, gamma_new);
+		Vector3<T> t_rot = hc_t_rot(beta, gamma_new);
 		T s_factor = hc_s_factor(t_rot);
-		cuda::std::array<T, 3> u_prime = hc_u_prime(u_minus, t_rot);
-		cuda::std::array<T, 3> u_plus = hc_u_plus(u_minus, u_prime, t_rot, s_factor);
+		Vector3<T> u_prime = hc_u_prime(u_minus, t_rot);
+		Vector3<T> u_plus = hc_u_plus(u_minus, u_prime, t_rot, s_factor);
 		
 		u_vec_global = u_plus + epsilon;
 		T gamma_half = hc_gamma(u_vec_global);

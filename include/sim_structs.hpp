@@ -37,9 +37,9 @@ template <std::floating_point T>
 struct Parameters {
 	T tf;
 	int nx, steps, substeps, laser_count;
-	cuda::std::array<T, 3> max_dim_mult;
+	Vector3<T> max_dim_mult;
 	bool use_gpu, output_laser_fields;
-	Parameters(T tf_new, int nx_new, int steps_new, int substeps_new, int laser_count_new, cuda::std::array<T, 3> max_dim_mult_new, bool use_gpu_new, bool output_laser_fields_new)
+	Parameters(T tf_new, int nx_new, int steps_new, int substeps_new, int laser_count_new, Vector3<T> max_dim_mult_new, bool use_gpu_new, bool output_laser_fields_new)
 		: tf(tf_new), nx(nx_new), steps(steps_new), substeps(substeps_new), laser_count(laser_count_new), max_dim_mult(max_dim_mult_new), use_gpu(use_gpu_new), output_laser_fields(output_laser_fields_new) {}
 	Parameters() noexcept = default;
 };
@@ -49,8 +49,8 @@ struct Laser {
 	int p, m;
 	T a0, omega, w0, k, lambda, z_r, tau, E0, psi;
 	cuda::std::complex<T> zeta_x, zeta_y;
-	cuda::std::array<T, 3> ex_prime, ey_prime, ez_prime, r0;
-	Laser(int p_new, int m_new, T a0_new, T omega_new, T w0_mult, T tau_new, T psi_new, cuda::std::complex<T> zeta_x_new, cuda::std::complex<T> zeta_y_new, cuda::std::array<T, 3> r0_new, T phi, T theta)
+	Vector3<T> ex_prime, ey_prime, ez_prime, r0;
+	Laser(int p_new, int m_new, T a0_new, T omega_new, T w0_mult, T tau_new, T psi_new, cuda::std::complex<T> zeta_x_new, cuda::std::complex<T> zeta_y_new, Vector3<T> r0_new, T phi, T theta)
 		: p(p_new), m(m_new), a0(a0_new), omega(omega_new), tau(tau_new), psi(psi_new), zeta_x(zeta_x_new), zeta_y(zeta_y_new) {
 		k = omega / c<T>;
 		lambda = (T(2.0) * pi<T> * c<T>) / omega;
@@ -74,20 +74,20 @@ struct Laser {
 			cuda::std::cos(theta)
 		};
 	}
-	__device__ __host__ cuda::std::array<T, 3> pos_global_to_local(cuda::std::array<T, 3> r_vec_global) const noexcept {
+	__device__ __host__ Vector3<T> pos_global_to_local(Vector3<T> r_vec_global) const noexcept {
 		r_vec_global -= r0;
-		cuda::std::array<T, 3> r_vec_local = {
+		Vector3<T> r_vec_local = {
 			dot(ex_prime, r_vec_global),
 			dot(ey_prime, r_vec_global),
 			dot(ez_prime, r_vec_global)
 		};
 		return r_vec_local;
 	}
-	__device__ __host__ cuda::std::array<T, 3> vec_local_to_global(cuda::std::array<T, 3> vec_local) const noexcept {
-		cuda::std::array<T, 3> ex_prime_vec = ex_prime * vec_local[0];
-		cuda::std::array<T, 3> ey_prime_vec = ey_prime * vec_local[1];
-		cuda::std::array<T, 3> ez_prime_vec = ez_prime * vec_local[2];
-		cuda::std::array<T, 3> vec_global = ex_prime_vec + ey_prime_vec + ez_prime_vec;
+	__device__ __host__ Vector3<T> vec_local_to_global(Vector3<T> vec_local) const noexcept {
+		Vector3<T> ex_prime_vec = ex_prime * vec_local[0];
+		Vector3<T> ey_prime_vec = ey_prime * vec_local[1];
+		Vector3<T> ez_prime_vec = ez_prime * vec_local[2];
+		Vector3<T> vec_global = ex_prime_vec + ey_prime_vec + ez_prime_vec;
 		return vec_global;
 	}
 	Laser() noexcept = default;
@@ -112,10 +112,10 @@ struct Particles {
 	bool use_gpu;
 	std::size_t particle_num;
 	cuda::std::array<int, 3> num;
-	cuda::std::array<T, 3> r_max;
+	Vector3<T> r_max;
 	std::unique_ptr<T[], HostMemory<T>> h_x, h_y, h_z, h_ux, h_uy, h_uz, h_gamma;
 	std::unique_ptr<T[], DeviceMemory<T>> d_x, d_y, d_z, d_ux, d_uy, d_uz, d_gamma;
-	Particles(int nx, int ny, int nz, cuda::std::array<T, 3> r_max_new, bool use_gpu_new) : use_gpu(use_gpu_new), r_max(r_max_new) {
+	Particles(int nx, int ny, int nz, Vector3<T> r_max_new, bool use_gpu_new) : use_gpu(use_gpu_new), r_max(r_max_new) {
 		particle_num = nx * ny * nz;
 		num = { nx, ny, nz };
 		h_x.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
@@ -201,10 +201,10 @@ struct ScalarField {
 	bool use_gpu;
 	std::size_t field_size;
 	cuda::std::array<int, 3> num;
-	cuda::std::array<T, 3> r_max;
+	Vector3<T> r_max;
 	std::unique_ptr<T[], HostMemory<T>> h_v;
 	std::unique_ptr<T[], DeviceMemory<T>> d_v;
-	ScalarField(int nx, int ny, int nz, cuda::std::array<T, 3> r_max_new, bool use_gpu_new) : use_gpu(use_gpu_new), r_max(r_max_new) {
+	ScalarField(int nx, int ny, int nz, Vector3<T> r_max_new, bool use_gpu_new) : use_gpu(use_gpu_new), r_max(r_max_new) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
 		h_v.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
@@ -269,10 +269,10 @@ struct VectorField {
 	bool use_gpu;
 	std::size_t field_size;
 	cuda::std::array<int, 3> num;
-	cuda::std::array<T, 3> r_max, inv_dx, dx;
+	Vector3<T> r_max, inv_dx, dx;
 	std::unique_ptr<T[], HostMemory<T>> h_x, h_y, h_z;
 	std::unique_ptr<T[], DeviceMemory<T>> d_x, d_y, d_z;
-	VectorField(int nx, int ny, int nz, cuda::std::array<T, 3> r_max_new, bool use_gpu_new) : use_gpu(use_gpu_new), r_max(r_max_new) {
+	VectorField(int nx, int ny, int nz, Vector3<T> r_max_new, bool use_gpu_new) : use_gpu(use_gpu_new), r_max(r_max_new) {
 		field_size = nx * ny * nz;
 		num = { nx, ny, nz };
 		dx = {

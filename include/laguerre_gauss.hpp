@@ -47,7 +47,7 @@ __device__ __host__ inline T lg_phi(T x, T y) noexcept {
 }
 
 template <std::floating_point T>
-__device__ __host__ inline cuda::std::complex<T> lg_compute_u(const Laser<T> &laser, cuda::std::array<T, 3> r_vec, T r_z, T w_z) noexcept {
+__device__ __host__ inline cuda::std::complex<T> lg_compute_u(const Laser<T> &laser, Vector3<T> r_vec, T r_z, T w_z) noexcept {
 	T w0 = laser.w0, k = laser.k, z_r = laser.z_r;
 	T x = r_vec[0], y = r_vec[1], z = r_vec[2];
 	T rho = cuda::std::sqrt(x * x + y * y);
@@ -75,7 +75,7 @@ __device__ __host__ inline cuda::std::complex<T> lg_compute_u(const Laser<T> &la
 }
 
 template <std::floating_point T>
-__device__ __host__ inline cuda::std::array<T, 3> lg_compute_e(const Laser<T> &laser, cuda::std::array<T, 3> r_vec, T t) noexcept {
+__device__ __host__ inline Vector3<T> lg_compute_e(const Laser<T> &laser, Vector3<T> r_vec, T t) noexcept {
 	T w0 = laser.w0, k = laser.k, z_r = laser.z_r, E0 = laser.E0, tau = laser.tau, psi = laser.psi;
 	cuda::std::complex<T> zeta_x = laser.zeta_x, zeta_y = laser.zeta_y;
 	T x = r_vec[0], y = r_vec[1], z = r_vec[2];
@@ -112,7 +112,7 @@ __device__ __host__ inline cuda::std::array<T, 3> lg_compute_e(const Laser<T> &l
 }
 
 template <std::floating_point T>
-__device__ __host__ inline cuda::std::array<T, 3> lg_compute_b(const Laser<T> &laser, cuda::std::array<T, 3> r_vec, T t) noexcept {
+__device__ __host__ inline Vector3<T> lg_compute_b(const Laser<T> &laser, Vector3<T> r_vec, T t) noexcept {
 	T w0 = laser.w0, k = laser.k, z_r = laser.z_r, E0 = laser.E0, tau = laser.tau, psi = laser.psi;
 	cuda::std::complex<T> zeta_x = laser.zeta_x, zeta_y = laser.zeta_y;
 	T x = r_vec[0], y = r_vec[1], z = r_vec[2];

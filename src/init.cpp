@@ -14,7 +14,7 @@
 template <std::floating_point T>
 void read_input_file(const std::string &parameters_filename, Parameters<T> &parameters) {
 	T tf;
-	cuda::std::array<T, 3> max_dim_mult;
+	Vector3<T> max_dim_mult;
 	int i = 0, nx, steps, substeps, laser_count, use_gpu, output_laser_fields;
 	
 	std::string current;
@@ -53,7 +53,7 @@ void read_input_file(const std::string &parameters_filename, Parameters<T> &para
 
 template <std::floating_point T>
 void read_lasers_file(const std::string &lasers_filename, std::vector<Laser<T>> &lasers, const Parameters<T> &parameters) {
-	cuda::std::array<T, 3> r0;
+	Vector3<T> r0;
 	int laser_count = parameters.laser_count, i = 0, j = 0, p, m;
 	T a0, tau, psi, phi, theta, omega, w0_mult, zeta_x_real, zeta_x_imag, zeta_y_real, zeta_y_imag;
 	
