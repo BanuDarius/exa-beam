@@ -131,7 +131,7 @@ __global__ void divergence_e_gpu_kernel(VectorFieldView<T> e, T *d_divergence) {
 	int local_idx = grid_idx(threadIdx.x, threadIdx.y, threadIdx.z, blockDim.x, blockDim.y, blockDim.z);
 	
 	T divergence = T(0.0);
-	if(i < nx && j < ny && k < nz) {
+	if(i < nx - 1 && i > 0 && j < ny - 1 && j > 0 && k < nz - 1 && k > 0) {
 		T e_x = e.get_x(i, j, k);
 		T e_y = e.get_y(i, j, k);
 		T e_z = e.get_z(i, j, k);
