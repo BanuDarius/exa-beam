@@ -39,7 +39,7 @@ if __name__ == "__main__":
     
     lasers = []
     lasers.append(sim_init.Laser(zeta_x, zeta_y, phi, theta, r0, a0, p, m, w0_mult, omega, tau, psi))
-    #lasers.append(sim_init.Laser(zeta_x, zeta_y, phi, np.radians(90.0), r0, a0, p, - m, w0_mult, omega, tau, psi))
+    lasers.append(sim_init.Laser(zeta_x, zeta_y, phi, np.radians(90.0), r0, a0, p, - m, w0_mult, omega, tau, psi))
     
     programs.run_simulation(sim_parameters, lasers)
     
