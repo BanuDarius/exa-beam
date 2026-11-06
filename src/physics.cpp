@@ -126,7 +126,7 @@ T divergence_e(VectorField<T> &e_field) noexcept {
 	VectorFieldView e = e_field.get_cpu_view();
 	
 	T divergence = T(0.0);
-	int nx = e.num[0], ny = e.num[1], nz = e.num[2];
+	int nx = e.num[0], ny = e.num[1], nz = e.num[2], num_points = (nx - 2) * (ny - 2) * (nz - 2);
 	T inv_dx = e.inv_dx[0], inv_dy = e.inv_dx[1], inv_dz = e.inv_dx[2];
 	#pragma omp parallel for simd collapse(3) schedule(static) reduction(+:divergence)
 	for(int k = 1; k < nz - 1; k++)
@@ -143,7 +143,7 @@ T divergence_e(VectorField<T> &e_field) noexcept {
 				T divE = dxEx + dyEy + dzEz;
 				divergence += divE * divE;
 			}
-	return cuda::std::sqrt(divergence / static_cast<T>(e.field_size));
+	return cuda::std::sqrt(divergence / static_cast<T>(num_points));
 }
 
 template <std::floating_point T>

@@ -302,7 +302,7 @@ T total_energy_gpu(VectorField<T> &e_field, VectorField<T> &b_field) noexcept {
 template <std::floating_point T>
 T divergence_e_gpu(VectorField<T> &e_field) noexcept {
 	VectorFieldView<T> e = e_field.get_gpu_view();
-	int nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
+	int nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2], num_points = (nx - 2) * (ny - 2) * (nz - 2);
 	
 	dim3 threads(threads_3d_nx, threads_3d_ny, threads_3d_nz);
 	int shared_memory = threads.x * threads.y * threads.z * sizeof(T);
@@ -321,7 +321,7 @@ T divergence_e_gpu(VectorField<T> &e_field) noexcept {
 	
 	CUDA_CHECK(cudaMemcpy(&h_divergence, d_divergence, sizeof(T), cudaMemcpyDeviceToHost));
 	CUDA_CHECK(cudaFree(d_divergence));
-	return cuda::std::sqrt(h_divergence / static_cast<T>(e.field_size));
+	return cuda::std::sqrt(h_divergence / static_cast<T>(num_points));
 }
 
 template <std::floating_point T>
