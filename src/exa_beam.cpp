@@ -38,7 +38,6 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 	
 	for(int step = 0; step < steps; step++) {
 		//T t = step * dt;
-		
 		//if(use_gpu) hc_update_gpu(particles, device_lasers, t, dt);
 		//else hc_update(particles, lasers, t, dt);
 		
@@ -88,7 +87,7 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 	std::string filename_lz = std::format("{}/lz.vtk", output_directory);
 	std::ofstream output_lz(filename_lz, std::ios::binary);
 	if(!output_lz) {
-		std::fprintf(stderr, "CANNOT OPEN OUTPUT LZ FILE!\n"); return;
+		std::fprintf(stderr, "Cannot open output Lz file!\n"); return;
 	}
 	
 	cudaDeviceSynchronize();
@@ -110,7 +109,7 @@ void start_simulation(const std::string &input_file, const std::string &input_la
 
 int main(int argc, char **argv) {
 	if(argc > 5) {
-		std::fprintf(stderr, "%s INVALID ARGUMENTS!\n", argv[0]);
+		std::fprintf(stderr, "%s Invalid arguments!\n", argv[0]);
 		return 1;
 	}
 	double start_time = omp_get_wtime();

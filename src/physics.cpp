@@ -3,7 +3,6 @@
 
 #include <cuda/std/cmath>
 #include <cuda/std/array>
-#include <cuda/std/complex>
 
 #include "physics.hpp"
 #include "math_functions.hpp"
