@@ -12,14 +12,6 @@ __global__ void hc_update_kernel(ParticlesView<T> particles_view, __grid_constan
 		Vector3<T> u_vec_global = particles_view.get_velocity(idx);
 		Vector3<T> b_vec_global{}, e_vec_global{};
 		
-		for(int i = 0; i < laser_count; i++) {
-			Vector3<T> r_vec_local = lasers[i].pos_global_to_local(r_vec_global);
-			Vector3<T> e_vec_local = lg_compute_e(lasers[i], r_vec_local, t);
-			Vector3<T> b_vec_local = lg_compute_b(lasers[i], r_vec_local, t);
-			e_vec_global += lasers[i].vec_local_to_global(e_vec_local);
-			b_vec_global += lasers[i].vec_local_to_global(b_vec_local);
-		}
-		
 		Vector3<T> beta = hc_beta(b_vec_global, dt);
 		Vector3<T> epsilon = hc_epsilon(e_vec_global, dt);
 		Vector3<T> u_minus = hc_u_minus(u_vec_global, epsilon);
