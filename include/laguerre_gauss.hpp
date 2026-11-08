@@ -35,7 +35,7 @@ __device__ __host__ inline T lg_r_z(T z, T z_r) noexcept {
 }
 
 template <std::floating_point T>
-__device__ __host__ inline T lg_guoy(T z, T z_r) noexcept {
+__device__ __host__ inline T lg_gouy(T z, T z_r) noexcept {
 	T psi = cuda::std::atan(z / z_r);
 	return psi;
 }
@@ -54,7 +54,7 @@ __device__ __host__ inline cuda::std::complex<T> lg_compute_u(const Laser<T> &la
 	T w_z2 = w_z * w_z, rho2 = rho * rho;
 	int m = laser.m;
 	
-	T psi_g = lg_guoy(z, z_r);
+	T psi_g = lg_gouy(z, z_r);
 	T amplitude, phase, phi;
 	
 	if(m == 0) {
