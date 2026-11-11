@@ -31,8 +31,8 @@ phi = np.radians(0.0)
 theta = np.radians(0.0)
 
 r0 = [ 0.0, 0.0, 0.0 ]
-zeta_x = [ 0.707, 0.000 ]
-zeta_y = [ 0.000, - 0.707 ]
+zeta_x = [ 1.0, 0.0 ]
+zeta_y = [ 0.0, 0.0 ]
 
 if __name__ == "__main__":
     sim_parameters = sim_init.SimParameters(tf, steps, substeps, nx, max_dim_mult, use_gpu, use_floats, output_laser_fields)
