@@ -16,7 +16,7 @@
 #include "math_functions.hpp"
 
 constexpr int max_lasers = 16;
-constexpr int input_file_count = 10;
+constexpr int input_file_count = 12;
 constexpr int input_laser_count = 16;
 
 template <std::floating_point T> constexpr T m_e = T(1.0);
@@ -36,11 +36,12 @@ template <std::floating_point T> struct ComplexScalarField;
 template <std::floating_point T>
 struct Parameters {
 	T tf;
-	int nx, steps, substeps, laser_count;
+	cuda::std::array<int, 3> num;
+	int steps, substeps, laser_count;
 	Vector3<T> max_dim_mult;
 	bool use_gpu, output_laser_fields;
-	Parameters(T tf_new, int nx_new, int steps_new, int substeps_new, int laser_count_new, Vector3<T> max_dim_mult_new, bool use_gpu_new, bool output_laser_fields_new)
-		: tf(tf_new), nx(nx_new), steps(steps_new), substeps(substeps_new), laser_count(laser_count_new), max_dim_mult(max_dim_mult_new), use_gpu(use_gpu_new), output_laser_fields(output_laser_fields_new) {}
+	Parameters(T tf_new, cuda::std::array<int, 3> num_new, int steps_new, int substeps_new, int laser_count_new, Vector3<T> max_dim_mult_new, bool use_gpu_new, bool output_laser_fields_new)
+		: tf(tf_new), num(num_new), steps(steps_new), substeps(substeps_new), laser_count(laser_count_new), max_dim_mult(max_dim_mult_new), use_gpu(use_gpu_new), output_laser_fields(output_laser_fields_new) {}
 	Parameters() noexcept = default;
 };
 
@@ -109,15 +110,14 @@ struct DeviceLasers {
 
 template <std::floating_point T>
 struct Particles {
-	bool use_gpu;
-	std::size_t particle_num;
 	cuda::std::array<int, 3> num;
 	Vector3<T> r_max;
+	bool use_gpu;
+	std::size_t particle_num;
 	std::unique_ptr<T[], HostMemory<T>> h_x, h_y, h_z, h_ux, h_uy, h_uz, h_gamma;
 	std::unique_ptr<T[], DeviceMemory<T>> d_x, d_y, d_z, d_ux, d_uy, d_uz, d_gamma;
-	Particles(int nx, int ny, int nz, Vector3<T> r_max_new, bool use_gpu_new) : use_gpu(use_gpu_new), r_max(r_max_new) {
-		particle_num = nx * ny * nz;
-		num = { nx, ny, nz };
+	Particles(cuda::std::array<int, 3> num_new, Vector3<T> r_max_new, bool use_gpu_new) : num(num_new), r_max(r_max_new), use_gpu(use_gpu_new) {
+		particle_num = num[0] * num[1] * num[2];
 		h_x.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
 		h_y.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
 		h_z.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
@@ -126,18 +126,16 @@ struct Particles {
 		h_uz.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
 		h_gamma.reset(new (static_cast<std::align_val_t>(mem_align)) T[particle_num]);
 		#pragma omp parallel for simd collapse(3) schedule(static)
-		for(int k = 0; k < nz; k++) {
-			for(int j = 0; j < ny; j++) {
-				for(int i = 0; i < nx; i++) {
-					std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-					h_x[idx] = interpolate(-r_max[0], r_max[0], static_cast<T>(i), static_cast<T>(nx));
-					h_y[idx] = interpolate(-r_max[1], r_max[1], static_cast<T>(j), static_cast<T>(ny));
-					h_z[idx] = interpolate(-r_max[2], r_max[2], static_cast<T>(k), static_cast<T>(nz));
+		for(int k = 0; k < num[2]; k++)
+			for(int j = 0; j < num[1]; j++)
+				for(int i = 0; i < num[0]; i++) {
+					std::size_t idx = grid_idx(i, j, k, num[0], num[1], num[2]);
+					h_x[idx] = interpolate(-r_max[0], r_max[0], static_cast<T>(i), static_cast<T>(num[0]));
+					h_y[idx] = interpolate(-r_max[1], r_max[1], static_cast<T>(j), static_cast<T>(num[1]));
+					h_z[idx] = interpolate(-r_max[2], r_max[2], static_cast<T>(k), static_cast<T>(num[2]));
 					h_ux[idx] = T(0.0); h_uy[idx] = T(0.0); h_uz[idx] = T(0.0);
 					h_gamma[idx] = T(1.0);
 				}
-			}
-		}
 		if(use_gpu) {
 			T *raw_d_x = nullptr, *raw_d_y = nullptr, *raw_d_z = nullptr;
 			T *raw_d_ux = nullptr, *raw_d_uy = nullptr, *raw_d_uz = nullptr, *raw_d_gamma = nullptr;
@@ -190,7 +188,7 @@ struct Particles {
 		return ParticlesView<T>(d_x.get(), d_y.get(), d_z.get(), d_ux.get(), d_uy.get(), d_uz.get(), d_gamma.get(), num, r_max, particle_num);
 	}
 	Particles(const Parameters<T> &parameters, const Laser<T> &laser)
-		: Particles(parameters.nx, parameters.nx, parameters.nx, parameters.max_dim_mult * laser.w0, parameters.use_gpu) {}
+		: Particles(parameters.num, parameters.max_dim_mult * laser.w0, parameters.use_gpu) {}
 	Particles(Particles &&other) noexcept = default;
 	Particles &operator=(Particles &&other) noexcept = default;
 	~Particles() = default;
@@ -198,15 +196,14 @@ struct Particles {
 
 template <std::floating_point T>
 struct ScalarField {
-	bool use_gpu;
-	std::size_t field_size;
 	cuda::std::array<int, 3> num;
 	Vector3<T> r_max;
+	bool use_gpu;
+	std::size_t field_size;
 	std::unique_ptr<T[], HostMemory<T>> h_v;
 	std::unique_ptr<T[], DeviceMemory<T>> d_v;
-	ScalarField(int nx, int ny, int nz, Vector3<T> r_max_new, bool use_gpu_new) : use_gpu(use_gpu_new), r_max(r_max_new) {
-		field_size = nx * ny * nz;
-		num = { nx, ny, nz };
+	ScalarField(cuda::std::array<int, 3> num_new, Vector3<T> r_max_new, bool use_gpu_new) : num(num_new), r_max(r_max_new), use_gpu(use_gpu_new) {
+		field_size = num[0] * num[1] * num[2];
 		h_v.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
 		#pragma omp parallel for simd schedule(static)
 		for(std::size_t i = 0; i < field_size; i++)
@@ -258,7 +255,7 @@ struct ScalarField {
 		return ScalarFieldView<T>(d_v.get(), num, r_max, field_size);
 	}
 	ScalarField(const Parameters<T> &parameters, const Laser<T> &laser)
-		: ScalarField(parameters.nx, parameters.nx, parameters.nx, parameters.max_dim_mult * laser.w0, parameters.use_gpu) {}
+		: ScalarField(parameters.num, parameters.max_dim_mult * laser.w0, parameters.use_gpu) {}
 	ScalarField(ScalarField &&other) noexcept = default;
 	ScalarField &operator=(ScalarField &&other) noexcept = default;
 	~ScalarField() = default;
@@ -266,19 +263,18 @@ struct ScalarField {
 
 template <std::floating_point T>
 struct VectorField {
-	bool use_gpu;
-	std::size_t field_size;
 	cuda::std::array<int, 3> num;
 	Vector3<T> r_max, inv_dx, dx;
+	bool use_gpu;
+	std::size_t field_size;
 	std::unique_ptr<T[], HostMemory<T>> h_x, h_y, h_z;
 	std::unique_ptr<T[], DeviceMemory<T>> d_x, d_y, d_z;
-	VectorField(int nx, int ny, int nz, Vector3<T> r_max_new, bool use_gpu_new) : use_gpu(use_gpu_new), r_max(r_max_new) {
-		field_size = nx * ny * nz;
-		num = { nx, ny, nz };
+	VectorField(cuda::std::array<int, 3> num_new, Vector3<T> r_max_new, bool use_gpu_new) : num(num_new), r_max(r_max_new), use_gpu(use_gpu_new) {
+		field_size = num[0] * num[1] * num[2];
 		dx = {
-			T(2.0) * r_max[0] / static_cast<T>(nx - 1),
-			T(2.0) * r_max[1] / static_cast<T>(ny - 1),
-			T(2.0) * r_max[2] / static_cast<T>(nz - 1)
+			T(2.0) * r_max[0] / static_cast<T>(num[0] - 1),
+			T(2.0) * r_max[1] / static_cast<T>(num[1] - 1),
+			T(2.0) * r_max[2] / static_cast<T>(num[2] - 1)
 		};
 		inv_dx = { T(1.0) / dx[0], T(1.0) / dx[1], T(1.0) / dx[2] };
 		h_x.reset(new (static_cast<std::align_val_t>(mem_align)) T[field_size]);
@@ -356,7 +352,7 @@ struct VectorField {
 		return VectorFieldView<T>(d_x.get(), d_y.get(), d_z.get(), num, r_max, dx, inv_dx, field_size);
 	}
 	VectorField(const Parameters<T> &parameters, const Laser<T> &laser)
-		: VectorField(parameters.nx, parameters.nx, parameters.nx, parameters.max_dim_mult * laser.w0, parameters.use_gpu) {}
+		: VectorField(parameters.num, parameters.max_dim_mult * laser.w0, parameters.use_gpu) {}
 	VectorField(VectorField &&other) noexcept = default;
 	VectorField &operator=(VectorField &&other) noexcept = default;
 	~VectorField() = default;
@@ -366,8 +362,8 @@ struct DataVTK {
 	bool use_gpu;
 	std::size_t field_size;
 	std::unique_ptr<uint32_t[], HostMemoryGeneric<uint32_t>> vtk_scalar, vtk_vector;
-	DataVTK(int nx, int ny, int nz, bool use_gpu_new) : use_gpu(use_gpu_new) {
-		field_size = nx * ny * nz;
+	DataVTK(cuda::std::array<int, 3> num, bool use_gpu_new) : use_gpu(use_gpu_new) {
+		field_size = num[0] * num[1] * num[2];
 		vtk_scalar.reset(new (static_cast<std::align_val_t>(mem_align)) uint32_t[field_size]);
 		vtk_vector.reset(new (static_cast<std::align_val_t>(mem_align)) uint32_t[3 * field_size]);
 		#pragma omp parallel for simd schedule(static)
@@ -378,9 +374,9 @@ struct DataVTK {
 			vtk_vector[i] = 0u;
 	}
 	DataVTK(const Parameters<double> &parameters)
-		: DataVTK(parameters.nx, parameters.nx, parameters.nx, parameters.use_gpu) {}
+		: DataVTK(parameters.num, parameters.use_gpu) {}
 	DataVTK(const Parameters<float> &parameters)
-		: DataVTK(parameters.nx, parameters.nx, parameters.nx, parameters.use_gpu) {}
+		: DataVTK(parameters.num, parameters.use_gpu) {}
 	DataVTK(DataVTK &&other) noexcept = default;
 	DataVTK &operator=(DataVTK &&other) noexcept = default;
 	~DataVTK() = default;

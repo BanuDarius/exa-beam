@@ -17,7 +17,9 @@ def output_init_files(sim_parameters, lasers):
     
     with open(input_file, "w") as file:
         file.write(f"tf {sim_parameters.tf}\n")
-        file.write(f"nx {sim_parameters.nx}\n")
+        file.write(f"num_x {sim_parameters.num[0]}\n")
+        file.write(f"num_y {sim_parameters.num[1]}\n")
+        file.write(f"num_z {sim_parameters.num[2]}\n")
         file.write(f"steps {sim_parameters.steps}\n")
         file.write(f"substeps {sim_parameters.substeps}\n")
         file.write(f"use_gpu {int(sim_parameters.use_gpu)}\n")

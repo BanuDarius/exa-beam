@@ -12,10 +12,10 @@ use_gpu = True
 use_floats = True
 output_laser_fields = True
 
-nx = 128
 steps = 100000
 substeps = 500
-max_dim_mult = [ 5.0, 5.0, 5.0 ]
+num = [ 128, 128, 128 ]
+max_dim_mult = [ 3.0, 3.0, 3.0 ]
 
 p = 0
 m = 1
@@ -25,7 +25,7 @@ omega = 0.057
 w0_mult = 4.0
 
 psi = 0.0
-tf = 10.0 * max_dim_mult[2] * 2.0 * np.pi / omega
+tf = max_dim_mult[2] * w0_mult * 2.0 * np.pi / omega
 
 phi = np.radians(0.0)
 theta = np.radians(0.0)
@@ -35,7 +35,7 @@ zeta_x = [ 1.0, 0.0 ]
 zeta_y = [ 0.0, 0.0 ]
 
 if __name__ == "__main__":
-    sim_parameters = sim_init.SimParameters(tf, steps, substeps, nx, max_dim_mult, use_gpu, use_floats, output_laser_fields)
+    sim_parameters = sim_init.SimParameters(tf, steps, substeps, num, max_dim_mult, use_gpu, use_floats, output_laser_fields)
     
     lasers = []
     lasers.append(sim_init.Laser(zeta_x, zeta_y, phi, theta, r0, a0, p, m, w0_mult, omega, tau, psi))

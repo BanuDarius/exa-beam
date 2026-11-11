@@ -9,9 +9,9 @@ INPUT_DIR = PROJECT_ROOT / "input"
 OUTPUT_DIR = PROJECT_ROOT / "output"
 
 class SimParameters():
-    def __init__(self, tf, steps, substeps, nx, max_dim_mult, use_gpu, use_floats, output_laser_fields):
+    def __init__(self, tf, steps, substeps, num, max_dim_mult, use_gpu, use_floats, output_laser_fields):
         self.tf = tf
-        self.nx = nx
+        self.num = num
         self.steps = steps
         self.use_gpu = use_gpu
         self.substeps = substeps

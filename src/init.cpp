@@ -15,7 +15,8 @@ template <std::floating_point T>
 void read_input_file(const std::string &parameters_filename, Parameters<T> &parameters) {
 	T tf;
 	Vector3<T> max_dim_mult;
-	int i = 0, nx, steps, substeps, laser_count, use_gpu, output_laser_fields;
+	cuda::std::array<int, 3> num;
+	int i = 0, steps, substeps, laser_count, use_gpu, output_laser_fields;
 	
 	std::string current;
 	std::ifstream input_param(parameters_filename);
@@ -23,12 +24,16 @@ void read_input_file(const std::string &parameters_filename, Parameters<T> &para
 		std::fprintf(stderr, "CANNOT OPEN INPUT FILE!\n"); std::exit(1);
 	}
 	while(input_param >> current) {
-		if(current == "nx") {
-			if(input_param >> nx) i++;
-		} else if(current == "tf") {
+		if(current == "tf") {
 			if(input_param >> tf) i++;
 		} else if(current == "steps") {
 			if(input_param >> steps) i++;
+		} else if(current == "num_x") {
+			if(input_param >> num[0]) i++;
+		} else if(current == "num_y") {
+			if(input_param >> num[1]) i++;
+		} else if(current == "num_z") {
+			if(input_param >> num[2]) i++;
 		} else if(current == "use_gpu") {
 			if(input_param >> use_gpu) i++;
 		} else if(current == "substeps") {
@@ -48,7 +53,7 @@ void read_input_file(const std::string &parameters_filename, Parameters<T> &para
 	if(i != input_file_count) {
 		std::fprintf(stderr, "INVALID INPUT FILE!\n"); std::exit(1);
 	}
-	parameters = Parameters(tf, nx, steps, substeps, laser_count, max_dim_mult, static_cast<bool>(use_gpu), static_cast<bool>(output_laser_fields));
+	parameters = Parameters(tf, num, steps, substeps, laser_count, max_dim_mult, static_cast<bool>(use_gpu), static_cast<bool>(output_laser_fields));
 }
 
 template <std::floating_point T>
