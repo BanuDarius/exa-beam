@@ -12,10 +12,10 @@ use_gpu = True
 use_floats = True
 output_laser_fields = True
 
-steps = 100000
-substeps = 500
+steps = 2000
+substeps = 200
 num = [ 128, 128, 128 ]
-max_dim_mult = [ 3.0, 3.0, 3.0 ]
+max_dim_mult = [ 3.0, 3.0, 6.0 ]
 
 p = 0
 m = 1
@@ -25,7 +25,7 @@ omega = 0.057
 w0_mult = 4.0
 
 psi = 0.0
-tf = max_dim_mult[2] * w0_mult * 2.0 * np.pi / omega
+tf = 3.0 * max_dim_mult[2] * w0_mult * 2.0 * np.pi / omega
 
 phi = np.radians(0.0)
 theta = np.radians(0.0)
