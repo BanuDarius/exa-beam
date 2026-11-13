@@ -10,6 +10,6 @@
 
 source $HOME/python-env/bin/activate
 
-srun python3 auto_compute.py
+srun python3 exa_beam.py
 
 deactivate
