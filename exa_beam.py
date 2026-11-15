@@ -22,7 +22,7 @@ m = 1
 a0 = 1.0
 tau = 4.0
 omega = 0.057
-w0_mult = 4.0
+w0_mult = 6.0
 
 psi = 0.0
 tf = 3.0 * max_dim_mult[2] * w0_mult * 2.0 * np.pi / omega
@@ -37,9 +37,10 @@ zeta_y = [ 0.0, 0.0 ]
 if __name__ == "__main__":
     sim_parameters = sim_init.SimParameters(tf, steps, substeps, num, max_dim_mult, use_gpu, use_floats, output_laser_fields)
     
-    lasers = []
-    lasers.append(sim_init.Laser(zeta_x, zeta_y, phi, theta, r0, a0, p, m, w0_mult, omega, tau, psi))
-    #lasers.append(sim_init.Laser(zeta_x, zeta_y, phi, np.radians(90.0), r0, a0, p, - m, w0_mult, omega, tau, psi))
+    lasers = [
+        sim_init.Laser(zeta_x, zeta_y, phi, theta, r0, a0, p, m, w0_mult, omega, tau, psi),
+        sim_init.Laser(zeta_x, zeta_y, phi, np.radians(90.0), r0, a0, p, - m, w0_mult, omega, tau, psi)
+    ]
     
     programs.run_simulation(sim_parameters, lasers)
     
