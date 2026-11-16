@@ -261,6 +261,7 @@ template <std::floating_point T>
 void fdtd_update_e_gpu(VectorField<T> &e_field, VectorField<T> &b_field, T dt) noexcept {
 	VectorFieldView<T> b = b_field.get_gpu_view(), e = e_field.get_gpu_view();
 	int nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
+
 	dim3 threads(threads_3d_nx, threads_3d_ny, threads_3d_nz);
 	dim3 blocks(
 		(nx + threads.x - 1) / threads.x,
@@ -327,6 +328,7 @@ template <std::floating_point T>
 void initialize_eb_fields_gpu(VectorField<T> &e_field, VectorField<T> &b_field, const DeviceLasers<T> &lasers, T dt) noexcept {
 	VectorFieldView<T> e = e_field.get_gpu_view(), b = b_field.get_gpu_view();
 	int nx = e_field.num[0], ny = e_field.num[1], nz = e_field.num[2];
+
 	dim3 threads(threads_3d_nx, threads_3d_ny, threads_3d_nz);
 	dim3 blocks(
 		(nx + threads.x - 1) / threads.x,
