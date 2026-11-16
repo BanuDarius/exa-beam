@@ -3,7 +3,6 @@
 
 #include <cuda_runtime.h>
 #include <cuda/std/array>
-#include <cuda/std/complex>
 
 #include "physics_gpu.hpp"
 #include "math_functions.hpp"

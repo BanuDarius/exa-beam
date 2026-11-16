@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import numpy as np
-import scripts.render as render
+#import scripts.render as render
 import scripts.sim_init as sim_init
 import scripts.programs as programs
 
