@@ -58,6 +58,9 @@ __device__ __host__ inline T cic_interpolate(const VectorFieldView<T> &e, Weight
 
 template <std::floating_point T>
 __device__ __host__ inline EBVector3<T> cic_gather(Vector3<T> r_vec, const VectorFieldView<T> &e, const VectorFieldView<T> &b) noexcept {
+    if(cuda::std::abs(r_vec[0]) > e.r_max[0] || cuda::std::abs(r_vec[1]) > e.r_max[1] || cuda::std::abs(r_vec[2]) > e.r_max[2]) {
+        return { EBVector3<T>{} };
+    }
     int nx = e.num[0], ny = e.num[1], nz = e.num[2];
     Vector3<T> g = {
         (r_vec[0] + e.r_max[0]) * e.inv_dx[0],

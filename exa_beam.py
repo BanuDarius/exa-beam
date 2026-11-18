@@ -14,12 +14,12 @@ output_laser_fields = True
 
 steps = 2000
 substeps = 100
-num = [ 128, 128, 128 ]
+num = [ 128, 128, 256 ]
 max_dim_mult = [ 3.0, 3.0, 6.0 ]
 
 p = 0
 m = 1
-a0 = 1.0
+a0 = 0.1
 tau = 4.0
 omega = 0.057
 w0_mult = 6.0
