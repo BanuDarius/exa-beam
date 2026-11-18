@@ -27,11 +27,11 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 	std::ofstream output_diagnostics(filename_diagnostics, std::ios::binary);
 	if(!output_diagnostics) { std::fprintf(stderr, "Cannot open output diagnostics file!\n"); return; }
 	
-	DataVTK data_vtk(parameters);
 	DeviceLasers<T> device_lasers(lasers);
 	Particles<T> particles(parameters, lasers.front());
 	ScalarField<T> lz_field(parameters, lasers.front());
 	VectorField<T> e_field(parameters, lasers.front()), b_field(parameters, lasers.front());
+	DataVTK vtk_fields(e_field), vtk_particles(particles);
 	
 	if(use_gpu) initialize_eb_fields_gpu(e_field, b_field, device_lasers, dt);
 	else initialize_eb_fields(e_field, b_field, lasers, dt);
@@ -73,9 +73,9 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 			
 			cudaDeviceSynchronize();
 			output_vtk_header(output_fields, e_field);
-			output_vtk_particles(output_particles, data_vtk, particles);
-			output_vtk_vector_field(output_fields, data_vtk, e_field, "E");
-			output_vtk_vector_field(output_fields, data_vtk, b_field, "B");
+			output_vtk_particles(output_particles, vtk_particles, particles);
+			output_vtk_vector_field(output_fields, vtk_fields, e_field, "E");
+			output_vtk_vector_field(output_fields, vtk_fields, b_field, "B");
 			std::printf("Computed step: %d/%d.\n", step, steps);
 		}
 	}
@@ -92,7 +92,7 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 	
 	cudaDeviceSynchronize();
 	output_vtk_header(output_lz, lz_field);
-	output_vtk_scalar_field(output_lz, data_vtk, lz_field, "Lz");
+	output_vtk_scalar_field(output_lz, vtk_fields, lz_field, "Lz");
 }
 
 template <std::floating_point T>

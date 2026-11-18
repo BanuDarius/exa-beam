@@ -93,42 +93,35 @@ template <std::floating_point T>
 void output_vtk_particles(std::ofstream &output_file, const DataVTK &data_vtk, const Particles<T> &particles) {
 	ParticlesView particles_view = particles.get_cpu_view();
 	uint32_t *vtk_vector = data_vtk.vtk_vector.get();
-	std::size_t field_size = data_vtk.field_size;
-	int nx = particles.num[0], ny = particles.num[1], nz = particles.num[2];
+	std::size_t particle_num = particles_view.particle_num;
 	
-	#pragma omp parallel for collapse(3) schedule(static)
-	for(int k = 0; k < nz; k++)
-		for(int j = 0; j < ny; j++)
-			for(int i = 0; i < nx; i++) {
-				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-				Vector3<T> r_vec = particles_view.get_position(idx);
-				
-				vtk_vector[3 * idx] = swap_endian(static_cast<float>(r_vec[0]));
-				vtk_vector[3 * idx + 1] = swap_endian(static_cast<float>(r_vec[1]));
-				vtk_vector[3 * idx + 2] = swap_endian(static_cast<float>(r_vec[2]));
-			}
+	#pragma omp parallel for schedule(static)
+	for(std::size_t idx = 0; idx < particle_num; idx++) {
+		Vector3<T> r_vec = particles_view.get_position(idx);
+		
+		vtk_vector[3 * idx] = swap_endian(static_cast<float>(r_vec[0]));
+		vtk_vector[3 * idx + 1] = swap_endian(static_cast<float>(r_vec[1]));
+		vtk_vector[3 * idx + 2] = swap_endian(static_cast<float>(r_vec[2]));
+	}
 	
 	output_file << "# vtk DataFile Version 3.0\n";
 	output_file << "Particle data\n";
 	output_file << "BINARY\n";
 	output_file << "DATASET POLYDATA\n";
-	output_file << "POINTS " << field_size << " float\n";
-	output_file.write(reinterpret_cast<const char*>(vtk_vector), 3 * field_size * sizeof(uint32_t));
-	#pragma omp parallel for collapse(3) schedule(static)
-	for(int k = 0; k < nz; k++)
-		for(int j = 0; j < ny; j++)
-			for(int i = 0; i < nx; i++) {
-				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-				Vector3<T> u_vec = particles_view.get_velocity(idx);
+	output_file << "POINTS " << particle_num << " float\n";
+	output_file.write(reinterpret_cast<const char*>(vtk_vector), 3 * particle_num * sizeof(uint32_t));
+	#pragma omp parallel for schedule(static)
+	for(std::size_t idx = 0; idx < particle_num; idx++) {
+		Vector3<T> u_vec = particles_view.get_velocity(idx);
 				
-				vtk_vector[3 * idx] = swap_endian(static_cast<float>(u_vec[0]));
-				vtk_vector[3 * idx + 1] = swap_endian(static_cast<float>(u_vec[1]));
-				vtk_vector[3 * idx + 2] = swap_endian(static_cast<float>(u_vec[2]));
-			}
+		vtk_vector[3 * idx] = swap_endian(static_cast<float>(u_vec[0]));
+		vtk_vector[3 * idx + 1] = swap_endian(static_cast<float>(u_vec[1]));
+		vtk_vector[3 * idx + 2] = swap_endian(static_cast<float>(u_vec[2]));
+	}
 	
-	output_file << "\n" << "POINT_DATA " << field_size << "\n";
+	output_file << "\n" << "POINT_DATA " << particle_num << "\n";
 	output_file << "VECTORS velocity float\n";
-	output_file.write(reinterpret_cast<const char*>(vtk_vector), 3 * field_size * sizeof(uint32_t));
+	output_file.write(reinterpret_cast<const char*>(vtk_vector), 3 * particle_num * sizeof(uint32_t));
 }
 
 template void output_vtk_header<double>(std::ofstream &output_file, const ScalarField<double> &field);

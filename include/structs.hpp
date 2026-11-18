@@ -352,24 +352,23 @@ struct VectorField {
 };
 
 struct DataVTK {
-	bool use_gpu;
-	std::size_t field_size;
+	std::size_t element_num;
 	std::unique_ptr<uint32_t[], HostMemoryGeneric<uint32_t>> vtk_scalar, vtk_vector;
-	DataVTK(cuda::std::array<int, 3> num, bool use_gpu_new) : use_gpu(use_gpu_new) {
-		field_size = num[0] * num[1] * num[2];
-		vtk_scalar.reset(new (static_cast<std::align_val_t>(mem_align)) uint32_t[field_size]);
-		vtk_vector.reset(new (static_cast<std::align_val_t>(mem_align)) uint32_t[3 * field_size]);
+	bool use_gpu;
+	DataVTK(std::size_t element_num_new, bool use_gpu_new) : element_num(element_num_new), use_gpu(use_gpu_new) {
+		vtk_scalar.reset(new (static_cast<std::align_val_t>(mem_align)) uint32_t[element_num]);
+		vtk_vector.reset(new (static_cast<std::align_val_t>(mem_align)) uint32_t[3 * element_num]);
 		#pragma omp parallel for simd schedule(static)
-		for(std::size_t i = 0; i < field_size; i++)
+		for(std::size_t i = 0; i < element_num; i++)
 			vtk_scalar[i] = 0u;
 		#pragma omp parallel for simd schedule(static)
-		for(std::size_t i = 0; i < 3 * field_size; i++)
+		for(std::size_t i = 0; i < 3 * element_num; i++)
 			vtk_vector[i] = 0u;
 	}
-	DataVTK(const Parameters<double> &parameters)
-		: DataVTK(parameters.num, parameters.use_gpu) {}
-	DataVTK(const Parameters<float> &parameters)
-		: DataVTK(parameters.num, parameters.use_gpu) {}
+	DataVTK(const VectorField<float> &field) : DataVTK(field.field_size, field.use_gpu) {}
+	DataVTK(const VectorField<double> &field) : DataVTK(field.field_size, field.use_gpu) {}
+	DataVTK(const Particles<float> &particles) : DataVTK(particles.particle_num, particles.use_gpu) {}
+	DataVTK(const Particles<double> &particles) : DataVTK(particles.particle_num, particles.use_gpu) {}
 	DataVTK(DataVTK &&other) noexcept = default;
 	DataVTK &operator=(DataVTK &&other) noexcept = default;
 	~DataVTK() = default;
