@@ -7,7 +7,7 @@
 #include <span>
 #include <concepts>
 
-#include "sim_structs.hpp"
+#include "structs.hpp"
 
 template <std::floating_point T> void compute_lz(ScalarField<T> &lz_field, Particles<T> &particles) noexcept;
 template <std::floating_point T> void fdtd_update_b(VectorField<T> &b_field, VectorField<T> &e_field, T dt) noexcept;

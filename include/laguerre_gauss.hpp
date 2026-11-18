@@ -12,7 +12,7 @@
 #include <cuda/std/cmath>
 #include <cuda/std/complex>
 
-#include "sim_structs.hpp"
+#include "structs.hpp"
 #include "math_functions.hpp"
 
 template <std::floating_point T>

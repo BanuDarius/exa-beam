@@ -8,7 +8,7 @@
 #include <cstring>
 #include <concepts>
 
-#include "sim_structs.hpp"
+#include "structs.hpp"
 
 template <std::floating_point T> void read_input_file(const std::string &parameters_filename, Parameters<T> &parameters);
 template <std::floating_point T> void read_lasers_file(const std::string &lasers_filename, std::vector<Laser<T>> &lasers, const Parameters<T> &parameters);

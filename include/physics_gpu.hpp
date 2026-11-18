@@ -6,7 +6,7 @@
 
 #include <concepts>
 
-#include "sim_structs.hpp"
+#include "structs.hpp"
 
 template <std::floating_point T> __global__ void compute_lz_gpu_kernel(ScalarFieldView<T> lz_view, ParticlesView<T> particles_view);
 template <std::floating_point T> __global__ void fdtd_update_b_gpu_kernel(VectorFieldView<T> b, VectorFieldView<T> e, T dt);

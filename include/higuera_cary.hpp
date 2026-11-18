@@ -4,14 +4,14 @@
 #ifndef HIGUERA_CARY_H
 #define HIGUERA_CARY_H
 
-#include <span>
 #include <concepts>
 
 #include <cuda_runtime.h>
 #include <cuda/std/array>
 #include <cuda/std/cmath>
 
-#include "sim_structs.hpp"
+#include "gather.hpp"
+#include "structs.hpp"
 #include "math_functions.hpp"
 #include "laguerre_gauss.hpp"
 
@@ -77,14 +77,16 @@ __device__ __host__ inline Vector3<T> hc_u_plus(Vector3<T> u_minus, Vector3<T> u
 }
 
 template <std::floating_point T>
-inline void hc_update(Particles<T> &particles, std::span<const Laser<T>> lasers, T t, T dt) noexcept {
-	int laser_count = lasers.size();
+inline void hc_update(Particles<T> &particles, VectorField<T> &e_field, VectorField<T> &b_field, T dt) noexcept {
 	ParticlesView<T> particles_view = particles.get_cpu_view();
+	VectorFieldView<T> e = e_field.get_cpu_view(), b = b_field.get_cpu_view();
 	#pragma omp parallel for simd schedule(static)
 	for(std::size_t idx = 0; idx < particles.particle_num; idx++) {
 		Vector3<T> r_vec = particles_view.get_position(idx);
 		Vector3<T> u_vec = particles_view.get_velocity(idx);
-		Vector3<T> b_vec{}, e_vec{};
+		
+		Vector3<T> e_vec = cic_gather_electric(r_vec, e);
+		Vector3<T> b_vec = cic_gather_magnetic(r_vec, b);
 		
 		Vector3<T> beta = hc_beta(b_vec, dt);
 		Vector3<T> epsilon = hc_epsilon(e_vec, dt);

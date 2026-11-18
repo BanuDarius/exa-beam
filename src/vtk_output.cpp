@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "vtk_output.hpp"
-#include "sim_structs.hpp"
+#include "structs.hpp"
 
 #include <cuda_runtime.h>
 #include <cuda/std/array>
@@ -51,17 +51,17 @@ void output_vtk_scalar_field(std::ofstream &output_file, const DataVTK &data_vtk
 	std::size_t field_size = field.field_size;
 	uint32_t *vtk_scalar = data_vtk.vtk_scalar.get();
 	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
+	
 	#pragma omp parallel for collapse(3) schedule(static)
-	for(int k = 0; k < nz; k++) {
-		for(int j = 0; j < ny; j++) {
+	for(int k = 0; k < nz; k++)
+		for(int j = 0; j < ny; j++)
 			for(int i = 0; i < nx; i++) {
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				T field_v = field_view.get_field(idx);
 				
 				vtk_scalar[idx] = swap_endian(static_cast<float>(field_v));
 			}
-		}
-	}
+	
 	output_vtk_scalar_next(output_file, name);
 	output_file.write(reinterpret_cast<const char*>(vtk_scalar), field_size * sizeof(uint32_t));
 }
@@ -72,9 +72,10 @@ void output_vtk_vector_field(std::ofstream &output_file, const DataVTK &data_vtk
 	std::size_t field_size = field.field_size;
 	uint32_t *vtk_vector = data_vtk.vtk_vector.get();
 	int nx = field.num[0], ny = field.num[1], nz = field.num[2];
+	
 	#pragma omp parallel for collapse(3) schedule(static)
-	for(int k = 0; k < nz; k++) {
-		for(int j = 0; j < ny; j++) {
+	for(int k = 0; k < nz; k++)
+		for(int j = 0; j < ny; j++)
 			for(int i = 0; i < nx; i++) {
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				Vector3<T> vec = field_view.get_vector(i, j, k);
@@ -83,8 +84,7 @@ void output_vtk_vector_field(std::ofstream &output_file, const DataVTK &data_vtk
 				vtk_vector[3 * idx + 1] = swap_endian(static_cast<float>(vec[1]));
 				vtk_vector[3 * idx + 2] = swap_endian(static_cast<float>(vec[2]));
 			}
-		}
-	}
+	
 	output_vtk_vector_next(output_file, name);
 	output_file.write(reinterpret_cast<const char*>(vtk_vector), 3 * field_size * sizeof(uint32_t));
 }
@@ -95,9 +95,10 @@ void output_vtk_particles(std::ofstream &output_file, const DataVTK &data_vtk, c
 	uint32_t *vtk_vector = data_vtk.vtk_vector.get();
 	std::size_t field_size = data_vtk.field_size;
 	int nx = particles.num[0], ny = particles.num[1], nz = particles.num[2];
+	
 	#pragma omp parallel for collapse(3) schedule(static)
-	for(int k = 0; k < nz; k++) {
-		for(int j = 0; j < ny; j++) {
+	for(int k = 0; k < nz; k++)
+		for(int j = 0; j < ny; j++)
 			for(int i = 0; i < nx; i++) {
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				Vector3<T> r_vec = particles_view.get_position(idx);
@@ -106,8 +107,7 @@ void output_vtk_particles(std::ofstream &output_file, const DataVTK &data_vtk, c
 				vtk_vector[3 * idx + 1] = swap_endian(static_cast<float>(r_vec[1]));
 				vtk_vector[3 * idx + 2] = swap_endian(static_cast<float>(r_vec[2]));
 			}
-		}
-	}
+	
 	output_file << "# vtk DataFile Version 3.0\n";
 	output_file << "Particle data\n";
 	output_file << "BINARY\n";
@@ -115,8 +115,8 @@ void output_vtk_particles(std::ofstream &output_file, const DataVTK &data_vtk, c
 	output_file << "POINTS " << field_size << " float\n";
 	output_file.write(reinterpret_cast<const char*>(vtk_vector), 3 * field_size * sizeof(uint32_t));
 	#pragma omp parallel for collapse(3) schedule(static)
-	for(int k = 0; k < nz; k++) {
-		for(int j = 0; j < ny; j++) {
+	for(int k = 0; k < nz; k++)
+		for(int j = 0; j < ny; j++)
 			for(int i = 0; i < nx; i++) {
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
 				Vector3<T> u_vec = particles_view.get_velocity(idx);
@@ -125,8 +125,7 @@ void output_vtk_particles(std::ofstream &output_file, const DataVTK &data_vtk, c
 				vtk_vector[3 * idx + 1] = swap_endian(static_cast<float>(u_vec[1]));
 				vtk_vector[3 * idx + 2] = swap_endian(static_cast<float>(u_vec[2]));
 			}
-		}
-	}
+	
 	output_file << "\n" << "POINT_DATA " << field_size << "\n";
 	output_file << "VECTORS velocity float\n";
 	output_file.write(reinterpret_cast<const char*>(vtk_vector), 3 * field_size * sizeof(uint32_t));

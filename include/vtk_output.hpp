@@ -9,7 +9,7 @@
 #include <fstream>
 #include <concepts>
 
-#include "sim_structs.hpp"
+#include "structs.hpp"
 
 inline uint32_t swap_endian(float v) noexcept {
 	uint32_t data;

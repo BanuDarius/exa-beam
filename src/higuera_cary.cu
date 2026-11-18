@@ -5,7 +5,6 @@
 
 template <std::floating_point T>
 __global__ void hc_update_gpu_kernel(ParticlesView<T> particles_view, __grid_constant__ const DeviceLasers<T> lasers, T t, T dt) {
-	int laser_count = lasers.laser_count;
 	std::size_t idx = blockDim.x * blockIdx.x + threadIdx.x;
 	if(idx < particles_view.particle_num) {
 		Vector3<T> r_vec = particles_view.get_position(idx);

@@ -10,11 +10,11 @@ NVCC = nvcc
 CUDA_PATH = /usr/local/cuda
 
 OPT_FLAG = -O3 -march=native -flto=auto -fno-fat-lto-objects
+WARNINGS = -Wall -Wextra -Wshadow -Wunused-variable
 OPT_FLAG_CUDA = -rdc=true -dlto
-WARNINGS = -Wall -Wextra -Wshadow
 
 CXXFLAGS = -std=c++20 $(OPT_FLAG) -fopenmp $(WARNINGS) -Iinclude -I$(CUDA_PATH)/include/cccl -I$(CUDA_PATH)/include -MMD -MP -g
-NVCCFLAGS = -std=c++20 -lineinfo -arch=native $(OPT_FLAG_CUDA) -Iinclude -MMD -MP -g -Xcompiler "-O3 -march=native -fopenmp"
+NVCCFLAGS = -std=c++20 -lineinfo -arch=native $(OPT_FLAG_CUDA) -Iinclude -MMD -MP -g -Xcompiler "-O3 -march=native -fopenmp $(WARNINGS)"
 
 LD = $(NVCC)
 LDFLAGS = -arch=native $(OPT_FLAG_CUDA) -Xcompiler "$(OPT_FLAG) -fopenmp"

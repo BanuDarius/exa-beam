@@ -10,10 +10,10 @@
 #include <concepts>
 
 #include "init.hpp"
+#include "structs.hpp"
 #include "physics.hpp"
 #include "vtk_output.hpp"
 #include "physics_gpu.hpp"
-#include "sim_structs.hpp"
 #include "higuera_cary.hpp"
 
 template <std::floating_point T>
@@ -39,7 +39,7 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 	for(int step = 0; step < steps; step++) {
 		//T t = step * dt;
 		//if(use_gpu) hc_update_gpu(particles, device_lasers, t, dt);
-		//else hc_update(particles, lasers, t, dt);
+		//hc_update(particles, e_field, b_field, dt);
 		
 		if(use_gpu) {
 			fdtd_update_b_gpu(b_field, e_field, dt);

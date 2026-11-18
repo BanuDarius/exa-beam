@@ -13,7 +13,7 @@ use_floats = True
 output_laser_fields = True
 
 steps = 2000
-substeps = 200
+substeps = 100
 num = [ 128, 128, 128 ]
 max_dim_mult = [ 3.0, 3.0, 6.0 ]
 
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     
     lasers = [
         sim_init.Laser(zeta_x, zeta_y, phi, theta, r0, a0, p, m, w0_mult, omega, tau, psi),
-        sim_init.Laser(zeta_x, zeta_y, phi, np.radians(90.0), r0, a0, p, - m, w0_mult, omega, tau, psi)
+        #sim_init.Laser(zeta_x, zeta_y, phi, np.radians(90.0), r0, a0, p, - m, w0_mult, omega, tau, psi)
     ]
     
     programs.run_simulation(sim_parameters, lasers)
