@@ -11,6 +11,7 @@
 #include <cuda/std/cmath>
 
 template <std::floating_point T> using Vector3 = cuda::std::array<T, 3>;
+template <std::floating_point T> using EBVector3 = cuda::std::array<Vector3<T>, 2>;
 
 __device__ __host__ constexpr std::size_t grid_idx(int i, int j, int k, int nx, int ny, int nz) noexcept {
 	(void)nz;

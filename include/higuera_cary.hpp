@@ -7,7 +7,6 @@
 #include <concepts>
 
 #include <cuda_runtime.h>
-#include <cuda/std/array>
 #include <cuda/std/cmath>
 
 #include "gather.hpp"
@@ -85,8 +84,8 @@ inline void hc_update(Particles<T> &particles, VectorField<T> &e_field, VectorFi
 		Vector3<T> r_vec = particles_view.get_position(idx);
 		Vector3<T> u_vec = particles_view.get_velocity(idx);
 		
-		Vector3<T> e_vec = cic_gather_electric(r_vec, e);
-		Vector3<T> b_vec = cic_gather_magnetic(r_vec, b);
+		EBVector3<T> eb_vec = cic_gather(r_vec, e, b);
+		Vector3<T> e_vec = eb_vec[0], b_vec = eb_vec[1];
 		
 		Vector3<T> beta = hc_beta(b_vec, dt);
 		Vector3<T> epsilon = hc_epsilon(e_vec, dt);
@@ -110,7 +109,7 @@ inline void hc_update(Particles<T> &particles, VectorField<T> &e_field, VectorFi
 	}
 }
 
-template <std::floating_point T> __global__ void hc_update_gpu_kernel(ParticlesView<T> particles_view, __grid_constant__ const DeviceLasers<T> lasers, T t, T dt);
-template <std::floating_point T> void hc_update_gpu(Particles<T> &particles, const DeviceLasers<T> &lasers, T t, T dt) noexcept;
+template <std::floating_point T> __global__ void hc_update_gpu_kernel(ParticlesView<T> particles, const VectorFieldView<T> e, const VectorFieldView<T> b, T dt);
+template <std::floating_point T> void hc_update_gpu(Particles<T> &particles, const VectorField<T> &e_field, const VectorField<T> &b_field, T dt) noexcept;
 
 #endif

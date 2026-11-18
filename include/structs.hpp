@@ -27,7 +27,6 @@ template <std::floating_point T> constexpr T pi = std::numbers::pi_v<T>;
 
 struct DataVTK;
 template <std::floating_point T> struct Laser;
-template <std::floating_point T> struct EBVectors;
 template <std::floating_point T> struct Parameters;
 template <std::floating_point T> struct ScalarField;
 template <std::floating_point T> struct VectorField;

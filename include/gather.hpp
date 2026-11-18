@@ -7,6 +7,7 @@
 #include <concepts>
 
 #include <cuda_runtime.h>
+#include <cuda/std/array>
 #include <cuda/std/cmath>
 #include <cuda/std/algorithm>
 
@@ -56,7 +57,7 @@ __device__ __host__ inline T cic_interpolate(const VectorFieldView<T> &e, Weight
 }
 
 template <std::floating_point T>
-__device__ __host__ inline Vector3<T> cic_gather_electric(Vector3<T> r_vec, const VectorFieldView<T> &e) noexcept {
+__device__ __host__ inline EBVector3<T> cic_gather(Vector3<T> r_vec, const VectorFieldView<T> &e, const VectorFieldView<T> &b) noexcept {
     int nx = e.num[0], ny = e.num[1], nz = e.num[2];
     Vector3<T> g = {
         (r_vec[0] + e.r_max[0]) * e.inv_dx[0],
@@ -72,16 +73,16 @@ __device__ __host__ inline Vector3<T> cic_gather_electric(Vector3<T> r_vec, cons
     WeightsCIC wy_h = cic_weights(g[1] - T(0.5), ny - 1);
     WeightsCIC wz_h = cic_weights(g[2] - T(0.5), nz - 1);
     
-    return {
+    Vector3<T> e_vec = {
         cic_interpolate<0>(e, wx_h, wy_0, wz_0),
         cic_interpolate<1>(e, wx_0, wy_h, wz_0),
         cic_interpolate<2>(e, wx_0, wy_0, wz_h)
+    }, b_vec = {
+        cic_interpolate<0>(b, wx_0, wy_h, wz_h),
+        cic_interpolate<1>(b, wx_h, wy_0, wz_h),
+        cic_interpolate<2>(b, wx_h, wy_h, wz_0)
     };
-}
-
-template <std::floating_point T>
-__device__ __host__ inline Vector3<T> cic_gather_magnetic(Vector3<T> r_vec, const VectorFieldView<T> &b) noexcept {
-
+    return { e_vec, b_vec };
 }
 
 #endif

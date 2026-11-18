@@ -4,12 +4,14 @@
 #include "higuera_cary.hpp"
 
 template <std::floating_point T>
-__global__ void hc_update_gpu_kernel(ParticlesView<T> particles_view, __grid_constant__ const DeviceLasers<T> lasers, T t, T dt) {
+__global__ void hc_update_gpu_kernel(ParticlesView<T> particles, const VectorFieldView<T> e, const VectorFieldView<T> b, T dt) {
 	std::size_t idx = blockDim.x * blockIdx.x + threadIdx.x;
-	if(idx < particles_view.particle_num) {
-		Vector3<T> r_vec = particles_view.get_position(idx);
-		Vector3<T> u_vec = particles_view.get_velocity(idx);
-		Vector3<T> b_vec{}, e_vec{};
+	if(idx < particles.particle_num) {
+		Vector3<T> r_vec = particles.get_position(idx);
+		Vector3<T> u_vec = particles.get_velocity(idx);
+		
+		EBVector3<T> eb_vec = cic_gather(r_vec, e, b);
+		Vector3<T> e_vec = eb_vec[0], b_vec = eb_vec[1];
 		
 		Vector3<T> beta = hc_beta(b_vec, dt);
 		Vector3<T> epsilon = hc_epsilon(e_vec, dt);
@@ -27,25 +29,26 @@ __global__ void hc_update_gpu_kernel(ParticlesView<T> particles_view, __grid_con
 		T gamma_half = hc_gamma(u_vec);
 		r_vec += u_vec * (dt / gamma_half);
 		
-		particles_view.set_gamma(gamma_half, idx);
-		particles_view.set_position(r_vec, idx);
-		particles_view.set_velocity(u_vec, idx);
+		particles.set_gamma(gamma_half, idx);
+		particles.set_position(r_vec, idx);
+		particles.set_velocity(u_vec, idx);
 	}
 }
 
 template <std::floating_point T>
-void hc_update_gpu(Particles<T> &particles, const DeviceLasers<T> &lasers, T t, T dt) noexcept {
+void hc_update_gpu(Particles<T> &particles, const VectorField<T> &e_field, const VectorField<T> &b_field, T dt) noexcept {
 	std::size_t particle_num = particles.particle_num;
 	dim3 threads(threads_1d_nx);
 	dim3 blocks((particle_num + threads.x - 1) / threads.x);
 	
 	ParticlesView<T> particles_view = particles.get_gpu_view();
-	hc_update_gpu_kernel<<<blocks, threads>>>(particles_view, lasers, t, dt);
+	VectorFieldView<T> e = e_field.get_gpu_view(), b = b_field.get_gpu_view();
+	hc_update_gpu_kernel<<<blocks, threads>>>(particles_view, e, b, dt);
 	CUDA_CHECK(cudaGetLastError());
 }
 
-template __global__ void hc_update_gpu_kernel<double>(ParticlesView<double> particles_view, __grid_constant__ const DeviceLasers<double> lasers, double t, double dt);
-template void hc_update_gpu<double>(Particles<double> &particles, const DeviceLasers<double> &lasers, double t, double dt) noexcept;
+template __global__ void hc_update_gpu_kernel<double>(ParticlesView<double> particles, const VectorFieldView<double> e, const VectorFieldView<double> b, double dt);
+template void hc_update_gpu<double>(Particles<double> &particles, const VectorField<double> &e_field, const VectorField<double> &b_field, double dt) noexcept;
 
-template __global__ void hc_update_gpu_kernel<float>(ParticlesView<float> particles_view, __grid_constant__ const DeviceLasers<float> lasers, float t, float dt);
-template void hc_update_gpu<float>(Particles<float> &particles, const DeviceLasers<float> &lasers, float t, float dt) noexcept;
+template __global__ void hc_update_gpu_kernel<float>(ParticlesView<float> particles, const VectorFieldView<float> e, const VectorFieldView<float> b, float dt);
+template void hc_update_gpu<float>(Particles<float> &particles, const VectorField<float> &e_field, const VectorField<float> &b_field, float dt) noexcept;
