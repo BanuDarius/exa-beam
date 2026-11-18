@@ -30,11 +30,11 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 	DeviceLasers<T> device_lasers(lasers);
 	Particles<T> particles(parameters, lasers.front());
 	ScalarField<T> lz_field(parameters, lasers.front());
-	VectorField<T> e_field(parameters, lasers.front()), b_field(parameters, lasers.front());
+	VectorField<T> e_field(parameters, lasers.front()), b_field(parameters, lasers.front()), j_field(parameters, lasers.front());
 	DataVTK vtk_fields(e_field), vtk_particles(particles);
 	
-	if(use_gpu) initialize_eb_fields_gpu(e_field, b_field, device_lasers, dt);
-	else initialize_eb_fields(e_field, b_field, lasers, dt);
+	if(use_gpu) initialize_ebj_fields_gpu(e_field, b_field, j_field, device_lasers, dt);
+	else initialize_ebj_fields(e_field, b_field, j_field, lasers, dt);
 	
 	for(int step = 0; step < steps; step++) {
 		//T t = step * dt;
@@ -43,10 +43,10 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 		
 		if(use_gpu) {
 			fdtd_update_b_gpu(b_field, e_field, dt);
-			fdtd_update_e_gpu(e_field, b_field, dt);
+			fdtd_update_e_gpu(e_field, b_field, j_field, dt);
 		} else {
 			fdtd_update_b(b_field, e_field, dt);
-			fdtd_update_e(e_field, b_field, dt);
+			fdtd_update_e(e_field, b_field, j_field, dt);
 		}
 		
 		if(step % substeps == 0) {
@@ -76,6 +76,7 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 			output_vtk_particles(output_particles, vtk_particles, particles);
 			output_vtk_vector_field(output_fields, vtk_fields, e_field, "E");
 			output_vtk_vector_field(output_fields, vtk_fields, b_field, "B");
+			output_vtk_vector_field(output_fields, vtk_fields, j_field, "J");
 			std::printf("Computed step: %d/%d.\n", step, steps);
 		}
 	}

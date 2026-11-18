@@ -54,19 +54,19 @@ void fdtd_update_b(VectorField<T> &b_field, VectorField<T> &e_field, T dt) noexc
 				T dyEx = inv_dy * (e.get_x(i, j + 1, k) - e_x);
 				T dxEy = inv_dx * (e.get_y(i + 1, j, k) - e_y);
 				
-				T dtBx = dzEy - dyEz;
-				T dtBy = dxEz - dzEx;
-				T dtBz = dyEx - dxEy;
+				T curl_Ex = dyEz - dzEy;
+				T curl_Ey = dzEx - dxEz;
+				T curl_Ez = dxEy - dyEx;
 				
-				b.set_x(b.get_x(i, j, k) + dt * dtBx, i, j, k);
-				b.set_y(b.get_y(i, j, k) + dt * dtBy, i, j, k);
-				b.set_z(b.get_z(i, j, k) + dt * dtBz, i, j, k);
+				b.set_x(b.get_x(i, j, k) - dt * curl_Ex, i, j, k);
+				b.set_y(b.get_y(i, j, k) - dt * curl_Ey, i, j, k);
+				b.set_z(b.get_z(i, j, k) - dt * curl_Ez, i, j, k);
 			}
 }
 
 template <std::floating_point T>
-void fdtd_update_e(VectorField<T> &e_field, VectorField<T> &b_field, T dt) noexcept {
-	VectorFieldView e = e_field.get_cpu_view(), b = b_field.get_cpu_view();
+void fdtd_update_e(VectorField<T> &e_field, VectorField<T> &b_field, VectorField<T> &j_field, T dt) noexcept {
+	VectorFieldView e = e_field.get_cpu_view(), b = b_field.get_cpu_view(), J = j_field.get_cpu_view();
 	
 	int nx = e.num[0], ny = e.num[1], nz = e.num[2];
 	T inv_dx = e.inv_dx[0], inv_dy = e.inv_dx[1], inv_dz = e.inv_dx[2];
@@ -77,7 +77,8 @@ void fdtd_update_e(VectorField<T> &e_field, VectorField<T> &b_field, T dt) noexc
 			for(int i = 0; i < nx - 1; i++) {
 				T dyBz = inv_dy * (b.get_z(i, j, k) - b.get_z(i, j - 1, k));
 				T dzBy = inv_dz * (b.get_y(i, j, k) - b.get_y(i, j, k - 1));
-				T dtEx = c2<T> * (dyBz - dzBy);
+				T curl_Bx = dyBz - dzBy;
+				T dtEx = c2<T> * curl_Bx - T(4.0) * pi<T> * J.get_x(i, j, k);
 				
 				e.set_x(e.get_x(i, j, k) + dt * dtEx, i, j, k);
 			}
@@ -87,7 +88,8 @@ void fdtd_update_e(VectorField<T> &e_field, VectorField<T> &b_field, T dt) noexc
 			for(int i = 1; i < nx - 1; i++) {
 				T dzBx = inv_dz * (b.get_x(i, j, k) - b.get_x(i, j, k - 1));
 				T dxBz = inv_dx * (b.get_z(i, j, k) - b.get_z(i - 1, j, k));
-				T dtEy = c2<T> * (dzBx - dxBz);
+				T curl_By = dzBx - dxBz;
+				T dtEy = c2<T> * curl_By - T(4.0) * pi<T> * J.get_y(i, j, k);
 				
 				e.set_y(e.get_y(i, j, k) + dt * dtEy, i, j, k);
 			}
@@ -97,7 +99,8 @@ void fdtd_update_e(VectorField<T> &e_field, VectorField<T> &b_field, T dt) noexc
 			for(int i = 1; i < nx - 1; i++) {
 				T dxBy = inv_dx * (b.get_y(i, j, k) - b.get_y(i - 1, j, k));
 				T dyBx = inv_dy * (b.get_x(i, j, k) - b.get_x(i, j - 1, k));
-				T dtEz = c2<T> * (dxBy - dyBx);
+				T curl_Bz = dxBy - dyBx;
+				T dtEz = c2<T> * curl_Bz - T(4.0) * pi<T> * J.get_z(i, j, k);
 				
 				e.set_z(e.get_z(i, j, k) + dt * dtEz, i, j, k);
 			}
@@ -146,8 +149,8 @@ T divergence_e(VectorField<T> &e_field) noexcept {
 }
 
 template <std::floating_point T>
-void initialize_eb_fields(VectorField<T> &e_field, VectorField<T> &b_field, std::span<const Laser<T>> lasers, T dt) noexcept {
-	VectorFieldView e = e_field.get_cpu_view(), b = b_field.get_cpu_view();
+void initialize_ebj_fields(VectorField<T> &e_field, VectorField<T> &b_field, VectorField<T> &j_field, std::span<const Laser<T>> lasers, T dt) noexcept {
+	VectorFieldView e = e_field.get_cpu_view(), b = b_field.get_cpu_view(), J = j_field.get_cpu_view();
 	
 	T dx = e.dx[0], dy = e.dx[1], dz = e.dx[2];
 	T r_max_x = e.r_max[0], r_max_y = e.r_max[1], r_max_z = e.r_max[2];
@@ -169,6 +172,7 @@ void initialize_eb_fields(VectorField<T> &e_field, VectorField<T> &b_field, std:
 						e_x += lasers[q].vec_local_to_global(e_vec_local)[0];
 					}
 				e.set_x(e_x, i, j, k);
+				J.set_x(T(0.0), i, j, k);
 				
 				r_vec_global = { x, y + dy * T(0.5), z };
 				T e_y = T(0.0);
@@ -179,6 +183,7 @@ void initialize_eb_fields(VectorField<T> &e_field, VectorField<T> &b_field, std:
 						e_y += lasers[q].vec_local_to_global(e_vec_local)[1];
 					}
 				e.set_y(e_y, i, j, k);
+				J.set_y(T(0.0), i, j, k);
 				
 				r_vec_global = { x, y, z + dz * T(0.5) };
 				T e_z = T(0.0);
@@ -189,6 +194,7 @@ void initialize_eb_fields(VectorField<T> &e_field, VectorField<T> &b_field, std:
 						e_z += lasers[q].vec_local_to_global(e_vec_local)[2];
 					}
 				e.set_z(e_z, i, j, k);
+				J.set_z(T(0.0), i, j, k);
 				
 				r_vec_global = { x, y + dy * T(0.5), z + dz * T(0.5) };
 				T b_x = T(0.0);
@@ -224,14 +230,14 @@ void initialize_eb_fields(VectorField<T> &e_field, VectorField<T> &b_field, std:
 
 template void compute_lz<double>(ScalarField<double> &lz_field, Particles<double> &particles) noexcept;
 template void fdtd_update_b<double>(VectorField<double> &b_field, VectorField<double> &e_field, double dt) noexcept;
-template void fdtd_update_e<double>(VectorField<double> &e_field, VectorField<double> &b_field, double dt) noexcept;
+template void fdtd_update_e<double>(VectorField<double> &e_field, VectorField<double> &b_field, VectorField<double> &j_field, double dt) noexcept;
 template double total_energy<double>(VectorField<double> &e_field, VectorField<double> &b_field) noexcept;
 template double divergence_e<double>(VectorField<double> &e_field) noexcept;
-template void initialize_eb_fields<double>(VectorField<double> &e_field, VectorField<double> &b_field, std::span<const Laser<double>> lasers, double dt) noexcept;
+template void initialize_ebj_fields<double>(VectorField<double> &e_field, VectorField<double> &b_field, VectorField<double> &j_field, std::span<const Laser<double>> lasers, double dt) noexcept;
 
 template void compute_lz<float>(ScalarField<float> &lz_field, Particles<float> &particles) noexcept;
 template void fdtd_update_b<float>(VectorField<float> &b_field, VectorField<float> &e_field, float dt) noexcept;
-template void fdtd_update_e<float>(VectorField<float> &e_field, VectorField<float> &b_field, float dt) noexcept;
+template void fdtd_update_e<float>(VectorField<float> &e_field, VectorField<float> &b_field, VectorField<float> &j_field, float dt) noexcept;
 template float total_energy<float>(VectorField<float> &e_field, VectorField<float> &b_field) noexcept;
 template float divergence_e<float>(VectorField<float> &e_field) noexcept;
-template void initialize_eb_fields<float>(VectorField<float> &e_field, VectorField<float> &b_field, std::span<const Laser<float>> lasers, float dt) noexcept;
+template void initialize_ebj_fields<float>(VectorField<float> &e_field, VectorField<float> &b_field, VectorField<float> &j_field, std::span<const Laser<float>> lasers, float dt) noexcept;
