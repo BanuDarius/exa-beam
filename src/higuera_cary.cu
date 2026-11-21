@@ -47,8 +47,6 @@ void hc_update_gpu(Particles<T> &particles_data, const VectorField<T> &e_data, c
 	CUDA_CHECK(cudaGetLastError());
 }
 
-template __global__ void hc_update_gpu_kernel<double>(ParticlesView<double> particles, const VectorFieldView<double> e, const VectorFieldView<double> b, double dt);
 template void hc_update_gpu<double>(Particles<double> &particles_data, const VectorField<double> &e_data, const VectorField<double> &b_data, double dt) noexcept;
 
-template __global__ void hc_update_gpu_kernel<float>(ParticlesView<float> particles, const VectorFieldView<float> e, const VectorFieldView<float> b, float dt);
 template void hc_update_gpu<float>(Particles<float> &particles_data, const VectorField<float> &e_data, const VectorField<float> &b_data, float dt) noexcept;

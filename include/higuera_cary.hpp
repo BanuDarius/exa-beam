@@ -109,7 +109,6 @@ inline void hc_update(Particles<T> &particles_data, VectorField<T> &e_data, Vect
 	}
 }
 
-template <std::floating_point T> __global__ void hc_update_gpu_kernel(ParticlesView<T> particles, const VectorFieldView<T> e, const VectorFieldView<T> b, T dt);
 template <std::floating_point T> void hc_update_gpu(Particles<T> &particles_data, const VectorField<T> &e_data, const VectorField<T> &b_data, T dt) noexcept;
 
 #endif

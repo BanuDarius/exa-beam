@@ -12,7 +12,7 @@ template <std::floating_point T>
 void compute_lz(ScalarField<T> &lz_data, const Particles<T> &particles_data) noexcept {
 	ScalarFieldView lz = lz_data.get_cpu_view();
 	ParticlesView particles = particles_data.get_cpu_view();
-	int nx = particles.num[0], ny = particles.num[1], nz = particles.num[2];
+	int nx = lz.num[0], ny = lz.num[1], nz = lz.num[2];
 	
 	#pragma omp parallel for simd collapse(3) schedule(static)
 	for(int k = 0; k < nz; k++)

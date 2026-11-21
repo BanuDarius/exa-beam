@@ -346,12 +346,6 @@ void initialize_ebj_gpu(VectorField<T> &e_data, VectorField<T> &b_data, VectorFi
 	CUDA_CHECK(cudaGetLastError());
 }
 
-template __global__ void compute_lz_gpu_kernel<double>(ScalarFieldView<double> lz, const ParticlesView<double> particles);
-template __global__ void fdtd_update_b_gpu_kernel<double>(VectorFieldView<double> b, const VectorFieldView<double> e, double dt);
-template __global__ void fdtd_update_e_gpu_kernel<double>(VectorFieldView<double> e, const VectorFieldView<double> b, const VectorFieldView<double> J, double dt);
-template __global__ void total_energy_gpu_kernel<double>(const VectorFieldView<double> e, const VectorFieldView<double> b, double *d_energy);
-template __global__ void divergence_e_gpu_kernel<double>(const VectorFieldView<double> e, double *d_divergence);
-template __global__ void initialize_ebj_gpu_kernel<double>(VectorFieldView<double> e, VectorFieldView<double> b, VectorFieldView<double> J, __grid_constant__ const DeviceLasers<double> lasers, double dt);
 template void compute_lz_gpu<double>(ScalarField<double> &lz_data, const Particles<double> &particles) noexcept;
 template void fdtd_update_b_gpu<double>(VectorField<double> &b_data, const VectorField<double> &e_data, double dt) noexcept;
 template void fdtd_update_e_gpu<double>(VectorField<double> &e_data, const VectorField<double> &b_data, const VectorField<double> &j_data, double dt) noexcept;
@@ -359,12 +353,6 @@ template double total_energy_gpu<double>(const VectorField<double> &e_data, cons
 template double divergence_e_gpu<double>(const VectorField<double> &e_data) noexcept;
 template void initialize_ebj_gpu<double>(VectorField<double> &e_data, VectorField<double> &b_data, VectorField<double> &j_data, const DeviceLasers<double> &lasers, double dt) noexcept;
 
-template __global__ void compute_lz_gpu_kernel<float>(ScalarFieldView<float> lz, const ParticlesView<float> particles);
-template __global__ void fdtd_update_b_gpu_kernel<float>(VectorFieldView<float> b, const VectorFieldView<float> e, float dt);
-template __global__ void fdtd_update_e_gpu_kernel<float>(VectorFieldView<float> e, const VectorFieldView<float> b, const VectorFieldView<float> J, float dt);
-template __global__ void total_energy_gpu_kernel<float>(const VectorFieldView<float> e, const VectorFieldView<float> b, float *d_energy);
-template __global__ void divergence_e_gpu_kernel<float>(const VectorFieldView<float> e, float *d_divergence);
-template __global__ void initialize_ebj_gpu_kernel<float>(VectorFieldView<float> e, VectorFieldView<float> b, VectorFieldView<float> J, __grid_constant__ const DeviceLasers<float> lasers, float dt);
 template void compute_lz_gpu<float>(ScalarField<float> &lz_data, const Particles<float> &particles) noexcept;
 template void fdtd_update_b_gpu<float>(VectorField<float> &b_data, const VectorField<float> &e_data, float dt) noexcept;
 template void fdtd_update_e_gpu<float>(VectorField<float> &e_data, const VectorField<float> &b_data, const VectorField<float> &j_data, float dt) noexcept;
