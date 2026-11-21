@@ -36,19 +36,19 @@ __global__ void hc_update_gpu_kernel(ParticlesView<T> particles, const VectorFie
 }
 
 template <std::floating_point T>
-void hc_update_gpu(Particles<T> &particles, const VectorField<T> &e_field, const VectorField<T> &b_field, T dt) noexcept {
-	std::size_t particle_num = particles.particle_num;
+void hc_update_gpu(Particles<T> &particles_data, const VectorField<T> &e_data, const VectorField<T> &b_data, T dt) noexcept {
+	std::size_t particle_num = particles_data.particle_num;
 	dim3 threads(threads_1d_nx);
 	dim3 blocks((particle_num + threads.x - 1) / threads.x);
 	
-	ParticlesView<T> particles_view = particles.get_gpu_view();
-	VectorFieldView<T> e = e_field.get_gpu_view(), b = b_field.get_gpu_view();
-	hc_update_gpu_kernel<<<blocks, threads>>>(particles_view, e, b, dt);
+	ParticlesView<T> particles= particles_data.get_gpu_view();
+	VectorFieldView<T> e = e_data.get_gpu_view(), b = b_data.get_gpu_view();
+	hc_update_gpu_kernel<<<blocks, threads>>>(particles, e, b, dt);
 	CUDA_CHECK(cudaGetLastError());
 }
 
 template __global__ void hc_update_gpu_kernel<double>(ParticlesView<double> particles, const VectorFieldView<double> e, const VectorFieldView<double> b, double dt);
-template void hc_update_gpu<double>(Particles<double> &particles, const VectorField<double> &e_field, const VectorField<double> &b_field, double dt) noexcept;
+template void hc_update_gpu<double>(Particles<double> &particles_data, const VectorField<double> &e_data, const VectorField<double> &b_data, double dt) noexcept;
 
 template __global__ void hc_update_gpu_kernel<float>(ParticlesView<float> particles, const VectorFieldView<float> e, const VectorFieldView<float> b, float dt);
-template void hc_update_gpu<float>(Particles<float> &particles, const VectorField<float> &e_field, const VectorField<float> &b_field, float dt) noexcept;
+template void hc_update_gpu<float>(Particles<float> &particles_data, const VectorField<float> &e_data, const VectorField<float> &b_data, float dt) noexcept;

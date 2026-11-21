@@ -9,30 +9,30 @@
 #include "laguerre_gauss.hpp"
 
 template <std::floating_point T>
-void compute_lz(ScalarField<T> &lz_field, Particles<T> &particles) noexcept {
+void compute_lz(ScalarField<T> &lz_data, const Particles<T> &particles_data) noexcept {
+	ScalarFieldView lz = lz_data.get_cpu_view();
+	ParticlesView particles = particles_data.get_cpu_view();
 	int nx = particles.num[0], ny = particles.num[1], nz = particles.num[2];
-	ScalarFieldView lz_field_view = lz_field.get_cpu_view();
-	ParticlesView particles_view = particles.get_cpu_view();
 	
 	#pragma omp parallel for simd collapse(3) schedule(static)
 	for(int k = 0; k < nz; k++)
 		for(int j = 0; j < ny; j++)
 			for(int i = 0; i < nx; i++) {
 				std::size_t idx = grid_idx(i, j, k, nx, ny, nz);
-				Vector3<T> r_vec = particles_view.get_position(idx);
-				Vector3<T> u_vec = particles_view.get_velocity(idx);
+				Vector3<T> r_vec = particles.get_position(idx);
+				Vector3<T> u_vec = particles.get_velocity(idx);
 				T x = r_vec[0], y = r_vec[1];
 				T ux = u_vec[0], uy = u_vec[1];
 				
-				T lz = m_e<T> * (x * uy - y * ux);
+				T lz_s = m_e<T> * (x * uy - y * ux);
 				
-				lz_field_view.set_field(lz, idx);
+				lz.set_field(lz_s, idx);
 			}
 }
 
 template <std::floating_point T>
-void fdtd_update_b(VectorField<T> &b_field, VectorField<T> &e_field, T dt) noexcept {
-	VectorFieldView b = b_field.get_cpu_view(), e = e_field.get_cpu_view();
+void fdtd_update_b(VectorField<T> &b_data, const VectorField<T> &e_data, T dt) noexcept {
+	VectorFieldView b = b_data.get_cpu_view(), e = e_data.get_cpu_view();
 	
 	int nx = b.num[0], ny = b.num[1], nz = b.num[2];
 	T inv_dx = b.inv_dx[0], inv_dy = b.inv_dx[1], inv_dz = b.inv_dx[2];
@@ -65,8 +65,8 @@ void fdtd_update_b(VectorField<T> &b_field, VectorField<T> &e_field, T dt) noexc
 }
 
 template <std::floating_point T>
-void fdtd_update_e(VectorField<T> &e_field, VectorField<T> &b_field, VectorField<T> &j_field, T dt) noexcept {
-	VectorFieldView e = e_field.get_cpu_view(), b = b_field.get_cpu_view(), J = j_field.get_cpu_view();
+void fdtd_update_e(VectorField<T> &e_data, const VectorField<T> &b_data, const VectorField<T> &j_data, T dt) noexcept {
+	VectorFieldView e = e_data.get_cpu_view(), b = b_data.get_cpu_view(), J = j_data.get_cpu_view();
 	
 	int nx = e.num[0], ny = e.num[1], nz = e.num[2];
 	T inv_dx = e.inv_dx[0], inv_dy = e.inv_dx[1], inv_dz = e.inv_dx[2];
@@ -107,8 +107,8 @@ void fdtd_update_e(VectorField<T> &e_field, VectorField<T> &b_field, VectorField
 }
 
 template <std::floating_point T>
-T total_energy(VectorField<T> &e_field, VectorField<T> &b_field) noexcept {
-	VectorFieldView e = e_field.get_cpu_view(), b = b_field.get_cpu_view();
+T total_energy(const VectorField<T> &e_data, const VectorField<T> &b_data) noexcept {
+	VectorFieldView e = e_data.get_cpu_view(), b = b_data.get_cpu_view();
 	
 	T energy = T(0.0);
 	T dV = e.dx[0] * e.dx[1] * e.dx[2];
@@ -124,8 +124,8 @@ T total_energy(VectorField<T> &e_field, VectorField<T> &b_field) noexcept {
 }
 
 template <std::floating_point T>
-T divergence_e(VectorField<T> &e_field) noexcept {
-	VectorFieldView e = e_field.get_cpu_view();
+T divergence_e(const VectorField<T> &e_data) noexcept {
+	VectorFieldView e = e_data.get_cpu_view();
 	
 	T divergence = T(0.0);
 	int nx = e.num[0], ny = e.num[1], nz = e.num[2], num_points = (nx - 2) * (ny - 2) * (nz - 2);
@@ -149,8 +149,8 @@ T divergence_e(VectorField<T> &e_field) noexcept {
 }
 
 template <std::floating_point T>
-void initialize_ebj_fields(VectorField<T> &e_field, VectorField<T> &b_field, VectorField<T> &j_field, std::span<const Laser<T>> lasers, T dt) noexcept {
-	VectorFieldView e = e_field.get_cpu_view(), b = b_field.get_cpu_view(), J = j_field.get_cpu_view();
+void initialize_ebj(VectorField<T> &e_data, VectorField<T> &b_data, VectorField<T> &j_data, std::span<const Laser<T>> lasers, T dt) noexcept {
+	VectorFieldView e = e_data.get_cpu_view(), b = b_data.get_cpu_view(), J = j_data.get_cpu_view();
 	
 	T dx = e.dx[0], dy = e.dx[1], dz = e.dx[2];
 	T r_max_x = e.r_max[0], r_max_y = e.r_max[1], r_max_z = e.r_max[2];
@@ -228,16 +228,16 @@ void initialize_ebj_fields(VectorField<T> &e_field, VectorField<T> &b_field, Vec
 			}
 }
 
-template void compute_lz<double>(ScalarField<double> &lz_field, Particles<double> &particles) noexcept;
-template void fdtd_update_b<double>(VectorField<double> &b_field, VectorField<double> &e_field, double dt) noexcept;
-template void fdtd_update_e<double>(VectorField<double> &e_field, VectorField<double> &b_field, VectorField<double> &j_field, double dt) noexcept;
-template double total_energy<double>(VectorField<double> &e_field, VectorField<double> &b_field) noexcept;
-template double divergence_e<double>(VectorField<double> &e_field) noexcept;
-template void initialize_ebj_fields<double>(VectorField<double> &e_field, VectorField<double> &b_field, VectorField<double> &j_field, std::span<const Laser<double>> lasers, double dt) noexcept;
+template void compute_lz<double>(ScalarField<double> &lz_field, const Particles<double> &particles) noexcept;
+template void fdtd_update_b<double>(VectorField<double> &b_data, const VectorField<double> &e_data, double dt) noexcept;
+template void fdtd_update_e<double>(VectorField<double> &e_data, const VectorField<double> &b_data, const VectorField<double> &j_data, double dt) noexcept;
+template double total_energy<double>(const VectorField<double> &e_data, const VectorField<double> &b_data) noexcept;
+template double divergence_e<double>(const VectorField<double> &e_data) noexcept;
+template void initialize_ebj<double>(VectorField<double> &e_data, VectorField<double> &b_data, VectorField<double> &j_data, std::span<const Laser<double>> lasers, double dt) noexcept;
 
-template void compute_lz<float>(ScalarField<float> &lz_field, Particles<float> &particles) noexcept;
-template void fdtd_update_b<float>(VectorField<float> &b_field, VectorField<float> &e_field, float dt) noexcept;
-template void fdtd_update_e<float>(VectorField<float> &e_field, VectorField<float> &b_field, VectorField<float> &j_field, float dt) noexcept;
-template float total_energy<float>(VectorField<float> &e_field, VectorField<float> &b_field) noexcept;
-template float divergence_e<float>(VectorField<float> &e_field) noexcept;
-template void initialize_ebj_fields<float>(VectorField<float> &e_field, VectorField<float> &b_field, VectorField<float> &j_field, std::span<const Laser<float>> lasers, float dt) noexcept;
+template void compute_lz<float>(ScalarField<float> &lz_field, const Particles<float> &particles) noexcept;
+template void fdtd_update_b<float>(VectorField<float> &b_data, const VectorField<float> &e_data, float dt) noexcept;
+template void fdtd_update_e<float>(VectorField<float> &e_data, const VectorField<float> &b_data, const VectorField<float> &j_data, float dt) noexcept;
+template float total_energy<float>(const VectorField<float> &e_data, const VectorField<float> &b_data) noexcept;
+template float divergence_e<float>(const VectorField<float> &e_data) noexcept;
+template void initialize_ebj<float>(VectorField<float> &e_data, VectorField<float> &b_data, VectorField<float> &j_data, std::span<const Laser<float>> lasers, float dt) noexcept;

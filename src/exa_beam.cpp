@@ -28,72 +28,70 @@ void simulate(const Parameters<T> &parameters, std::span<const Laser<T>> lasers,
 	if(!output_diagnostics) { std::fprintf(stderr, "Cannot open output diagnostics file!\n"); return; }
 	
 	DeviceLasers<T> device_lasers(lasers);
-	Particles<T> particles(parameters, lasers.front());
-	ScalarField<T> lz_field(parameters, lasers.front());
-	VectorField<T> e_field(parameters, lasers.front()), b_field(parameters, lasers.front()), j_field(parameters, lasers.front());
-	DataVTK vtk_fields(e_field), vtk_particles(particles);
+	Particles<T> particles_data(parameters, lasers.front());
+	ScalarField<T> lz_data(parameters, lasers.front());
+	VectorField<T> e_data(parameters, lasers.front()), b_data(parameters, lasers.front()), j_data(parameters, lasers.front());
+	DataVTK vtk_fields(e_data), vtk_particles(particles_data);
 	
-	if(use_gpu) initialize_ebj_fields_gpu(e_field, b_field, j_field, device_lasers, dt);
-	else initialize_ebj_fields(e_field, b_field, j_field, lasers, dt);
+	if(use_gpu) initialize_ebj_gpu(e_data, b_data, j_data, device_lasers, dt);
+	else initialize_ebj(e_data, b_data, j_data, lasers, dt);
 	
 	for(int step = 0; step < steps; step++) {
 		//T t = step * dt;
-		if(use_gpu) hc_update_gpu(particles, e_field, b_field, dt);
-		else hc_update(particles, e_field, b_field, dt);
+		if(use_gpu) hc_update_gpu(particles_data, e_data, b_data, dt);
+		else hc_update(particles_data, e_data, b_data, dt);
 		
 		if(use_gpu) {
-			fdtd_update_b_gpu(b_field, e_field, dt);
-			fdtd_update_e_gpu(e_field, b_field, j_field, dt);
+			fdtd_update_b_gpu(b_data, e_data, dt);
+			fdtd_update_e_gpu(e_data, b_data, j_data, dt);
 		} else {
-			fdtd_update_b(b_field, e_field, dt);
-			fdtd_update_e(e_field, b_field, j_field, dt);
+			fdtd_update_b(b_data, e_data, dt);
+			fdtd_update_e(e_data, b_data, j_data, dt);
 		}
 		
 		if(step % substeps == 0) {
 			if(use_gpu) {
-				e_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
-				b_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
-				particles.transfer_data_gpu_to_cpu(cudaStreamDefault);
+				e_data.transfer_data_gpu_to_cpu(cudaStreamDefault);
+				b_data.transfer_data_gpu_to_cpu(cudaStreamDefault);
+				particles_data.transfer_data_gpu_to_cpu(cudaStreamDefault);
 			}
-			if(use_gpu) diagnostics[0] = total_energy_gpu(e_field, b_field);
-			else diagnostics[0] = total_energy(e_field, b_field);
+			if(use_gpu) diagnostics[0] = total_energy_gpu(e_data, b_data);
+			else diagnostics[0] = total_energy(e_data, b_data);
 			
-			if(use_gpu) diagnostics[1] = divergence_e_gpu(e_field);
-			else diagnostics[1] = divergence_e(e_field);
+			if(use_gpu) diagnostics[1] = divergence_e_gpu(e_data);
+			else diagnostics[1] = divergence_e(e_data);
 			
 			output_diagnostics.write(reinterpret_cast<const char*>(diagnostics.data()), sizeof(float) * diagnostics.size());
 			
-			std::string filename_fields = std::format("{}/fields-{:04d}.vtk", output_directory, step / substeps);
-			std::ofstream output_fields(filename_fields, std::ios::binary);
+			std::string filename_datas = std::format("{}/fields-{:04d}.vtk", output_directory, step / substeps);
+			std::ofstream output_fields(filename_datas, std::ios::binary);
 			if(!output_fields) { std::fprintf(stderr, "Cannot open output fields file!\n"); return; }
 			
-			std::string filename_particles = std::format("{}/particles-{:04d}.vtk", output_directory, step / substeps);
-			std::ofstream output_particles(filename_particles, std::ios::binary);
-			if(!output_particles) { std::fprintf(stderr, "Cannot open output particles file!\n"); return; }
+			std::string filename_particles_data = std::format("{}/particles-{:04d}.vtk", output_directory, step / substeps);
+			std::ofstream output_particles_data(filename_particles_data, std::ios::binary);
+			if(!output_particles_data) { std::fprintf(stderr, "Cannot open output particles file!\n"); return; }
 			
 			cudaDeviceSynchronize();
-			output_vtk_header(output_fields, e_field);
-			output_vtk_particles(output_particles, vtk_particles, particles);
-			output_vtk_vector_field(output_fields, vtk_fields, e_field, "E");
-			output_vtk_vector_field(output_fields, vtk_fields, b_field, "B");
-			output_vtk_vector_field(output_fields, vtk_fields, j_field, "J");
+			output_vtk_header(output_fields, e_data);
+			output_vtk_particles(output_particles_data, vtk_particles, particles_data);
+			output_vtk_vector_field(output_fields, vtk_fields, e_data, "E");
+			output_vtk_vector_field(output_fields, vtk_fields, b_data, "B");
+			output_vtk_vector_field(output_fields, vtk_fields, j_data, "J");
 			std::printf("Computed step: %d/%d.\n", step, steps);
 		}
 	}
 	if(use_gpu) {
-		compute_lz_gpu(lz_field, particles);
-		lz_field.transfer_data_gpu_to_cpu(cudaStreamDefault);
-	} else compute_lz(lz_field, particles);
+		compute_lz_gpu(lz_data, particles_data);
+		lz_data.transfer_data_gpu_to_cpu(cudaStreamDefault);
+	} else compute_lz(lz_data, particles_data);
 	
 	std::string filename_lz = std::format("{}/lz.vtk", output_directory);
 	std::ofstream output_lz(filename_lz, std::ios::binary);
-	if(!output_lz) {
-		std::fprintf(stderr, "Cannot open output Lz file!\n"); return;
-	}
+	if(!output_lz) { std::fprintf(stderr, "Cannot open output Lz file!\n"); return; }
 	
 	cudaDeviceSynchronize();
-	output_vtk_header(output_lz, lz_field);
-	output_vtk_scalar_field(output_lz, vtk_fields, lz_field, "Lz");
+	output_vtk_header(output_lz, lz_data);
+	output_vtk_scalar_field(output_lz, vtk_fields, lz_data, "Lz");
 }
 
 template <std::floating_point T>

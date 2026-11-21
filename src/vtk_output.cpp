@@ -90,14 +90,14 @@ void output_vtk_vector_field(std::ofstream &output_file, const DataVTK &data_vtk
 }
 
 template <std::floating_point T>
-void output_vtk_particles(std::ofstream &output_file, const DataVTK &data_vtk, const Particles<T> &particles) {
-	ParticlesView particles_view = particles.get_cpu_view();
+void output_vtk_particles(std::ofstream &output_file, const DataVTK &data_vtk, const Particles<T> &particles_data) {
+	ParticlesView particles = particles_data.get_cpu_view();
 	uint32_t *vtk_vector = data_vtk.vtk_vector.get();
-	std::size_t particle_num = particles_view.particle_num;
+	std::size_t particle_num = particles.particle_num;
 	
 	#pragma omp parallel for schedule(static)
 	for(std::size_t idx = 0; idx < particle_num; idx++) {
-		Vector3<T> r_vec = particles_view.get_position(idx);
+		Vector3<T> r_vec = particles.get_position(idx);
 		
 		vtk_vector[3 * idx] = swap_endian(static_cast<float>(r_vec[0]));
 		vtk_vector[3 * idx + 1] = swap_endian(static_cast<float>(r_vec[1]));
@@ -112,11 +112,12 @@ void output_vtk_particles(std::ofstream &output_file, const DataVTK &data_vtk, c
 	output_file.write(reinterpret_cast<const char*>(vtk_vector), 3 * particle_num * sizeof(uint32_t));
 	#pragma omp parallel for schedule(static)
 	for(std::size_t idx = 0; idx < particle_num; idx++) {
-		Vector3<T> u_vec = particles_view.get_velocity(idx);
+		Vector3<T> u_vec = particles.get_velocity(idx);
+		T gamma = particles.get_gamma(idx);
 				
-		vtk_vector[3 * idx] = swap_endian(static_cast<float>(u_vec[0]));
-		vtk_vector[3 * idx + 1] = swap_endian(static_cast<float>(u_vec[1]));
-		vtk_vector[3 * idx + 2] = swap_endian(static_cast<float>(u_vec[2]));
+		vtk_vector[3 * idx] = swap_endian(static_cast<float>(u_vec[0] / gamma));
+		vtk_vector[3 * idx + 1] = swap_endian(static_cast<float>(u_vec[1] / gamma));
+		vtk_vector[3 * idx + 2] = swap_endian(static_cast<float>(u_vec[2] / gamma));
 	}
 	
 	output_file << "\n" << "POINT_DATA " << particle_num << "\n";
@@ -128,10 +129,10 @@ template void output_vtk_header<double>(std::ofstream &output_file, const Scalar
 template void output_vtk_header<double>(std::ofstream &output_file, const VectorField<double> &field);
 template void output_vtk_scalar_field<double>(std::ofstream &output_file, const DataVTK &data_vtk, const ScalarField<double> &field, const std::string &name);
 template void output_vtk_vector_field<double>(std::ofstream &output_file, const DataVTK &data_vtk, const VectorField<double> &field, const std::string &name);
-template void output_vtk_particles<double>(std::ofstream &output_file, const DataVTK &data_vtk, const Particles<double> &particles);
+template void output_vtk_particles<double>(std::ofstream &output_file, const DataVTK &data_vtk, const Particles<double> &particles_data);
 
 template void output_vtk_header<float>(std::ofstream &output_file, const ScalarField<float> &field);
 template void output_vtk_header<float>(std::ofstream &output_file, const VectorField<float> &field);
 template void output_vtk_scalar_field<float>(std::ofstream &output_file, const DataVTK &data_vtk, const ScalarField<float> &field, const std::string &name);
 template void output_vtk_vector_field<float>(std::ofstream &output_file, const DataVTK &data_vtk, const VectorField<float> &field, const std::string &name);
-template void output_vtk_particles<float>(std::ofstream &output_file, const DataVTK &data_vtk, const Particles<float> &particles);
+template void output_vtk_particles<float>(std::ofstream &output_file, const DataVTK &data_vtk, const Particles<float> &particles_data);

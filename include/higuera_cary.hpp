@@ -76,13 +76,13 @@ __device__ __host__ inline Vector3<T> hc_u_plus(Vector3<T> u_minus, Vector3<T> u
 }
 
 template <std::floating_point T>
-inline void hc_update(Particles<T> &particles, VectorField<T> &e_field, VectorField<T> &b_field, T dt) noexcept {
-	ParticlesView<T> particles_view = particles.get_cpu_view();
-	VectorFieldView<T> e = e_field.get_cpu_view(), b = b_field.get_cpu_view();
+inline void hc_update(Particles<T> &particles_data, VectorField<T> &e_data, VectorField<T> &b_data, T dt) noexcept {
+	ParticlesView<T> particles = particles_data.get_cpu_view();
+	VectorFieldView<T> e = e_data.get_cpu_view(), b = b_data.get_cpu_view();
 	#pragma omp parallel for simd schedule(static)
 	for(std::size_t idx = 0; idx < particles.particle_num; idx++) {
-		Vector3<T> r_vec = particles_view.get_position(idx);
-		Vector3<T> u_vec = particles_view.get_velocity(idx);
+		Vector3<T> r_vec = particles.get_position(idx);
+		Vector3<T> u_vec = particles.get_velocity(idx);
 		
 		EBVector3<T> eb_vec = cic_gather(r_vec, e, b);
 		Vector3<T> e_vec = eb_vec[0], b_vec = eb_vec[1];
@@ -103,13 +103,13 @@ inline void hc_update(Particles<T> &particles, VectorField<T> &e_field, VectorFi
 		T gamma_half = hc_gamma(u_vec);
 		r_vec += u_vec * (dt / gamma_half);
 		
-		particles_view.set_gamma(gamma_half, idx);
-		particles_view.set_position(r_vec, idx);
-		particles_view.set_velocity(u_vec, idx);
+		particles.set_gamma(gamma_half, idx);
+		particles.set_position(r_vec, idx);
+		particles.set_velocity(u_vec, idx);
 	}
 }
 
 template <std::floating_point T> __global__ void hc_update_gpu_kernel(ParticlesView<T> particles, const VectorFieldView<T> e, const VectorFieldView<T> b, T dt);
-template <std::floating_point T> void hc_update_gpu(Particles<T> &particles, const VectorField<T> &e_field, const VectorField<T> &b_field, T dt) noexcept;
+template <std::floating_point T> void hc_update_gpu(Particles<T> &particles_data, const VectorField<T> &e_data, const VectorField<T> &b_data, T dt) noexcept;
 
 #endif
