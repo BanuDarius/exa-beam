@@ -3,6 +3,7 @@ BIN_DIR = bin
 INPUT_DIR = input
 BUILD_DIR = build
 OUTPUT_DIR = output
+OUTPUT_IMAGE = output-image
 OUTPUT_VIDEO = output-video
 
 CXX = g++
@@ -51,11 +52,11 @@ $(BIN_DIR) $(BUILD_DIR):
 	@mkdir -p $@
 
 output-dirs:
-	@mkdir -p $(OUTPUT_DIR) $(OUTPUT_VIDEO) $(INPUT_DIR)
+	@mkdir -p $(OUTPUT_DIR) $(OUTPUT_VIDEO) $(OUTPUT_IMAGE) $(INPUT_DIR)
 	$(info Created output directories.)
 
 clean:
-	@rm -rf $(BUILD_DIR) $(BIN_DIR) $(OUTPUT_DIR) $(OUTPUT_VIDEO) $(INPUT_DIR)
+	@rm -rf $(BUILD_DIR) $(BIN_DIR) $(OUTPUT_DIR) $(OUTPUT_VIDEO) $(OUTPUT_IMAGE) $(INPUT_DIR)
 	$(info Removed output directories.)
 
 -include $(OBJS:.o=.d)

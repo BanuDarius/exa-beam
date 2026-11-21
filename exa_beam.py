@@ -5,6 +5,7 @@ import numpy as np
 #import scripts.render as render
 import scripts.sim_init as sim_init
 import scripts.programs as programs
+import scripts.plot as plot
 
 c = 137.036
 
@@ -44,6 +45,8 @@ if __name__ == "__main__":
     
     programs.run_simulation(sim_parameters, lasers)
     
+    plot.plot_divergence()
+    plot.plot_total_energy()
     #render.render_paraview()
     
     print("Exa-Beam finished!\a")
