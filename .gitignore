@@ -2,5 +2,6 @@ bin/
 input/
 build/
 output/
+output-image/
 output-video/
 scripts/__pycache__/
