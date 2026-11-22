@@ -26,7 +26,7 @@ def plot_divergence():
     plt.figure()
     plt.plot(divergence)
     plt.xlabel("Step / substep")
-    plt.ylabel(r"$\sqrt{\sum\left(\nabla \cdot \mathbf{E}\right)^2}$")
+    plt.ylabel(r"$\sqrt{\frac{1}{N}\sum\left(\nabla \cdot \mathbf{E}\right)^2}$")
     plt.tight_layout()
     plt.savefig(output, dpi=300, bbox_inches="tight")
     plt.close()
